@@ -9,6 +9,8 @@ import {
 } from "@tanstack/react-router";
 
 import appCss from "../styles.css?url";
+import { AuthProvider } from "@/lib/auth/auth-provider";
+import { PermissionProvider } from "@/lib/permissions/permission-provider";
 
 function NotFoundComponent() {
   return (
@@ -36,7 +38,10 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
         <h1 className="text-xl font-semibold text-foreground">Something went off course</h1>
         <p className="mt-2 text-sm text-muted-foreground">Take a breath. Try again.</p>
         <button
-          onClick={() => { router.invalidate(); reset(); }}
+          onClick={() => {
+            router.invalidate();
+            reset();
+          }}
           className="mt-5 inline-flex items-center justify-center rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground"
         >
           Try again
@@ -52,13 +57,22 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { title: "EvernestCare — Family care, coordinated" },
-      { name: "description", content: "A calm shared workspace for families coordinating care for the people they love." },
+      {
+        name: "description",
+        content: "A calm shared workspace for families coordinating care for the people they love.",
+      },
       { name: "theme-color", content: "#f7f6f1" },
       { property: "og:title", content: "EvernestCare — Family care, coordinated" },
-      { property: "og:description", content: "A calm shared workspace for families coordinating care for the people they love." },
+      {
+        property: "og:description",
+        content: "A calm shared workspace for families coordinating care for the people they love.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:title", content: "EvernestCare — Family care, coordinated" },
-      { name: "twitter:description", content: "A calm shared workspace for families coordinating care for the people they love." },
+      {
+        name: "twitter:description",
+        content: "A calm shared workspace for families coordinating care for the people they love.",
+      },
       { name: "twitter:card", content: "summary" },
     ],
     links: [{ rel: "stylesheet", href: appCss }],
@@ -72,8 +86,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 function RootShell({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <head><HeadContent /></head>
-      <body>{children}<Scripts /></body>
+      <head>
+        <HeadContent />
+      </head>
+      <body>
+        {children}
+        <Scripts />
+      </body>
     </html>
   );
 }
@@ -82,7 +101,11 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
+      <AuthProvider>
+        <PermissionProvider>
+          <Outlet />
+        </PermissionProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
