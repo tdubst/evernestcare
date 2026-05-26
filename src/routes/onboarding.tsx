@@ -3,7 +3,7 @@ import { useState } from "react";
 import { ArrowRight, Check, Heart, Pill, Users, ShieldCheck, Accessibility, ChevronLeft, UserPlus } from "lucide-react";
 
 export const Route = createFileRoute("/onboarding")({
-  head: () => ({ meta: [{ title: "Welcome — CareCircle" }] }),
+  head: () => ({ meta: [{ title: "Welcome — EvernestCare" }] }),
   component: Onboarding,
 });
 
@@ -232,7 +232,7 @@ function Onboarding() {
           onClick={next}
           className="mt-8 w-full flex items-center justify-center gap-2 rounded-full bg-primary py-4 text-[17px] font-medium text-primary-foreground shadow-card active:scale-[0.99] transition"
         >
-          {step === STEPS.length - 1 ? "Enter CareCircle" : "Continue"}
+          {step === STEPS.length - 1 ? "Enter EvernestCare" : "Continue"}
           <ArrowRight className="h-4 w-4" />
         </button>
       </div>

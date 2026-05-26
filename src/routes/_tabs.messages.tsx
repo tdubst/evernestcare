@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Pin, Plus, Mic, Send, Paperclip, Camera, Search } from "lucide-react";
 
 export const Route = createFileRoute("/_tabs/messages")({
-  head: () => ({ meta: [{ title: "Messages — CareCircle" }] }),
+  head: () => ({ meta: [{ title: "Messages — EvernestCare" }] }),
   component: Messages,
 });
 

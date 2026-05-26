@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/_tabs/today")({
-  head: () => ({ meta: [{ title: "Today — CareCircle" }] }),
+  head: () => ({ meta: [{ title: "Today — EvernestCare" }] }),
   component: Today,
 });
 
@@ -181,7 +181,7 @@ function Today() {
           <Vital label="Weight" value="148 lb" trend="-1.2 this wk" tone="sand" />
         </div>
         <p className="mt-2.5 px-1 text-[11px] text-muted-foreground">
-          Logged manually · CareCircle does not diagnose or interpret.
+          Logged manually · EvernestCare does not diagnose or interpret.
         </p>
       </Section>
 

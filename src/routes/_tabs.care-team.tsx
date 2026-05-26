@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { UserPlus, Stethoscope, Shield, Crown, Eye, Phone, MoreHorizontal, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/_tabs/care-team")({
-  head: () => ({ meta: [{ title: "Care team — CareCircle" }] }),
+  head: () => ({ meta: [{ title: "Care team — EvernestCare" }] }),
   component: CareTeam,
 });
 

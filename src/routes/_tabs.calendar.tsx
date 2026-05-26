@@ -3,7 +3,7 @@ import { useState } from "react";
 import { ChevronLeft, ChevronRight, Pill, Stethoscope, ScanLine, Activity, Plus } from "lucide-react";
 
 export const Route = createFileRoute("/_tabs/calendar")({
-  head: () => ({ meta: [{ title: "Calendar — CareCircle" }] }),
+  head: () => ({ meta: [{ title: "Calendar — EvernestCare" }] }),
   component: CalendarPage,
 });
 

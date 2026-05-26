@@ -3,7 +3,7 @@ import { useState } from "react";
 import { FileText, ScanLine, FlaskConical, ShieldCheck, Pill, ScrollText, Search, ChevronLeft, Share2, Paperclip, Calendar } from "lucide-react";
 
 export const Route = createFileRoute("/_tabs/vault")({
-  head: () => ({ meta: [{ title: "Vault — CareCircle" }] }),
+  head: () => ({ meta: [{ title: "Vault — EvernestCare" }] }),
   component: Vault,
 });
 
@@ -157,7 +157,7 @@ function ImagingDetail({ study, onBack }: { study: typeof IMAGING[number]; onBac
         <div className="mt-4 card-soft p-5">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Plain-language summary</p>
           <p className="mt-2 text-[15px] leading-relaxed">{study.summary}</p>
-          <p className="mt-3 text-[11px] text-muted-foreground">Provider-written summary. CareCircle does not interpret images.</p>
+          <p className="mt-3 text-[11px] text-muted-foreground">Provider-written summary. EvernestCare does not interpret images.</p>
         </div>
 
         <div className="mt-3 card-soft p-5 flex items-center gap-3">
