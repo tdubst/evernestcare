@@ -81,6 +81,19 @@ This is the canonical domain authority for pre-alpha implementation. Database sc
 - Soft delete policy: never hard delete active or historical grants; revoke instead.
 - Audit requirements: create, update, expire, revoke.
 
+## Invitation
+
+- Purpose: pending, auditable offer of care-team access to a person by email or future verified identity.
+- Ownership: owned by the issuing care team and inviting administrator.
+- Relationships: links invited email, optional invited user, care team, role, permission grants, care recipient, and audit events.
+- Visibility rules: visible to care-team administrators and the invited user after identity verification; raw tokens are never visible.
+- Lifecycle: pending, accepted, expired, revoked, declined.
+- Archival behavior: invitations remain in history after acceptance, expiration, revocation, or recipient/team archival.
+- Revocation behavior: revoked invitations cannot be accepted and must not leave residual role or permission grants.
+- Permission inheritance: accepted invitations create membership and role-derived permissions only after explicit acceptance.
+- Soft delete policy: do not hard delete; mark revoked, expired, or declined while preserving audit history.
+- Audit requirements: create, resend, accept, expire, revoke, role change before acceptance.
+
 ## Appointment
 
 - Purpose: schedule and coordinate care-related events.
@@ -197,4 +210,3 @@ This is the canonical domain authority for pre-alpha implementation. Database sc
 - Permission inheritance: audit visibility is explicit and administrator-scoped.
 - Soft delete policy: no soft delete for normal operation.
 - Audit requirements: audit events are the requirement.
-

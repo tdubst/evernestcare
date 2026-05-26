@@ -22,8 +22,8 @@ Expected domain areas:
 
 - users and profiles
 - care recipients
-- care circles
-- circle memberships
+- care teams
+- care team memberships
 - invitations
 - roles and permissions
 - medications and medication logs
@@ -47,12 +47,11 @@ Expected domain areas:
 Use calm, domain-specific names:
 
 - `care_recipients`
-- `care_circles`
-- `circle_members`
-- `care_permissions`
+- `care_teams`
+- `care_team_members`
+- `permission_grants`
 - `medication_logs`
 - `appointment_participants`
 - `document_access_grants`
 
 Avoid clinical/EHR language unless the product is explicitly modeling a user-supplied document or provider contact.
-
