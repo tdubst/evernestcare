@@ -6,11 +6,14 @@ export type HealthEventType =
   | "MedicationMissedEvent";
 
 export type HealthEventSource = "manual" | "reminder" | "device";
+export type TimelineFilter = "all" | "medications" | "vitals";
+export type TimeframePreset = "24h" | "7d" | "30d" | "custom";
 
 export type HealthEventBase<TType extends HealthEventType, TPayload> = {
   actorName: string;
   createdAt: string;
   id: string;
+  occurredAt: string;
   payload: TPayload;
   source: HealthEventSource;
   type: TType;
@@ -86,6 +89,41 @@ export type HealthEventState = {
   vitalsReadings: VitalsReading[];
 };
 
+export type TimelineQuery = {
+  customRange?: {
+    end: Date;
+    start: Date;
+  };
+  filter: TimelineFilter;
+  timeframe: TimeframePreset;
+};
+
+export type TimelineItem = {
+  description: string;
+  event: HealthEvent;
+  family: Exclude<TimelineFilter, "all">;
+  orderIndex: number;
+};
+
+export type ProviderSummary = {
+  eventCount: number;
+  lines: string[];
+  medicationEventCount: number;
+  timeframeLabel: string;
+  vitalsEventCount: number;
+};
+
+export type CareProfile = {
+  allergies: string[];
+  chronicConditions: string[];
+  emergencyContacts: string[];
+  hospitalizationHistory: string[];
+  insuranceInfo: string;
+  medicalHistory: string[];
+  providers: string[];
+  surgicalHistory: string[];
+};
+
 const DEFAULT_ACTOR = "Sarah";
 
 export function createInitialHealthEventState(): HealthEventState {
@@ -104,6 +142,7 @@ export function createInitialHealthEventState(): HealthEventState {
         createdAt: "Today, 8:14 AM",
         eventId: "event-med-lisinopril-taken",
         medicationId: "lisinopril",
+        occurredAt: new Date().toISOString(),
       }),
     ],
     medications: [
@@ -144,16 +183,19 @@ export function createMedicationTakenEvent({
   createdAt = formatEventTimestamp(),
   eventId,
   medicationId,
+  occurredAt = new Date().toISOString(),
 }: {
   actorName?: string;
   createdAt?: string;
   eventId?: string;
   medicationId: string;
+  occurredAt?: string;
 }): MedicationTakenEvent {
   return {
     actorName,
     createdAt,
     id: eventId ?? createEventId("medication-taken", medicationId),
+    occurredAt,
     payload: { medicationId },
     source: "manual",
     type: "MedicationTakenEvent",
@@ -164,15 +206,18 @@ export function createMedicationScheduledEvent({
   actorName = DEFAULT_ACTOR,
   createdAt = formatEventTimestamp(),
   medication,
+  occurredAt = new Date().toISOString(),
 }: {
   actorName?: string;
   createdAt?: string;
   medication: Medication;
+  occurredAt?: string;
 }): MedicationScheduledEvent {
   return {
     actorName,
     createdAt,
     id: createEventId("medication-scheduled", medication.id),
+    occurredAt,
     payload: medication,
     source: "manual",
     type: "MedicationScheduledEvent",
@@ -182,16 +227,19 @@ export function createMedicationScheduledEvent({
 export function createVitalsRecordedEvent({
   actorName = DEFAULT_ACTOR,
   createdAt = formatEventTimestamp(),
+  occurredAt = new Date().toISOString(),
   reading,
 }: {
   actorName?: string;
   createdAt?: string;
+  occurredAt?: string;
   reading: VitalsReading;
 }): VitalsRecordedEvent {
   return {
     actorName,
     createdAt,
     id: createEventId("vitals-recorded", reading.id),
+    occurredAt,
     payload: { reading: { ...reading, recordedAt: createdAt } },
     source: "manual",
     type: "VitalsRecordedEvent",
@@ -284,6 +332,72 @@ export function describeHealthEvent(event: HealthEvent, medications: Medication[
   return "Reminder dismissed";
 }
 
+export function projectOperationalTimeline(
+  state: HealthEventState,
+  query: TimelineQuery,
+): TimelineItem[] {
+  return state.events
+    .map((event, orderIndex) => ({
+      description: describeHealthEvent(event, state.medications),
+      event,
+      family: getEventFamily(event),
+      orderIndex,
+    }))
+    .filter((item) => query.filter === "all" || item.family === query.filter)
+    .filter((item) => isEventInTimeframe(item.event, query))
+    .sort((left, right) => {
+      const byTime = right.event.occurredAt.localeCompare(left.event.occurredAt);
+      return byTime === 0 ? left.orderIndex - right.orderIndex : byTime;
+    });
+}
+
+export function createProviderSummary(
+  state: HealthEventState,
+  query: TimelineQuery,
+): ProviderSummary {
+  const timeline = projectOperationalTimeline(state, query);
+  const medicationEventCount = timeline.filter((item) => item.family === "medications").length;
+  const vitalsEventCount = timeline.filter((item) => item.family === "vitals").length;
+  const recentDescriptions = timeline.slice(0, 3).map((item) => item.description);
+
+  return {
+    eventCount: timeline.length,
+    lines: [
+      `${timeline.length} operational event${timeline.length === 1 ? "" : "s"} in ${formatTimeframeLabel(query)}.`,
+      `${medicationEventCount} medication event${medicationEventCount === 1 ? "" : "s"}.`,
+      `${vitalsEventCount} vitals event${vitalsEventCount === 1 ? "" : "s"}.`,
+      recentDescriptions.length > 0
+        ? `Recent: ${recentDescriptions.join("; ")}.`
+        : "No operational events in this timeframe.",
+      "Summary is factual and non-diagnostic.",
+    ],
+    medicationEventCount,
+    timeframeLabel: formatTimeframeLabel(query),
+    vitalsEventCount,
+  };
+}
+
+export function createDefaultCareProfile(): CareProfile {
+  return {
+    allergies: ["Penicillin"],
+    chronicConditions: ["Hypertension", "Type 2 diabetes"],
+    emergencyContacts: ["David Chen"],
+    hospitalizationHistory: ["No recent hospitalization recorded"],
+    insuranceInfo: "Medicare Advantage · informational only",
+    medicalHistory: ["High blood pressure", "Elevated A1C history"],
+    providers: ["Dr. Okafor · Cardiology", "Dr. Patel · Primary care"],
+    surgicalHistory: ["Appendectomy · remote"],
+  };
+}
+
+export function formatTimeframeLabel(query: TimelineQuery) {
+  if (query.timeframe === "24h") return "the last 24 hours";
+  if (query.timeframe === "7d") return "the last 7 days";
+  if (query.timeframe === "30d") return "the last 30 days";
+
+  return "the selected custom range";
+}
+
 function upsertMedication(medications: Medication[], medication: Medication) {
   const existing = medications.some((item) => item.id === medication.id);
   if (!existing) return [...medications, medication];
@@ -300,4 +414,31 @@ function formatEventTimestamp() {
     hour: "numeric",
     minute: "2-digit",
   }).format(new Date());
+}
+
+function getEventFamily(event: HealthEvent): Exclude<TimelineFilter, "all"> {
+  if (event.type === "VitalsRecordedEvent") return "vitals";
+  return "medications";
+}
+
+function isEventInTimeframe(event: HealthEvent, query: TimelineQuery) {
+  const occurredAt = new Date(event.occurredAt).getTime();
+  if (Number.isNaN(occurredAt)) return true;
+
+  if (query.timeframe === "custom" && query.customRange) {
+    return (
+      occurredAt >= query.customRange.start.getTime() &&
+      occurredAt <= query.customRange.end.getTime()
+    );
+  }
+
+  const now = Date.now();
+  const timeframeMs =
+    query.timeframe === "24h"
+      ? 24 * 60 * 60 * 1000
+      : query.timeframe === "7d"
+        ? 7 * 24 * 60 * 60 * 1000
+        : 30 * 24 * 60 * 60 * 1000;
+
+  return occurredAt >= now - timeframeMs;
 }

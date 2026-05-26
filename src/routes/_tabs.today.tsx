@@ -31,8 +31,17 @@ import {
   healthEventReducer,
   type HealthEvent,
   type HealthEventState,
+  type CareProfile,
   type Medication,
+  type ProviderSummary,
+  type TimelineFilter,
+  type TimelineItem,
+  type TimeframePreset,
   type VitalsReading,
+  createDefaultCareProfile,
+  createProviderSummary,
+  formatTimeframeLabel,
+  projectOperationalTimeline,
 } from "@/lib/health-events";
 
 export const Route = createFileRoute("/_tabs/today")({
@@ -43,11 +52,17 @@ export const Route = createFileRoute("/_tabs/today")({
 function Today() {
   const [quickPanel, setQuickPanel] = useState<"med" | "vitals" | null>(null);
   const [savedPanel, setSavedPanel] = useState<"med" | "vitals" | null>(null);
+  const [timelineFilter, setTimelineFilter] = useState<TimelineFilter>("all");
+  const [timeframe, setTimeframe] = useState<TimeframePreset>("7d");
   const [healthEventState, dispatchHealthEvent] = useReducer(
     healthEventReducer,
     undefined,
     createInitialHealthEventState,
   );
+  const timelineQuery = { filter: timelineFilter, timeframe };
+  const timeline = projectOperationalTimeline(healthEventState, timelineQuery);
+  const providerSummary = createProviderSummary(healthEventState, timelineQuery);
+  const careProfile = createDefaultCareProfile();
 
   const openQuickPanel = (panel: "med" | "vitals") => {
     setQuickPanel(panel);
@@ -214,6 +229,25 @@ function Today() {
         </p>
       </Section>
 
+      <Section title="Operational timeline">
+        <OperationalTimelineCard
+          filter={timelineFilter}
+          onFilterChange={setTimelineFilter}
+          onTimeframeChange={setTimeframe}
+          summary={providerSummary}
+          timeframe={timeframe}
+          timeline={timeline}
+        />
+      </Section>
+
+      <Section title="Provider summary">
+        <ProviderSummaryCard
+          careProfile={careProfile}
+          summary={providerSummary}
+          timeframe={timeframe}
+        />
+      </Section>
+
       <Section
         title="Emergency contacts"
         cta={
@@ -269,6 +303,152 @@ function Today() {
           <ChevronRight className="h-4 w-4 text-muted-foreground" />
         </Link>
       </div>
+    </div>
+  );
+}
+
+function OperationalTimelineCard({
+  filter,
+  onFilterChange,
+  onTimeframeChange,
+  summary,
+  timeframe,
+  timeline,
+}: {
+  filter: TimelineFilter;
+  onFilterChange: (filter: TimelineFilter) => void;
+  onTimeframeChange: (timeframe: TimeframePreset) => void;
+  summary: ProviderSummary;
+  timeframe: TimeframePreset;
+  timeline: TimelineItem[];
+}) {
+  return (
+    <div className="card-soft p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[15px] font-medium">Care activity</p>
+          <p className="text-[12px] text-muted-foreground">
+            {summary.eventCount} event{summary.eventCount === 1 ? "" : "s"} in{" "}
+            {formatTimeframeLabel({ filter, timeframe })}
+          </p>
+        </div>
+        <span className="rounded-full bg-secondary px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+          Replay-safe
+        </span>
+      </div>
+
+      <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+        {[
+          { label: "24h", value: "24h" },
+          { label: "7d", value: "7d" },
+          { label: "30d", value: "30d" },
+        ].map((option) => (
+          <button
+            key={option.value}
+            onClick={() => onTimeframeChange(option.value as TimeframePreset)}
+            className={`rounded-full px-3 py-1.5 text-[12px] font-medium ${
+              timeframe === option.value
+                ? "bg-primary text-primary-foreground"
+                : "bg-secondary text-muted-foreground"
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+        {[
+          { label: "All", value: "all" },
+          { label: "Meds", value: "medications" },
+          { label: "Vitals", value: "vitals" },
+        ].map((option) => (
+          <button
+            key={option.value}
+            onClick={() => onFilterChange(option.value as TimelineFilter)}
+            className={`rounded-full px-3 py-1.5 text-[12px] font-medium ${
+              filter === option.value
+                ? "bg-sage text-sage-foreground"
+                : "bg-secondary text-muted-foreground"
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-3 space-y-2.5">
+        {timeline.slice(0, 4).map((item) => (
+          <div key={item.event.id} className="flex gap-3 rounded-2xl bg-secondary px-3.5 py-3">
+            <span
+              className={`mt-0.5 h-2.5 w-2.5 rounded-full ${
+                item.family === "medications" ? "bg-blush-foreground" : "bg-sage-foreground"
+              }`}
+            />
+            <div className="min-w-0 flex-1">
+              <p className="text-[13px] font-medium">{item.description}</p>
+              <p className="text-[12px] text-muted-foreground">
+                {item.event.type} · {item.event.createdAt}
+              </p>
+            </div>
+          </div>
+        ))}
+        {timeline.length === 0 && (
+          <div className="rounded-2xl bg-secondary px-3.5 py-3 text-[13px] text-muted-foreground">
+            No operational events match this view.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ProviderSummaryCard({
+  careProfile,
+  summary,
+  timeframe,
+}: {
+  careProfile: CareProfile;
+  summary: ProviderSummary;
+  timeframe: TimeframePreset;
+}) {
+  return (
+    <div className="card-soft p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[15px] font-medium">Visit-ready summary</p>
+          <p className="text-[12px] text-muted-foreground">
+            Deterministic · {formatTimeframeLabel({ filter: "all", timeframe })}
+          </p>
+        </div>
+        <span className="rounded-full bg-sky px-2.5 py-1 text-[11px] font-medium text-sky-foreground">
+          Factual
+        </span>
+      </div>
+
+      <div className="mt-3 space-y-2">
+        {summary.lines.map((line) => (
+          <p key={line} className="rounded-2xl bg-secondary px-3.5 py-2.5 text-[13px]">
+            {line}
+          </p>
+        ))}
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-2.5">
+        <ProfileChip label="Conditions" value={careProfile.chronicConditions.join(", ")} />
+        <ProfileChip label="Allergies" value={careProfile.allergies.join(", ")} />
+      </div>
+    </div>
+  );
+}
+
+function ProfileChip({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl bg-secondary px-3.5 py-3">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        {label}
+      </p>
+      <p className="mt-1 text-[13px] font-medium">{value}</p>
     </div>
   );
 }
