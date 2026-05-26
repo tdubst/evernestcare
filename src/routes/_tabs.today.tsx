@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useReducer, useState } from "react";
 import {
   type LucideIcon,
   Pill,
@@ -21,6 +21,19 @@ import {
 } from "lucide-react";
 
 import { HEALTH_DEVICE_INTEGRATIONS } from "@/lib/integrations/health-devices";
+import {
+  createInitialHealthEventState,
+  createMedicationScheduledEvent,
+  createMedicationTakenEvent,
+  createVitalsReading,
+  createVitalsRecordedEvent,
+  describeHealthEvent,
+  healthEventReducer,
+  type HealthEvent,
+  type HealthEventState,
+  type Medication,
+  type VitalsReading,
+} from "@/lib/health-events";
 
 export const Route = createFileRoute("/_tabs/today")({
   head: () => ({ meta: [{ title: "Today — EvernestCare" }] }),
@@ -30,6 +43,11 @@ export const Route = createFileRoute("/_tabs/today")({
 function Today() {
   const [quickPanel, setQuickPanel] = useState<"med" | "vitals" | null>(null);
   const [savedPanel, setSavedPanel] = useState<"med" | "vitals" | null>(null);
+  const [healthEventState, dispatchHealthEvent] = useReducer(
+    healthEventReducer,
+    undefined,
+    createInitialHealthEventState,
+  );
 
   const openQuickPanel = (panel: "med" | "vitals") => {
     setQuickPanel(panel);
@@ -97,13 +115,17 @@ function Today() {
         <div className="px-6 mt-4">
           {quickPanel === "med" ? (
             <LogMedicationPanel
+              healthEventState={healthEventState}
               saved={savedPanel === "med"}
+              onEvent={dispatchHealthEvent}
               onClose={closeQuickPanel}
               onSave={() => setSavedPanel("med")}
             />
           ) : (
             <VitalsPanel
+              healthEventState={healthEventState}
               saved={savedPanel === "vitals"}
+              onEvent={dispatchHealthEvent}
               onClose={closeQuickPanel}
               onSave={() => setSavedPanel("vitals")}
             />
@@ -252,16 +274,34 @@ function Today() {
 }
 
 function LogMedicationPanel({
+  healthEventState,
   saved,
+  onEvent,
   onClose,
   onSave,
 }: {
+  healthEventState: HealthEventState;
   saved: boolean;
+  onEvent: (event: HealthEvent) => void;
   onClose: () => void;
   onSave: () => void;
 }) {
   const [showAddMedication, setShowAddMedication] = useState(false);
-  const [takenDose, setTakenDose] = useState<string | null>(null);
+  const scheduleMedication = () => {
+    onEvent(
+      createMedicationScheduledEvent({
+        medication: {
+          dose: "5 mg",
+          frequency: "Once daily",
+          id: "amlodipine",
+          name: "Amlodipine",
+          reminderTime: "8:00 AM",
+        },
+      }),
+    );
+    onSave();
+    setShowAddMedication(false);
+  };
 
   return (
     <div className="card-soft border hairline overflow-hidden">
@@ -294,10 +334,7 @@ function LogMedicationPanel({
               <Field label="Reminder" value="8:00 AM" />
             </div>
             <button
-              onClick={() => {
-                onSave();
-                setShowAddMedication(false);
-              }}
+              onClick={scheduleMedication}
               className="mt-3 w-full rounded-full bg-primary py-3 text-[14px] font-medium text-primary-foreground"
             >
               Add medication
@@ -310,53 +347,41 @@ function LogMedicationPanel({
             Due next
           </p>
           <div className="mt-2 space-y-2.5">
-            {[
-              {
-                id: "metformin",
-                name: "Metformin",
-                dose: "500 mg",
-                when: "1:00 PM",
-                frequency: "Twice daily",
-              },
-              {
-                id: "atorvastatin",
-                name: "Atorvastatin",
-                dose: "20 mg",
-                when: "8:00 PM",
-                frequency: "Evening",
-              },
-            ].map((medication) => {
-              const isTaken = takenDose === medication.id;
-              return (
-                <div
-                  key={medication.id}
-                  className="flex items-center gap-3 rounded-2xl bg-secondary px-3.5 py-3"
-                >
-                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-blush text-blush-foreground">
-                    <Clock3 className="h-4 w-4" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[14px] font-medium">
-                      {medication.name} · {medication.dose}
-                    </p>
-                    <p className="text-[12px] text-muted-foreground">
-                      {medication.when} · {medication.frequency}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setTakenDose(medication.id);
-                      onSave();
-                    }}
-                    className={`rounded-full px-3 py-1.5 text-[12px] font-medium ${
-                      isTaken ? "bg-sage text-sage-foreground" : "bg-card text-primary"
-                    }`}
+            {healthEventState.medications
+              .filter((medication) => medication.id !== "lisinopril")
+              .map((medication) => {
+                const adherence = healthEventState.adherence[medication.id];
+                const isTaken = adherence?.status === "taken";
+                return (
+                  <div
+                    key={medication.id}
+                    className="flex items-center gap-3 rounded-2xl bg-secondary px-3.5 py-3"
                   >
-                    {isTaken ? "Taken" : "Mark taken"}
-                  </button>
-                </div>
-              );
-            })}
+                    <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-blush text-blush-foreground">
+                      <Clock3 className="h-4 w-4" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[14px] font-medium">
+                        {medication.name} · {medication.dose}
+                      </p>
+                      <p className="text-[12px] text-muted-foreground">
+                        {medication.reminderTime} · {medication.frequency}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        onEvent(createMedicationTakenEvent({ medicationId: medication.id }));
+                        onSave();
+                      }}
+                      className={`rounded-full px-3 py-1.5 text-[12px] font-medium ${
+                        isTaken ? "bg-sage text-sage-foreground" : "bg-card text-primary"
+                      }`}
+                    >
+                      {isTaken ? "Taken" : "Mark taken"}
+                    </button>
+                  </div>
+                );
+              })}
           </div>
         </div>
 
@@ -365,26 +390,35 @@ function LogMedicationPanel({
             Medication history
           </p>
           <div className="mt-2 divide-y hairline overflow-hidden rounded-2xl bg-card">
-            {[
-              { med: "Lisinopril · 10 mg", time: "Today, 8:14 AM", by: "Sarah" },
-              { med: "Metformin · 500 mg", time: "Yesterday, 1:07 PM", by: "David" },
-              { med: "Atorvastatin · 20 mg", time: "Yesterday, 8:02 PM", by: "Sarah" },
-            ].map((entry) => (
-              <div
-                key={`${entry.med}-${entry.time}`}
-                className="flex items-center gap-3 px-3.5 py-3"
-              >
-                <CheckCircle2 className="h-4 w-4 text-sage-foreground" />
-                <div className="flex-1">
-                  <p className="text-[13px] font-medium">{entry.med}</p>
-                  <p className="text-[12px] text-muted-foreground">
-                    {entry.time} · marked by {entry.by}
-                  </p>
+            {healthEventState.events
+              .filter(
+                (event) =>
+                  event.type === "MedicationTakenEvent" ||
+                  event.type === "MedicationScheduledEvent" ||
+                  event.type === "MedicationMissedEvent",
+              )
+              .slice(0, 4)
+              .map((event) => (
+                <div key={event.id} className="flex items-center gap-3 px-3.5 py-3">
+                  <CheckCircle2 className="h-4 w-4 text-sage-foreground" />
+                  <div className="flex-1">
+                    <p className="text-[13px] font-medium">
+                      {describeHealthEvent(event, healthEventState.medications)}
+                    </p>
+                    <p className="text-[12px] text-muted-foreground">
+                      {event.createdAt} · {event.actorName}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
           </div>
         </div>
+
+        <RecentHealthEvents
+          events={healthEventState.events}
+          medications={healthEventState.medications}
+          title="Operational events"
+        />
 
         {saved && (
           <div className="flex items-center gap-2 rounded-2xl bg-sage px-3.5 py-2.5 text-[13px] font-medium text-sage-foreground">
@@ -398,15 +432,29 @@ function LogMedicationPanel({
 }
 
 function VitalsPanel({
+  healthEventState,
   saved,
+  onEvent,
   onClose,
   onSave,
 }: {
+  healthEventState: HealthEventState;
   saved: boolean;
+  onEvent: (event: HealthEvent) => void;
   onClose: () => void;
   onSave: () => void;
 }) {
   const [showAddReading, setShowAddReading] = useState(false);
+  const addReading = () => {
+    onEvent(
+      createVitalsRecordedEvent({
+        reading: createVitalsReading("Now", 124, 72, "148 lb", "Resting, after walk, device used"),
+      }),
+    );
+    onSave();
+    setShowAddReading(false);
+  };
+  const latestReading = healthEventState.vitalsReadings[healthEventState.vitalsReadings.length - 1];
 
   return (
     <div className="card-soft border hairline overflow-hidden">
@@ -427,7 +475,7 @@ function VitalsPanel({
         }
       />
       <div className="px-4 pb-4 space-y-4">
-        <VitalsTrendChart />
+        <VitalsTrendChart readings={healthEventState.vitalsReadings} />
 
         {showAddReading && (
           <div className="rounded-2xl bg-secondary p-3.5">
@@ -450,10 +498,7 @@ function VitalsPanel({
               />
             </label>
             <button
-              onClick={() => {
-                onSave();
-                setShowAddReading(false);
-              }}
+              onClick={addReading}
               className="mt-3 w-full rounded-full bg-primary py-3 text-[14px] font-medium text-primary-foreground"
             >
               Add reading
@@ -466,11 +511,27 @@ function VitalsPanel({
             Recent readings
           </p>
           <div className="mt-2 grid grid-cols-3 gap-2.5">
-            <Vital label="Blood pressure" value="124/78" trend="Today" tone="sage" />
-            <Vital label="Heart rate" value="72" trend="Resting" tone="sky" />
-            <Vital label="Weight" value="148 lb" trend="Manual" tone="sand" />
+            <Vital
+              label="Blood pressure"
+              value={latestReading.bloodPressure}
+              trend={latestReading.label}
+              tone="sage"
+            />
+            <Vital
+              label="Heart rate"
+              value={String(latestReading.heartRate)}
+              trend="Resting"
+              tone="sky"
+            />
+            <Vital label="Weight" value={latestReading.weight} trend="Manual" tone="sand" />
           </div>
         </div>
+
+        <RecentHealthEvents
+          events={healthEventState.events.filter((event) => event.type === "VitalsRecordedEvent")}
+          medications={healthEventState.medications}
+          title="Vitals events"
+        />
 
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -517,14 +578,8 @@ function VitalsPanel({
   );
 }
 
-function VitalsTrendChart() {
-  const points = [
-    { label: "Mon", systolic: 132, heartRate: 76 },
-    { label: "Tue", systolic: 128, heartRate: 74 },
-    { label: "Wed", systolic: 130, heartRate: 75 },
-    { label: "Thu", systolic: 126, heartRate: 73 },
-    { label: "Fri", systolic: 124, heartRate: 72 },
-  ];
+function VitalsTrendChart({ readings }: { readings: VitalsReading[] }) {
+  const points = readings.slice(-5);
   const systolicPath = points
     .map((point, index) => `${28 + index * 62},${166 - (point.systolic - 110) * 2.1}`)
     .join(" ");
@@ -602,6 +657,38 @@ function VitalsTrendChart() {
           <span className="h-2 w-2 rounded-full bg-sage-foreground" />
           Heart rate
         </span>
+      </div>
+    </div>
+  );
+}
+
+function RecentHealthEvents({
+  events,
+  medications,
+  title,
+}: {
+  events: HealthEvent[];
+  medications: Medication[];
+  title: string;
+}) {
+  if (events.length === 0) {
+    return null;
+  }
+
+  return (
+    <div>
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+        {title}
+      </p>
+      <div className="mt-2 space-y-2">
+        {events.slice(0, 3).map((event) => (
+          <div key={event.id} className="rounded-2xl bg-secondary px-3.5 py-3">
+            <p className="text-[13px] font-medium">{describeHealthEvent(event, medications)}</p>
+            <p className="text-[12px] text-muted-foreground">
+              {event.type} · {event.createdAt}
+            </p>
+          </div>
+        ))}
       </div>
     </div>
   );
