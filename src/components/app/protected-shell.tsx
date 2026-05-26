@@ -3,16 +3,18 @@ import { ShieldCheck } from "lucide-react";
 
 import { useAuth } from "@/lib/auth/auth-context";
 import { usePermissions } from "@/lib/permissions/permission-context";
+import { isAuthRequiredForRoutes } from "@/lib/supabase/config";
 
 export function ProtectedShell({ children }: { children: React.ReactNode }) {
   const { status } = useAuth();
   const permissions = usePermissions();
+  const authRequired = isAuthRequiredForRoutes();
 
   if (status === "loading") {
     return <ShellNotice title="Opening EvernestCare" body="Checking your care workspace." />;
   }
 
-  if (status === "unconfigured") {
+  if (status === "unconfigured" && authRequired) {
     return (
       <ShellNotice
         title="Connect Supabase to continue"
@@ -21,7 +23,7 @@ export function ProtectedShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (status === "unauthenticated" || permissions.status === "auth-required") {
+  if (authRequired && (status === "unauthenticated" || permissions.status === "auth-required")) {
     return (
       <ShellNotice
         title="Sign in required"

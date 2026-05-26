@@ -5,6 +5,7 @@ import {
   PermissionContext,
   type PermissionContextValue,
 } from "@/lib/permissions/permission-context";
+import { isAuthRequiredForRoutes } from "@/lib/supabase/config";
 
 export function PermissionProvider({ children }: { children: React.ReactNode }) {
   const { status, user } = useAuth();
@@ -18,7 +19,7 @@ export function PermissionProvider({ children }: { children: React.ReactNode }) 
       };
     }
 
-    if (!user) {
+    if (!user && isAuthRequiredForRoutes()) {
       return {
         activeCareRecipientId: null,
         grants: [],
