@@ -13,7 +13,14 @@ import {
   Sparkles,
   CheckCircle2,
   X,
+  Plus,
+  Clock3,
+  Bluetooth,
+  Watch,
+  Smartphone,
 } from "lucide-react";
+
+import { HEALTH_DEVICE_INTEGRATIONS } from "@/lib/integrations/health-devices";
 
 export const Route = createFileRoute("/_tabs/today")({
   head: () => ({ meta: [{ title: "Today — EvernestCare" }] }),
@@ -62,7 +69,7 @@ function Today() {
         {[
           {
             i: Pill,
-            l: "Log med",
+            l: "Medications",
             c: "bg-blush text-blush-foreground",
             onClick: () => openQuickPanel("med"),
           },
@@ -253,37 +260,138 @@ function LogMedicationPanel({
   onClose: () => void;
   onSave: () => void;
 }) {
+  const [showAddMedication, setShowAddMedication] = useState(false);
+  const [takenDose, setTakenDose] = useState<string | null>(null);
+
   return (
     <div className="card-soft border hairline overflow-hidden">
       <PanelHeader
         icon={Pill}
-        title="Log medication"
-        subtitle="Record Mom's next dose."
+        title="Medications"
+        subtitle="History, reminders, and prescribed meds."
         onClose={onClose}
         tone="bg-blush text-blush-foreground"
+        action={
+          <button
+            onClick={() => setShowAddMedication((current) => !current)}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground"
+            aria-label="Add medication"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+        }
       />
-      <div className="px-4 pb-4 space-y-3">
-        <Field label="Medication" value="Metformin · 500 mg" />
-        <div className="grid grid-cols-2 gap-2.5">
-          <Field label="Time" value="1:00 PM" />
-          <Field label="Status" value="Taken" />
+      <div className="px-4 pb-4 space-y-4">
+        {showAddMedication && (
+          <div className="rounded-2xl bg-secondary p-3.5">
+            <p className="text-[13px] font-semibold">Add prescribed medication</p>
+            <div className="mt-3 grid grid-cols-2 gap-2.5">
+              <Field label="Name" value="Amlodipine" />
+              <Field label="Dosage" value="5 mg" />
+            </div>
+            <div className="mt-2.5 grid grid-cols-2 gap-2.5">
+              <Field label="Frequency" value="Once daily" />
+              <Field label="Reminder" value="8:00 AM" />
+            </div>
+            <button
+              onClick={() => {
+                onSave();
+                setShowAddMedication(false);
+              }}
+              className="mt-3 w-full rounded-full bg-primary py-3 text-[14px] font-medium text-primary-foreground"
+            >
+              Add medication
+            </button>
+          </div>
+        )}
+
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Due next
+          </p>
+          <div className="mt-2 space-y-2.5">
+            {[
+              {
+                id: "metformin",
+                name: "Metformin",
+                dose: "500 mg",
+                when: "1:00 PM",
+                frequency: "Twice daily",
+              },
+              {
+                id: "atorvastatin",
+                name: "Atorvastatin",
+                dose: "20 mg",
+                when: "8:00 PM",
+                frequency: "Evening",
+              },
+            ].map((medication) => {
+              const isTaken = takenDose === medication.id;
+              return (
+                <div
+                  key={medication.id}
+                  className="flex items-center gap-3 rounded-2xl bg-secondary px-3.5 py-3"
+                >
+                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-blush text-blush-foreground">
+                    <Clock3 className="h-4 w-4" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[14px] font-medium">
+                      {medication.name} · {medication.dose}
+                    </p>
+                    <p className="text-[12px] text-muted-foreground">
+                      {medication.when} · {medication.frequency}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setTakenDose(medication.id);
+                      onSave();
+                    }}
+                    className={`rounded-full px-3 py-1.5 text-[12px] font-medium ${
+                      isTaken ? "bg-sage text-sage-foreground" : "bg-card text-primary"
+                    }`}
+                  >
+                    {isTaken ? "Taken" : "Mark taken"}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
         </div>
-        <label className="block rounded-2xl bg-secondary px-3.5 py-3">
-          <span className="block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Note
-          </span>
-          <textarea
-            className="mt-1 min-h-16 w-full resize-none bg-transparent text-[14px] outline-none placeholder:text-muted-foreground"
-            placeholder="Add a short note"
-          />
-        </label>
-        <PanelActions
-          saved={saved}
-          savedText="Medication logged"
-          saveText="Save med log"
-          onSave={onSave}
-          onClose={onClose}
-        />
+
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Medication history
+          </p>
+          <div className="mt-2 divide-y hairline overflow-hidden rounded-2xl bg-card">
+            {[
+              { med: "Lisinopril · 10 mg", time: "Today, 8:14 AM", by: "Sarah" },
+              { med: "Metformin · 500 mg", time: "Yesterday, 1:07 PM", by: "David" },
+              { med: "Atorvastatin · 20 mg", time: "Yesterday, 8:02 PM", by: "Sarah" },
+            ].map((entry) => (
+              <div
+                key={`${entry.med}-${entry.time}`}
+                className="flex items-center gap-3 px-3.5 py-3"
+              >
+                <CheckCircle2 className="h-4 w-4 text-sage-foreground" />
+                <div className="flex-1">
+                  <p className="text-[13px] font-medium">{entry.med}</p>
+                  <p className="text-[12px] text-muted-foreground">
+                    {entry.time} · marked by {entry.by}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {saved && (
+          <div className="flex items-center gap-2 rounded-2xl bg-sage px-3.5 py-2.5 text-[13px] font-medium text-sage-foreground">
+            <CheckCircle2 className="h-4 w-4" />
+            Medication updated
+          </div>
+        )}
       </div>
     </div>
   );
@@ -298,40 +406,202 @@ function VitalsPanel({
   onClose: () => void;
   onSave: () => void;
 }) {
+  const [showAddReading, setShowAddReading] = useState(false);
+
   return (
     <div className="card-soft border hairline overflow-hidden">
       <PanelHeader
         icon={Activity}
-        title="Log vitals"
-        subtitle="Add today's latest readings."
+        title="Vitals"
+        subtitle="History, manual logs, and device sync setup."
         onClose={onClose}
         tone="bg-sage text-sage-foreground"
+        action={
+          <button
+            onClick={() => setShowAddReading((current) => !current)}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground"
+            aria-label="Add vitals reading"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+        }
       />
-      <div className="px-4 pb-4 space-y-3">
-        <div className="grid grid-cols-2 gap-2.5">
-          <Field label="Systolic" value="124" />
-          <Field label="Diastolic" value="78" />
+      <div className="px-4 pb-4 space-y-4">
+        <VitalsTrendChart />
+
+        {showAddReading && (
+          <div className="rounded-2xl bg-secondary p-3.5">
+            <p className="text-[13px] font-semibold">Add vitals reading</p>
+            <div className="mt-3 grid grid-cols-2 gap-2.5">
+              <Field label="Systolic" value="124" />
+              <Field label="Diastolic" value="78" />
+            </div>
+            <div className="mt-2.5 grid grid-cols-2 gap-2.5">
+              <Field label="Heart rate" value="72 bpm" />
+              <Field label="Weight" value="148 lb" />
+            </div>
+            <label className="mt-2.5 block rounded-2xl bg-card px-3.5 py-3">
+              <span className="block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Context
+              </span>
+              <textarea
+                className="mt-1 min-h-16 w-full resize-none bg-transparent text-[14px] outline-none placeholder:text-muted-foreground"
+                placeholder="Resting, after walk, device used"
+              />
+            </label>
+            <button
+              onClick={() => {
+                onSave();
+                setShowAddReading(false);
+              }}
+              className="mt-3 w-full rounded-full bg-primary py-3 text-[14px] font-medium text-primary-foreground"
+            >
+              Add reading
+            </button>
+          </div>
+        )}
+
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Recent readings
+          </p>
+          <div className="mt-2 grid grid-cols-3 gap-2.5">
+            <Vital label="Blood pressure" value="124/78" trend="Today" tone="sage" />
+            <Vital label="Heart rate" value="72" trend="Resting" tone="sky" />
+            <Vital label="Weight" value="148 lb" trend="Manual" tone="sand" />
+          </div>
         </div>
-        <div className="grid grid-cols-2 gap-2.5">
-          <Field label="Heart rate" value="72 bpm" />
-          <Field label="Weight" value="148 lb" />
+
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Device connections
+          </p>
+          <div className="mt-2 space-y-2.5">
+            {HEALTH_DEVICE_INTEGRATIONS.map((integration) => (
+              <div
+                key={integration.id}
+                className="flex items-center gap-3 rounded-2xl bg-secondary px-3.5 py-3"
+              >
+                <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-sky text-sky-foreground">
+                  {integration.id === "apple-health" ? (
+                    <Smartphone className="h-4 w-4" />
+                  ) : integration.id === "bluetooth-bp" ? (
+                    <Bluetooth className="h-4 w-4" />
+                  ) : (
+                    <Watch className="h-4 w-4" />
+                  )}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[14px] font-medium">{integration.name}</p>
+                  <p className="text-[12px] text-muted-foreground">{integration.scope}</p>
+                </div>
+                <span className="rounded-full bg-card px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+                  Planned
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="mt-2 px-1 text-[11px] leading-relaxed text-muted-foreground">
+            Device sync will require the mobile app and explicit permission before importing data.
+          </p>
         </div>
-        <label className="block rounded-2xl bg-secondary px-3.5 py-3">
-          <span className="block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Note
-          </span>
-          <textarea
-            className="mt-1 min-h-16 w-full resize-none bg-transparent text-[14px] outline-none placeholder:text-muted-foreground"
-            placeholder="Symptoms, context, or device"
-          />
-        </label>
-        <PanelActions
-          saved={saved}
-          savedText="Vitals logged"
-          saveText="Save vitals"
-          onSave={onSave}
-          onClose={onClose}
+
+        {saved && (
+          <div className="flex items-center gap-2 rounded-2xl bg-sage px-3.5 py-2.5 text-[13px] font-medium text-sage-foreground">
+            <CheckCircle2 className="h-4 w-4" />
+            Vitals updated
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function VitalsTrendChart() {
+  const points = [
+    { label: "Mon", systolic: 132, heartRate: 76 },
+    { label: "Tue", systolic: 128, heartRate: 74 },
+    { label: "Wed", systolic: 130, heartRate: 75 },
+    { label: "Thu", systolic: 126, heartRate: 73 },
+    { label: "Fri", systolic: 124, heartRate: 72 },
+  ];
+  const systolicPath = points
+    .map((point, index) => `${28 + index * 62},${166 - (point.systolic - 110) * 2.1}`)
+    .join(" ");
+  const heartPath = points
+    .map((point, index) => `${28 + index * 62},${166 - (point.heartRate - 60) * 3}`)
+    .join(" ");
+
+  return (
+    <div className="rounded-2xl bg-secondary p-3.5">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-[13px] font-semibold">5-day trend</p>
+          <p className="text-[12px] text-muted-foreground">Blood pressure and heart rate</p>
+        </div>
+        <span className="rounded-full bg-card px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+          Manual
+        </span>
+      </div>
+      <svg
+        viewBox="0 0 280 180"
+        className="mt-3 h-40 w-full"
+        role="img"
+        aria-label="Vitals history chart"
+      >
+        {[42, 78, 114, 150].map((y) => (
+          <line key={y} x1="24" x2="276" y1={y} y2={y} className="stroke-border" strokeWidth="1" />
+        ))}
+        <polyline
+          points={systolicPath}
+          fill="none"
+          className="stroke-primary"
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         />
+        <polyline
+          points={heartPath}
+          fill="none"
+          className="stroke-sage-foreground"
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        {points.map((point, index) => (
+          <g key={point.label}>
+            <circle
+              cx={28 + index * 62}
+              cy={166 - (point.systolic - 110) * 2.1}
+              r="4"
+              className="fill-primary"
+            />
+            <circle
+              cx={28 + index * 62}
+              cy={166 - (point.heartRate - 60) * 3}
+              r="4"
+              className="fill-sage-foreground"
+            />
+            <text
+              x={28 + index * 62}
+              y="176"
+              textAnchor="middle"
+              className="fill-muted-foreground text-[10px]"
+            >
+              {point.label}
+            </text>
+          </g>
+        ))}
+      </svg>
+      <div className="mt-2 flex gap-3 text-[11px] text-muted-foreground">
+        <span className="inline-flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-primary" />
+          Systolic
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-sage-foreground" />
+          Heart rate
+        </span>
       </div>
     </div>
   );
@@ -343,12 +613,14 @@ function PanelHeader({
   subtitle,
   tone,
   onClose,
+  action,
 }: {
   icon: LucideIcon;
   title: string;
   subtitle: string;
   tone: string;
   onClose: () => void;
+  action?: React.ReactNode;
 }) {
   return (
     <div className="flex items-center gap-3 px-4 py-4">
@@ -359,6 +631,7 @@ function PanelHeader({
         <p className="text-[15px] font-medium">{title}</p>
         <p className="text-[12px] text-muted-foreground">{subtitle}</p>
       </div>
+      {action}
       <button
         onClick={onClose}
         aria-label="Close quick action"
@@ -381,45 +654,6 @@ function Field({ label, value }: { label: string; value: string }) {
         defaultValue={value}
       />
     </label>
-  );
-}
-
-function PanelActions({
-  saved,
-  savedText,
-  saveText,
-  onSave,
-  onClose,
-}: {
-  saved: boolean;
-  savedText: string;
-  saveText: string;
-  onSave: () => void;
-  onClose: () => void;
-}) {
-  return (
-    <div className="space-y-3">
-      {saved && (
-        <div className="flex items-center gap-2 rounded-2xl bg-sage px-3.5 py-2.5 text-[13px] font-medium text-sage-foreground">
-          <CheckCircle2 className="h-4 w-4" />
-          {savedText}
-        </div>
-      )}
-      <div className="grid grid-cols-[0.8fr_1.2fr] gap-2.5">
-        <button
-          onClick={onClose}
-          className="rounded-full bg-secondary py-3 text-[14px] font-medium text-foreground"
-        >
-          Done
-        </button>
-        <button
-          onClick={onSave}
-          className="rounded-full bg-primary py-3 text-[14px] font-medium text-primary-foreground"
-        >
-          {saveText}
-        </button>
-      </div>
-    </div>
   );
 }
 
