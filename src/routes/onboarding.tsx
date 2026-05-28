@@ -1,13 +1,33 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowRight, Check, Heart, Pill, Users, ShieldCheck, Accessibility, ChevronLeft, UserPlus } from "lucide-react";
+import {
+  Accessibility,
+  ArrowRight,
+  Check,
+  ChevronLeft,
+  FileText,
+  Heart,
+  Pill,
+  ShieldCheck,
+  UserPlus,
+  Users,
+} from "lucide-react";
 
 export const Route = createFileRoute("/onboarding")({
   head: () => ({ meta: [{ title: "Welcome — EvernestCare" }] }),
   component: Onboarding,
 });
 
-const STEPS = ["Welcome", "Care recipient", "Relationship", "Invite family", "Permissions", "Medications", "Accessibility"] as const;
+const STEPS = [
+  "Welcome",
+  "Care recipient",
+  "Relationship",
+  "Invite family",
+  "Permissions",
+  "Medications",
+  "Continuity",
+  "Accessibility",
+] as const;
 
 function Onboarding() {
   const navigate = useNavigate();
@@ -43,7 +63,10 @@ function Onboarding() {
               />
             ))}
           </div>
-          <button onClick={() => navigate({ to: "/today" })} className="text-[13px] font-medium text-muted-foreground">
+          <button
+            onClick={() => navigate({ to: "/today" })}
+            className="text-[13px] font-medium text-muted-foreground"
+          >
             Skip
           </button>
         </div>
@@ -54,7 +77,9 @@ function Onboarding() {
               <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-card">
                 <Heart className="h-6 w-6" fill="currentColor" />
               </div>
-              <h2 className="mt-6 text-[32px] font-semibold tracking-tight leading-tight">Let's set up your circle.</h2>
+              <h2 className="mt-6 text-[32px] font-semibold tracking-tight leading-tight">
+                Let's set up your circle.
+              </h2>
               <p className="mt-3 text-[16px] text-muted-foreground leading-relaxed max-w-[34ch]">
                 A few quiet questions to organize care. You can change anything later.
               </p>
@@ -63,10 +88,16 @@ function Onboarding() {
 
           {step === 1 && (
             <div>
-              <h2 className="text-[28px] font-semibold tracking-tight leading-tight">Who are you caring for?</h2>
-              <p className="mt-2 text-[15px] text-muted-foreground">Their first name is enough for now.</p>
+              <h2 className="text-[28px] font-semibold tracking-tight leading-tight">
+                Who are you caring for?
+              </h2>
+              <p className="mt-2 text-[15px] text-muted-foreground">
+                Their first name is enough for now.
+              </p>
               <div className="mt-8 card-soft p-5">
-                <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wide">Name</label>
+                <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wide">
+                  Name
+                </label>
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -94,9 +125,18 @@ function Onboarding() {
 
           {step === 2 && (
             <div>
-              <h2 className="text-[28px] font-semibold tracking-tight leading-tight">What's your relationship to {name}?</h2>
+              <h2 className="text-[28px] font-semibold tracking-tight leading-tight">
+                What's your relationship to {name}?
+              </h2>
               <div className="mt-6 space-y-2.5">
-                {["Parent", "Spouse / Partner", "Sibling", "Child", "Friend", "Professional caregiver"].map((r) => (
+                {[
+                  "Parent",
+                  "Spouse / Partner",
+                  "Sibling",
+                  "Child",
+                  "Friend",
+                  "Professional caregiver",
+                ].map((r) => (
                   <button
                     key={r}
                     onClick={() => setRelation(r)}
@@ -112,18 +152,25 @@ function Onboarding() {
 
           {step === 3 && (
             <div>
-              <h2 className="text-[28px] font-semibold tracking-tight leading-tight">Invite your circle</h2>
+              <h2 className="text-[28px] font-semibold tracking-tight leading-tight">
+                Invite your circle
+              </h2>
               <p className="mt-2 text-[15px] text-muted-foreground">Care is lighter when shared.</p>
               <div className="mt-6 card-soft p-2">
                 {[
                   { n: "Sarah Chen", r: "Sister", e: "sarah@example.com" },
                   { n: "David Chen", r: "Brother", e: "david@example.com" },
                 ].map((p) => (
-                  <div key={p.n} className="flex items-center gap-3 px-3 py-3 border-b last:border-0 hairline">
+                  <div
+                    key={p.n}
+                    className="flex items-center gap-3 px-3 py-3 border-b last:border-0 hairline"
+                  >
                     <Avatar name={p.n} />
                     <div className="flex-1">
                       <p className="text-[15px] font-medium">{p.n}</p>
-                      <p className="text-[12px] text-muted-foreground">{p.r} · {p.e}</p>
+                      <p className="text-[12px] text-muted-foreground">
+                        {p.r} · {p.e}
+                      </p>
                     </div>
                     <span className="text-[12px] font-medium text-primary">Invited</span>
                   </div>
@@ -137,8 +184,12 @@ function Onboarding() {
 
           {step === 4 && (
             <div>
-              <h2 className="text-[28px] font-semibold tracking-tight leading-tight">A note on privacy</h2>
-              <p className="mt-2 text-[15px] text-muted-foreground">You choose what each person sees.</p>
+              <h2 className="text-[28px] font-semibold tracking-tight leading-tight">
+                A note on privacy
+              </h2>
+              <p className="mt-2 text-[15px] text-muted-foreground">
+                You choose what each person sees.
+              </p>
               <div className="mt-6 space-y-3">
                 {[
                   { i: ShieldCheck, t: "Granular access", s: "Per person, per category." },
@@ -161,8 +212,12 @@ function Onboarding() {
 
           {step === 5 && (
             <div>
-              <h2 className="text-[28px] font-semibold tracking-tight leading-tight">Bring in medications</h2>
-              <p className="mt-2 text-[15px] text-muted-foreground">Optional — we'll set gentle reminders.</p>
+              <h2 className="text-[28px] font-semibold tracking-tight leading-tight">
+                Bring in medications
+              </h2>
+              <p className="mt-2 text-[15px] text-muted-foreground">
+                Optional — we'll set gentle reminders.
+              </p>
               <div className="mt-6 space-y-2.5">
                 {[
                   { n: "Lisinopril", d: "10 mg · once daily" },
@@ -170,7 +225,11 @@ function Onboarding() {
                   { n: "Atorvastatin", d: "20 mg · evening" },
                 ].map((m) => (
                   <label key={m.n} className="flex items-center gap-3 card-soft px-4 py-3.5">
-                    <input type="checkbox" defaultChecked className="h-5 w-5 accent-[var(--primary)]" />
+                    <input
+                      type="checkbox"
+                      defaultChecked
+                      className="h-5 w-5 accent-[var(--primary)]"
+                    />
                     <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-blush text-blush-foreground">
                       <Pill className="h-4 w-4" />
                     </span>
@@ -189,17 +248,59 @@ function Onboarding() {
 
           {step === 6 && (
             <div>
+              <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-sky text-sky-foreground">
+                <FileText className="h-5 w-5" />
+              </div>
+              <h2 className="mt-5 text-[28px] font-semibold tracking-tight leading-tight">
+                Start a continuity trail
+              </h2>
+              <p className="mt-2 text-[15px] text-muted-foreground">
+                Add only what helps the next handoff feel clearer.
+              </p>
+              <div className="mt-6 space-y-3">
+                {[
+                  {
+                    t: "Attach key documents",
+                    s: "Discharge notes, medication photos, and appointment paperwork.",
+                  },
+                  {
+                    t: "Build the timeline",
+                    s: "Medications, vitals, notes, and documents stay linked to care events.",
+                  },
+                  {
+                    t: "Prepare the first summary",
+                    s: "A factual visit-ready snapshot can be shared when needed.",
+                  },
+                ].map((item) => (
+                  <div key={item.t} className="card-soft px-4 py-4">
+                    <p className="text-[15px] font-medium">{item.t}</p>
+                    <p className="mt-1 text-[13px] text-muted-foreground">{item.s}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {step === 7 && (
+            <div>
               <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-sage text-sage-foreground">
                 <Accessibility className="h-5 w-5" />
               </div>
-              <h2 className="mt-5 text-[28px] font-semibold tracking-tight leading-tight">Make it comfortable</h2>
+              <h2 className="mt-5 text-[28px] font-semibold tracking-tight leading-tight">
+                Make it comfortable
+              </h2>
               <p className="mt-2 text-[15px] text-muted-foreground">Adjust anytime in settings.</p>
               <div className="mt-6 card-soft p-5">
-                <p className="text-[13px] font-medium text-muted-foreground uppercase tracking-wide">Text size</p>
+                <p className="text-[13px] font-medium text-muted-foreground uppercase tracking-wide">
+                  Text size
+                </p>
                 <div className="mt-4 flex items-center gap-3">
                   <span className="text-[14px]">A</span>
                   <input
-                    type="range" min={0} max={2} step={1}
+                    type="range"
+                    min={0}
+                    max={2}
+                    step={1}
                     value={textSize}
                     onChange={(e) => setTextSize(Number(e.target.value))}
                     className="flex-1 accent-[var(--primary)]"
@@ -213,7 +314,9 @@ function Onboarding() {
               <div className="mt-3 card-soft p-5 flex items-center justify-between">
                 <div>
                   <p className="text-[15px] font-medium">Reduce motion</p>
-                  <p className="text-[12px] text-muted-foreground">Gentler transitions throughout.</p>
+                  <p className="text-[12px] text-muted-foreground">
+                    Gentler transitions throughout.
+                  </p>
                 </div>
                 <Toggle />
               </div>
@@ -248,13 +351,19 @@ function Toggle() {
       className={`relative h-7 w-12 rounded-full transition ${on ? "bg-primary" : "bg-muted"}`}
       aria-pressed={on}
     >
-      <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition ${on ? "left-[22px]" : "left-0.5"}`} />
+      <span
+        className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition ${on ? "left-[22px]" : "left-0.5"}`}
+      />
     </button>
   );
 }
 
 function Avatar({ name }: { name: string }) {
-  const initials = name.split(" ").map((p) => p[0]).slice(0, 2).join("");
+  const initials = name
+    .split(" ")
+    .map((p) => p[0])
+    .slice(0, 2)
+    .join("");
   return (
     <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-sky text-sky-foreground text-[13px] font-semibold">
       {initials}

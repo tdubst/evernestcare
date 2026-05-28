@@ -3,12 +3,13 @@ export type HealthEventType =
   | "MedicationScheduledEvent"
   | "VitalsRecordedEvent"
   | "CareNoteAddedEvent"
+  | "CareArtifactAttachedEvent"
   | "ReminderDismissedEvent"
   | "MedicationMissedEvent";
 
 export type HealthEventSource = "manual" | "reminder" | "device";
 export type CareActorRole = "primary-caregiver" | "family-member" | "provider" | "supporter";
-export type TimelineFilter = "all" | "medications" | "vitals" | "notes";
+export type TimelineFilter = "all" | "medications" | "vitals" | "notes" | "artifacts";
 export type TimeframePreset = "24h" | "7d" | "30d" | "custom";
 
 export type HealthEventBase<TType extends HealthEventType, TPayload> = {
@@ -64,6 +65,25 @@ export type Medication = {
   reminderTime: string;
 };
 
+export type CareArtifactKind =
+  | "pdf"
+  | "image"
+  | "medication-photo"
+  | "discharge-summary"
+  | "insurance-card"
+  | "appointment-paperwork"
+  | "referral-document";
+
+export type CareArtifact = {
+  fileLabel: string;
+  id: string;
+  kind: CareArtifactKind;
+  linkedContext: string;
+  previewLabel: string;
+  summaryVisible: boolean;
+  title: string;
+};
+
 export type MedicationTakenEvent = HealthEventBase<
   "MedicationTakenEvent",
   {
@@ -103,6 +123,13 @@ export type CareNoteAddedEvent = HealthEventBase<
   }
 >;
 
+export type CareArtifactAttachedEvent = HealthEventBase<
+  "CareArtifactAttachedEvent",
+  {
+    artifact: CareArtifact;
+  }
+>;
+
 export type ReminderDismissedEvent = HealthEventBase<
   "ReminderDismissedEvent",
   {
@@ -122,6 +149,7 @@ export type HealthEvent =
   | MedicationScheduledEvent
   | VitalsRecordedEvent
   | CareNoteAddedEvent
+  | CareArtifactAttachedEvent
   | ReminderDismissedEvent
   | MedicationMissedEvent;
 
@@ -134,6 +162,7 @@ export type MedicationAdherence = {
 
 export type HealthEventState = {
   adherence: Record<string, MedicationAdherence>;
+  artifacts: CareArtifact[];
   careCircle: CareCircle;
   events: HealthEvent[];
   medications: Medication[];
@@ -157,11 +186,20 @@ export type TimelineItem = {
 };
 
 export type ProviderSummary = {
+  artifactEventCount: number;
   eventCount: number;
   lines: string[];
   medicationEventCount: number;
   timeframeLabel: string;
   vitalsEventCount: number;
+};
+
+export type ProviderSummaryExport = {
+  sections: {
+    lines: string[];
+    title: string;
+  }[];
+  title: string;
 };
 
 export type CareProfile = {
@@ -226,8 +264,34 @@ export function createInitialHealthEventState(): HealthEventState {
         timestamp: "Today, 8:14 AM",
       },
     },
+    artifacts: [
+      {
+        fileLabel: "discharge-instructions.pdf",
+        id: "artifact-discharge-instructions",
+        kind: "discharge-summary",
+        linkedContext: "MRI follow-up preparation",
+        previewLabel: "PDF · 3 pages",
+        summaryVisible: true,
+        title: "Discharge instructions",
+      },
+    ],
     careCircle: DEFAULT_CARE_CIRCLE,
     events: [
+      createCareArtifactAttachedEvent({
+        actor: DEFAULT_CARE_ACTORS[0],
+        artifact: {
+          fileLabel: "discharge-instructions.pdf",
+          id: "artifact-discharge-instructions",
+          kind: "discharge-summary",
+          linkedContext: "MRI follow-up preparation",
+          previewLabel: "PDF · 3 pages",
+          summaryVisible: true,
+          title: "Discharge instructions",
+        },
+        createdAt: "Today, 9:10 AM",
+        eventId: "event-artifact-discharge-instructions",
+        occurredAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+      }),
       createMedicationTakenEvent({
         actor: DEFAULT_CARE_ACTORS[0],
         createdAt: "Today, 8:14 AM",
@@ -415,6 +479,38 @@ export function createCareNoteAddedEvent({
   };
 }
 
+export function createCareArtifactAttachedEvent({
+  actor = DEFAULT_CARE_ACTORS[0],
+  artifact,
+  careSubjectId,
+  causationId,
+  correlationId,
+  createdAt = formatEventTimestamp(),
+  eventId,
+  occurredAt = new Date().toISOString(),
+  operationalContext = "care-artifact",
+}: EventAttributionInput & {
+  artifact: CareArtifact;
+  createdAt?: string;
+  eventId?: string;
+  occurredAt?: string;
+}): CareArtifactAttachedEvent {
+  return {
+    ...createAttributionMetadata(actor, {
+      careSubjectId,
+      causationId,
+      correlationId,
+      operationalContext,
+    }),
+    createdAt,
+    id: eventId ?? createEventId("care-artifact", artifact.id),
+    occurredAt,
+    payload: { artifact },
+    source: "manual",
+    type: "CareArtifactAttachedEvent",
+  };
+}
+
 export function createVitalsReading(
   label: string,
   systolic: number,
@@ -466,6 +562,12 @@ export function healthEventReducer(state: HealthEventState, event: HealthEvent):
       };
     case "CareNoteAddedEvent":
       return { ...state, events };
+    case "CareArtifactAttachedEvent":
+      return {
+        ...state,
+        artifacts: upsertArtifact(state.artifacts, event.payload.artifact),
+        events,
+      };
     case "MedicationMissedEvent":
       return {
         ...state,
@@ -502,6 +604,10 @@ export function describeHealthEvent(event: HealthEvent, medications: Medication[
 
   if (event.type === "CareNoteAddedEvent") {
     return `Care note · ${event.payload.note}`;
+  }
+
+  if (event.type === "CareArtifactAttachedEvent") {
+    return `Artifact attached · ${event.payload.artifact.title}`;
   }
 
   return "Reminder dismissed";
@@ -545,17 +651,20 @@ export function createProviderSummary(
   const medicationEventCount = timeline.filter((item) => item.family === "medications").length;
   const vitalsEventCount = timeline.filter((item) => item.family === "vitals").length;
   const noteEventCount = timeline.filter((item) => item.family === "notes").length;
+  const artifactEventCount = timeline.filter((item) => item.family === "artifacts").length;
   const recentDescriptions = timeline
     .slice(0, 3)
     .map((item) => `${describeActor(item.event)}: ${item.description}`);
 
   return {
+    artifactEventCount,
     eventCount: timeline.length,
     lines: [
       `${timeline.length} operational event${timeline.length === 1 ? "" : "s"} in ${formatTimeframeLabel(query)}.`,
       `${medicationEventCount} medication event${medicationEventCount === 1 ? "" : "s"}.`,
       `${vitalsEventCount} vitals event${vitalsEventCount === 1 ? "" : "s"}.`,
       `${noteEventCount} collaborative note${noteEventCount === 1 ? "" : "s"}.`,
+      `${artifactEventCount} care artifact${artifactEventCount === 1 ? "" : "s"} referenced.`,
       recentDescriptions.length > 0
         ? `Recent: ${recentDescriptions.join("; ")}.`
         : "No operational events in this timeframe.",
@@ -564,6 +673,46 @@ export function createProviderSummary(
     medicationEventCount,
     timeframeLabel: formatTimeframeLabel(query),
     vitalsEventCount,
+  };
+}
+
+export function createProviderSummaryExport({
+  artifacts,
+  careProfile,
+  summary,
+}: {
+  artifacts: CareArtifact[];
+  careProfile: CareProfile;
+  summary: ProviderSummary;
+}): ProviderSummaryExport {
+  const visibleArtifacts = artifacts.filter((artifact) => artifact.summaryVisible);
+
+  return {
+    sections: [
+      {
+        lines: summary.lines,
+        title: "Operational summary",
+      },
+      {
+        lines: [
+          `Conditions: ${careProfile.chronicConditions.join(", ")}`,
+          `Allergies: ${careProfile.allergies.join(", ")}`,
+          `Providers: ${careProfile.providers.join("; ")}`,
+        ],
+        title: "Background profile",
+      },
+      {
+        lines:
+          visibleArtifacts.length > 0
+            ? visibleArtifacts.map(
+                (artifact) =>
+                  `${artifact.title} (${artifact.previewLabel}) · ${artifact.linkedContext}`,
+              )
+            : ["No care artifacts marked for this summary."],
+        title: "Attached care artifacts",
+      },
+    ],
+    title: "EvernestCare continuity snapshot",
   };
 }
 
@@ -595,6 +744,13 @@ function upsertMedication(medications: Medication[], medication: Medication) {
   return medications.map((item) => (item.id === medication.id ? medication : item));
 }
 
+function upsertArtifact(artifacts: CareArtifact[], artifact: CareArtifact) {
+  const existing = artifacts.some((item) => item.id === artifact.id);
+  if (!existing) return [...artifacts, artifact];
+
+  return artifacts.map((item) => (item.id === artifact.id ? artifact : item));
+}
+
 function createEventId(prefix: string, key: string) {
   return `${prefix}-${key}-${Date.now()}`;
 }
@@ -609,6 +765,7 @@ function formatEventTimestamp() {
 function getEventFamily(event: HealthEvent): Exclude<TimelineFilter, "all"> {
   if (event.type === "VitalsRecordedEvent") return "vitals";
   if (event.type === "CareNoteAddedEvent") return "notes";
+  if (event.type === "CareArtifactAttachedEvent") return "artifacts";
   return "medications";
 }
 

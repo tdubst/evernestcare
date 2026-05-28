@@ -18,11 +18,15 @@ import {
   Bluetooth,
   Watch,
   Smartphone,
+  FileText,
+  Share2,
+  Upload,
 } from "lucide-react";
 
 import { HEALTH_DEVICE_INTEGRATIONS } from "@/lib/integrations/health-devices";
 import {
   createCareNoteAddedEvent,
+  createCareArtifactAttachedEvent,
   createInitialHealthEventState,
   createMedicationScheduledEvent,
   createMedicationTakenEvent,
@@ -34,6 +38,7 @@ import {
   healthEventReducer,
   type HealthEvent,
   type HealthEventState,
+  type CareArtifact,
   type CareProfile,
   type CareCircle,
   type Medication,
@@ -44,6 +49,7 @@ import {
   type VitalsReading,
   createDefaultCareProfile,
   createProviderSummary,
+  createProviderSummaryExport,
   formatTimeframeLabel,
   projectOperationalTimeline,
 } from "@/lib/health-events";
@@ -67,6 +73,11 @@ function Today() {
   const timeline = projectOperationalTimeline(healthEventState, timelineQuery);
   const providerSummary = createProviderSummary(healthEventState, timelineQuery);
   const careProfile = createDefaultCareProfile();
+  const providerSummaryExport = createProviderSummaryExport({
+    artifacts: healthEventState.artifacts,
+    careProfile,
+    summary: providerSummary,
+  });
   const careCircle = healthEventState.careCircle;
   const addCollaborativeNote = () => {
     dispatchHealthEvent(
@@ -74,6 +85,22 @@ function Today() {
         actor: careCircle.actors[1],
         note: "Shared observation: Margaret was more tired than usual after lunch but comfortable after resting.",
         noteType: "caregiver-context",
+      }),
+    );
+  };
+  const attachCareArtifact = () => {
+    dispatchHealthEvent(
+      createCareArtifactAttachedEvent({
+        actor: careCircle.actors[0],
+        artifact: {
+          fileLabel: "medication-list-photo.jpg",
+          id: "artifact-medication-list-photo",
+          kind: "medication-photo",
+          linkedContext: "Medication reconciliation",
+          previewLabel: "Image placeholder",
+          summaryVisible: true,
+          title: "Medication list photo",
+        },
       }),
     );
   };
@@ -236,6 +263,14 @@ function Today() {
         <CareCircleCard careCircle={careCircle} />
       </Section>
 
+      <Section title="Care artifacts">
+        <CareArtifactsCard
+          artifacts={healthEventState.artifacts}
+          events={healthEventState.events}
+          onAttachArtifact={attachCareArtifact}
+        />
+      </Section>
+
       <Section title="Vitals snapshot">
         <div className="grid grid-cols-3 gap-2.5">
           <Vital label="Blood pressure" value="124/78" trend="Steady" tone="sage" />
@@ -263,6 +298,7 @@ function Today() {
       <Section title="Provider summary">
         <ProviderSummaryCard
           careProfile={careProfile}
+          exportSnapshot={providerSummaryExport}
           summary={providerSummary}
           timeframe={timeframe}
         />
@@ -387,6 +423,7 @@ function OperationalTimelineCard({
           { label: "Meds", value: "medications" },
           { label: "Vitals", value: "vitals" },
           { label: "Notes", value: "notes" },
+          { label: "Files", value: "artifacts" },
         ].map((option) => (
           <button
             key={option.value}
@@ -414,7 +451,11 @@ function OperationalTimelineCard({
           <div key={item.event.id} className="flex gap-3 rounded-2xl bg-secondary px-3.5 py-3">
             <span
               className={`mt-0.5 h-2.5 w-2.5 rounded-full ${
-                item.family === "medications" ? "bg-blush-foreground" : "bg-sage-foreground"
+                item.family === "medications"
+                  ? "bg-blush-foreground"
+                  : item.family === "artifacts"
+                    ? "bg-sky-foreground"
+                    : "bg-sage-foreground"
               }`}
             />
             <div className="min-w-0 flex-1">
@@ -434,6 +475,70 @@ function OperationalTimelineCard({
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function CareArtifactsCard({
+  artifacts,
+  events,
+  onAttachArtifact,
+}: {
+  artifacts: CareArtifact[];
+  events: HealthEvent[];
+  onAttachArtifact: () => void;
+}) {
+  const artifactEvents = events.filter((event) => event.type === "CareArtifactAttachedEvent");
+
+  return (
+    <div className="card-soft p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[15px] font-medium">Continuity documents</p>
+          <p className="text-[12px] text-muted-foreground">
+            Timeline-linked attachments for visits and handoffs.
+          </p>
+        </div>
+        <button
+          onClick={onAttachArtifact}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground"
+          aria-label="Attach care artifact"
+        >
+          <Upload className="h-4 w-4" />
+        </button>
+      </div>
+
+      <div className="mt-3 space-y-2.5">
+        {artifacts.map((artifact) => {
+          const event = artifactEvents.find((item) => item.payload.artifact.id === artifact.id);
+          return (
+            <div key={artifact.id} className="flex gap-3 rounded-2xl bg-secondary px-3.5 py-3">
+              <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-sky text-sky-foreground">
+                <FileText className="h-4 w-4" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] font-medium">{artifact.title}</p>
+                <p className="text-[12px] text-muted-foreground">
+                  {artifact.previewLabel} · {artifact.linkedContext}
+                </p>
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  {event ? `${describeActor(event)} · ${event.createdAt}` : artifact.fileLabel}
+                </p>
+              </div>
+              {artifact.summaryVisible && (
+                <span className="self-start rounded-full bg-card px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+                  Summary
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
+        Uploads are placeholders in alpha. Each attachment is represented as a replay-safe
+        operational event before storage is connected.
+      </p>
     </div>
   );
 }
@@ -468,10 +573,12 @@ function CareCircleCard({ careCircle }: { careCircle: CareCircle }) {
 
 function ProviderSummaryCard({
   careProfile,
+  exportSnapshot,
   summary,
   timeframe,
 }: {
   careProfile: CareProfile;
+  exportSnapshot: ReturnType<typeof createProviderSummaryExport>;
   summary: ProviderSummary;
   timeframe: TimeframePreset;
 }) {
@@ -500,6 +607,25 @@ function ProviderSummaryCard({
       <div className="mt-3 grid grid-cols-2 gap-2.5">
         <ProfileChip label="Conditions" value={careProfile.chronicConditions.join(", ")} />
         <ProfileChip label="Allergies" value={careProfile.allergies.join(", ")} />
+      </div>
+
+      <div className="mt-3 rounded-2xl bg-secondary p-3.5">
+        <div className="flex items-center gap-2">
+          <Share2 className="h-4 w-4 text-primary" />
+          <p className="text-[13px] font-semibold">{exportSnapshot.title}</p>
+        </div>
+        <div className="mt-3 space-y-2">
+          {exportSnapshot.sections.map((section) => (
+            <div key={section.title} className="rounded-2xl bg-card px-3.5 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                {section.title}
+              </p>
+              <p className="mt-1 text-[12px] leading-relaxed">
+                {section.lines.slice(0, 2).join(" ")}
+              </p>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
