@@ -22,16 +22,20 @@ import {
 
 import { HEALTH_DEVICE_INTEGRATIONS } from "@/lib/integrations/health-devices";
 import {
+  createCareNoteAddedEvent,
   createInitialHealthEventState,
   createMedicationScheduledEvent,
   createMedicationTakenEvent,
   createVitalsReading,
   createVitalsRecordedEvent,
+  describeActor,
   describeHealthEvent,
+  formatActorRole,
   healthEventReducer,
   type HealthEvent,
   type HealthEventState,
   type CareProfile,
+  type CareCircle,
   type Medication,
   type ProviderSummary,
   type TimelineFilter,
@@ -63,6 +67,16 @@ function Today() {
   const timeline = projectOperationalTimeline(healthEventState, timelineQuery);
   const providerSummary = createProviderSummary(healthEventState, timelineQuery);
   const careProfile = createDefaultCareProfile();
+  const careCircle = healthEventState.careCircle;
+  const addCollaborativeNote = () => {
+    dispatchHealthEvent(
+      createCareNoteAddedEvent({
+        actor: careCircle.actors[1],
+        note: "Shared observation: Margaret was more tired than usual after lunch but comfortable after resting.",
+        noteType: "caregiver-context",
+      }),
+    );
+  };
 
   const openQuickPanel = (panel: "med" | "vitals") => {
     setQuickPanel(panel);
@@ -218,6 +232,10 @@ function Today() {
         </div>
       </Section>
 
+      <Section title="Care circle">
+        <CareCircleCard careCircle={careCircle} />
+      </Section>
+
       <Section title="Vitals snapshot">
         <div className="grid grid-cols-3 gap-2.5">
           <Vital label="Blood pressure" value="124/78" trend="Steady" tone="sage" />
@@ -231,7 +249,9 @@ function Today() {
 
       <Section title="Operational timeline">
         <OperationalTimelineCard
+          careCircle={careCircle}
           filter={timelineFilter}
+          onAddNote={addCollaborativeNote}
           onFilterChange={setTimelineFilter}
           onTimeframeChange={setTimeframe}
           summary={providerSummary}
@@ -308,14 +328,18 @@ function Today() {
 }
 
 function OperationalTimelineCard({
+  careCircle,
   filter,
+  onAddNote,
   onFilterChange,
   onTimeframeChange,
   summary,
   timeframe,
   timeline,
 }: {
+  careCircle: CareCircle;
   filter: TimelineFilter;
+  onAddNote: () => void;
   onFilterChange: (filter: TimelineFilter) => void;
   onTimeframeChange: (timeframe: TimeframePreset) => void;
   summary: ProviderSummary;
@@ -333,7 +357,7 @@ function OperationalTimelineCard({
           </p>
         </div>
         <span className="rounded-full bg-secondary px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
-          Replay-safe
+          {careCircle.careSubject.displayName}
         </span>
       </div>
 
@@ -362,6 +386,7 @@ function OperationalTimelineCard({
           { label: "All", value: "all" },
           { label: "Meds", value: "medications" },
           { label: "Vitals", value: "vitals" },
+          { label: "Notes", value: "notes" },
         ].map((option) => (
           <button
             key={option.value}
@@ -377,6 +402,13 @@ function OperationalTimelineCard({
         ))}
       </div>
 
+      <button
+        onClick={onAddNote}
+        className="mt-3 w-full rounded-full bg-secondary py-2.5 text-[13px] font-medium text-primary"
+      >
+        Add caregiver note
+      </button>
+
       <div className="mt-3 space-y-2.5">
         {timeline.slice(0, 4).map((item) => (
           <div key={item.event.id} className="flex gap-3 rounded-2xl bg-secondary px-3.5 py-3">
@@ -388,7 +420,10 @@ function OperationalTimelineCard({
             <div className="min-w-0 flex-1">
               <p className="text-[13px] font-medium">{item.description}</p>
               <p className="text-[12px] text-muted-foreground">
-                {item.event.type} · {item.event.createdAt}
+                {describeActor(item.event)} · {item.event.createdAt}
+              </p>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                {item.event.type} · {item.event.operationalContext}
               </p>
             </div>
           </div>
@@ -398,6 +433,34 @@ function OperationalTimelineCard({
             No operational events match this view.
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function CareCircleCard({ careCircle }: { careCircle: CareCircle }) {
+  return (
+    <div className="card-soft p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[15px] font-medium">{careCircle.name}</p>
+          <p className="text-[12px] text-muted-foreground">
+            Centered on {careCircle.careSubject.displayName}
+          </p>
+        </div>
+        <span className="rounded-full bg-sage px-2.5 py-1 text-[11px] font-medium text-sage-foreground">
+          Shared
+        </span>
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-2.5">
+        {careCircle.actors.map((actor) => (
+          <div key={actor.id} className="rounded-2xl bg-secondary px-3.5 py-3">
+            <p className="text-[13px] font-medium">{actor.displayName}</p>
+            <p className="text-[11px] text-muted-foreground">
+              {actor.relationship} · {formatActorRole(actor.role)}
+            </p>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -865,7 +928,10 @@ function RecentHealthEvents({
           <div key={event.id} className="rounded-2xl bg-secondary px-3.5 py-3">
             <p className="text-[13px] font-medium">{describeHealthEvent(event, medications)}</p>
             <p className="text-[12px] text-muted-foreground">
-              {event.type} · {event.createdAt}
+              {describeActor(event)} · {event.createdAt}
+            </p>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              {event.type} · {event.operationalContext}
             </p>
           </div>
         ))}

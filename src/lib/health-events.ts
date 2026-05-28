@@ -2,21 +2,58 @@ export type HealthEventType =
   | "MedicationTakenEvent"
   | "MedicationScheduledEvent"
   | "VitalsRecordedEvent"
+  | "CareNoteAddedEvent"
   | "ReminderDismissedEvent"
   | "MedicationMissedEvent";
 
 export type HealthEventSource = "manual" | "reminder" | "device";
-export type TimelineFilter = "all" | "medications" | "vitals";
+export type CareActorRole = "primary-caregiver" | "family-member" | "provider" | "supporter";
+export type TimelineFilter = "all" | "medications" | "vitals" | "notes";
 export type TimeframePreset = "24h" | "7d" | "30d" | "custom";
 
 export type HealthEventBase<TType extends HealthEventType, TPayload> = {
+  actorId: string;
   actorName: string;
+  actorRole: CareActorRole;
+  careSubjectId: string;
+  causationId?: string;
+  correlationId: string;
   createdAt: string;
   id: string;
   occurredAt: string;
+  operationalContext: string;
   payload: TPayload;
+  schemaVersion: 1;
   source: HealthEventSource;
   type: TType;
+};
+
+export type CareSubject = {
+  displayName: string;
+  id: string;
+  relationshipContext: string;
+};
+
+export type CareActor = {
+  displayName: string;
+  id: string;
+  relationship: string;
+  role: CareActorRole;
+};
+
+export type CareCircle = {
+  actors: CareActor[];
+  careSubject: CareSubject;
+  id: string;
+  name: string;
+};
+
+export type EventAttributionInput = {
+  actor?: CareActor;
+  careSubjectId?: string;
+  causationId?: string;
+  correlationId?: string;
+  operationalContext?: string;
 };
 
 export type Medication = {
@@ -54,6 +91,18 @@ export type VitalsRecordedEvent = HealthEventBase<
   }
 >;
 
+export type CareNoteAddedEvent = HealthEventBase<
+  "CareNoteAddedEvent",
+  {
+    note: string;
+    noteType:
+      | "symptom-observation"
+      | "caregiver-context"
+      | "recovery-observation"
+      | "operational-concern";
+  }
+>;
+
 export type ReminderDismissedEvent = HealthEventBase<
   "ReminderDismissedEvent",
   {
@@ -72,6 +121,7 @@ export type HealthEvent =
   | MedicationTakenEvent
   | MedicationScheduledEvent
   | VitalsRecordedEvent
+  | CareNoteAddedEvent
   | ReminderDismissedEvent
   | MedicationMissedEvent;
 
@@ -84,6 +134,7 @@ export type MedicationAdherence = {
 
 export type HealthEventState = {
   adherence: Record<string, MedicationAdherence>;
+  careCircle: CareCircle;
   events: HealthEvent[];
   medications: Medication[];
   vitalsReadings: VitalsReading[];
@@ -125,6 +176,45 @@ export type CareProfile = {
 };
 
 const DEFAULT_ACTOR = "Sarah";
+const DEFAULT_CARE_SUBJECT_ID = "margaret-chen";
+
+export const DEFAULT_CARE_ACTORS: CareActor[] = [
+  {
+    displayName: "Sarah Chen",
+    id: "actor-sarah",
+    relationship: "Daughter",
+    role: "primary-caregiver",
+  },
+  {
+    displayName: "David Chen",
+    id: "actor-david",
+    relationship: "Son",
+    role: "family-member",
+  },
+  {
+    displayName: "Dr. Okafor",
+    id: "actor-okafor",
+    relationship: "Cardiologist",
+    role: "provider",
+  },
+  {
+    displayName: "Maya Lee",
+    id: "actor-maya",
+    relationship: "Neighbor",
+    role: "supporter",
+  },
+];
+
+export const DEFAULT_CARE_CIRCLE: CareCircle = {
+  actors: DEFAULT_CARE_ACTORS,
+  careSubject: {
+    displayName: "Margaret Chen",
+    id: DEFAULT_CARE_SUBJECT_ID,
+    relationshipContext: "Older adult care",
+  },
+  id: "circle-margaret-chen",
+  name: "Margaret's care circle",
+};
 
 export function createInitialHealthEventState(): HealthEventState {
   return {
@@ -136,13 +226,21 @@ export function createInitialHealthEventState(): HealthEventState {
         timestamp: "Today, 8:14 AM",
       },
     },
+    careCircle: DEFAULT_CARE_CIRCLE,
     events: [
       createMedicationTakenEvent({
-        actorName: "Sarah",
+        actor: DEFAULT_CARE_ACTORS[0],
         createdAt: "Today, 8:14 AM",
         eventId: "event-med-lisinopril-taken",
         medicationId: "lisinopril",
         occurredAt: new Date().toISOString(),
+      }),
+      createCareNoteAddedEvent({
+        actor: DEFAULT_CARE_ACTORS[1],
+        createdAt: "Yesterday, 6:20 PM",
+        note: "Dinner went well. Margaret seemed tired after the walk but recovered after resting.",
+        noteType: "caregiver-context",
+        occurredAt: new Date(Date.now() - 18 * 60 * 60 * 1000).toISOString(),
       }),
     ],
     medications: [
@@ -179,20 +277,33 @@ export function createInitialHealthEventState(): HealthEventState {
 }
 
 export function createMedicationTakenEvent({
-  actorName = DEFAULT_ACTOR,
+  actor = DEFAULT_CARE_ACTORS[0],
+  careSubjectId,
+  causationId,
+  correlationId,
   createdAt = formatEventTimestamp(),
   eventId,
   medicationId,
   occurredAt = new Date().toISOString(),
+  operationalContext = "medication-adherence",
 }: {
-  actorName?: string;
+  actor?: CareActor;
+  careSubjectId?: string;
+  causationId?: string;
+  correlationId?: string;
   createdAt?: string;
   eventId?: string;
   medicationId: string;
   occurredAt?: string;
+  operationalContext?: string;
 }): MedicationTakenEvent {
   return {
-    actorName,
+    ...createAttributionMetadata(actor, {
+      careSubjectId,
+      causationId,
+      correlationId,
+      operationalContext,
+    }),
     createdAt,
     id: eventId ?? createEventId("medication-taken", medicationId),
     occurredAt,
@@ -203,18 +314,31 @@ export function createMedicationTakenEvent({
 }
 
 export function createMedicationScheduledEvent({
-  actorName = DEFAULT_ACTOR,
+  actor = DEFAULT_CARE_ACTORS[0],
+  careSubjectId,
+  causationId,
+  correlationId,
   createdAt = formatEventTimestamp(),
   medication,
   occurredAt = new Date().toISOString(),
+  operationalContext = "medication-schedule",
 }: {
-  actorName?: string;
+  actor?: CareActor;
+  careSubjectId?: string;
+  causationId?: string;
+  correlationId?: string;
   createdAt?: string;
   medication: Medication;
   occurredAt?: string;
+  operationalContext?: string;
 }): MedicationScheduledEvent {
   return {
-    actorName,
+    ...createAttributionMetadata(actor, {
+      careSubjectId,
+      causationId,
+      correlationId,
+      operationalContext,
+    }),
     createdAt,
     id: createEventId("medication-scheduled", medication.id),
     occurredAt,
@@ -225,24 +349,69 @@ export function createMedicationScheduledEvent({
 }
 
 export function createVitalsRecordedEvent({
-  actorName = DEFAULT_ACTOR,
+  actor = DEFAULT_CARE_ACTORS[0],
+  careSubjectId,
+  causationId,
+  correlationId,
   createdAt = formatEventTimestamp(),
   occurredAt = new Date().toISOString(),
+  operationalContext = "vitals-recording",
   reading,
 }: {
-  actorName?: string;
+  actor?: CareActor;
+  careSubjectId?: string;
+  causationId?: string;
+  correlationId?: string;
   createdAt?: string;
   occurredAt?: string;
+  operationalContext?: string;
   reading: VitalsReading;
 }): VitalsRecordedEvent {
   return {
-    actorName,
+    ...createAttributionMetadata(actor, {
+      careSubjectId,
+      causationId,
+      correlationId,
+      operationalContext,
+    }),
     createdAt,
     id: createEventId("vitals-recorded", reading.id),
     occurredAt,
     payload: { reading: { ...reading, recordedAt: createdAt } },
     source: "manual",
     type: "VitalsRecordedEvent",
+  };
+}
+
+export function createCareNoteAddedEvent({
+  actor = DEFAULT_CARE_ACTORS[0],
+  careSubjectId,
+  causationId,
+  correlationId,
+  createdAt = formatEventTimestamp(),
+  note,
+  noteType,
+  occurredAt = new Date().toISOString(),
+  operationalContext = "caregiver-note",
+}: EventAttributionInput & {
+  createdAt?: string;
+  note: string;
+  noteType: CareNoteAddedEvent["payload"]["noteType"];
+  occurredAt?: string;
+}): CareNoteAddedEvent {
+  return {
+    ...createAttributionMetadata(actor, {
+      careSubjectId,
+      causationId,
+      correlationId,
+      operationalContext,
+    }),
+    createdAt,
+    id: createEventId("care-note", noteType),
+    occurredAt,
+    payload: { note, noteType },
+    source: "manual",
+    type: "CareNoteAddedEvent",
   };
 }
 
@@ -295,6 +464,8 @@ export function healthEventReducer(state: HealthEventState, event: HealthEvent):
         events,
         vitalsReadings: [...state.vitalsReadings, event.payload.reading],
       };
+    case "CareNoteAddedEvent":
+      return { ...state, events };
     case "MedicationMissedEvent":
       return {
         ...state,
@@ -329,7 +500,22 @@ export function describeHealthEvent(event: HealthEvent, medications: Medication[
     return `Vitals recorded · ${event.payload.reading.bloodPressure}`;
   }
 
+  if (event.type === "CareNoteAddedEvent") {
+    return `Care note · ${event.payload.note}`;
+  }
+
   return "Reminder dismissed";
+}
+
+export function describeActor(event: HealthEvent) {
+  return `${event.actorName} · ${formatActorRole(event.actorRole)}`;
+}
+
+export function formatActorRole(role: CareActorRole) {
+  if (role === "primary-caregiver") return "Primary Caregiver";
+  if (role === "family-member") return "Family Member";
+  if (role === "provider") return "Provider";
+  return "Supporter";
 }
 
 export function projectOperationalTimeline(
@@ -358,7 +544,10 @@ export function createProviderSummary(
   const timeline = projectOperationalTimeline(state, query);
   const medicationEventCount = timeline.filter((item) => item.family === "medications").length;
   const vitalsEventCount = timeline.filter((item) => item.family === "vitals").length;
-  const recentDescriptions = timeline.slice(0, 3).map((item) => item.description);
+  const noteEventCount = timeline.filter((item) => item.family === "notes").length;
+  const recentDescriptions = timeline
+    .slice(0, 3)
+    .map((item) => `${describeActor(item.event)}: ${item.description}`);
 
   return {
     eventCount: timeline.length,
@@ -366,6 +555,7 @@ export function createProviderSummary(
       `${timeline.length} operational event${timeline.length === 1 ? "" : "s"} in ${formatTimeframeLabel(query)}.`,
       `${medicationEventCount} medication event${medicationEventCount === 1 ? "" : "s"}.`,
       `${vitalsEventCount} vitals event${vitalsEventCount === 1 ? "" : "s"}.`,
+      `${noteEventCount} collaborative note${noteEventCount === 1 ? "" : "s"}.`,
       recentDescriptions.length > 0
         ? `Recent: ${recentDescriptions.join("; ")}.`
         : "No operational events in this timeframe.",
@@ -418,7 +608,34 @@ function formatEventTimestamp() {
 
 function getEventFamily(event: HealthEvent): Exclude<TimelineFilter, "all"> {
   if (event.type === "VitalsRecordedEvent") return "vitals";
+  if (event.type === "CareNoteAddedEvent") return "notes";
   return "medications";
+}
+
+function createAttributionMetadata(
+  actor: CareActor,
+  input: EventAttributionInput,
+): Pick<
+  HealthEventBase<HealthEventType, unknown>,
+  | "actorId"
+  | "actorName"
+  | "actorRole"
+  | "careSubjectId"
+  | "causationId"
+  | "correlationId"
+  | "operationalContext"
+  | "schemaVersion"
+> {
+  return {
+    actorId: actor.id,
+    actorName: actor.displayName,
+    actorRole: actor.role,
+    careSubjectId: input.careSubjectId ?? DEFAULT_CARE_SUBJECT_ID,
+    causationId: input.causationId,
+    correlationId: input.correlationId ?? createEventId("correlation", actor.id),
+    operationalContext: input.operationalContext ?? "care-continuity",
+    schemaVersion: 1,
+  };
 }
 
 function isEventInTimeframe(event: HealthEvent, query: TimelineQuery) {
