@@ -187,6 +187,7 @@ export type TimelineItem = {
 
 export type ProviderSummary = {
   artifactEventCount: number;
+  continuitySignalCount: number;
   eventCount: number;
   lines: string[];
   medicationEventCount: number;
@@ -211,6 +212,23 @@ export type CareProfile = {
   medicalHistory: string[];
   providers: string[];
   surgicalHistory: string[];
+};
+
+export type ContinuitySignalKind =
+  | "medication-gap"
+  | "vitals-gap"
+  | "care-observation"
+  | "artifact-follow-up"
+  | "circle-participation";
+
+export type ContinuitySignal = {
+  detail: string;
+  id: string;
+  kind: ContinuitySignalKind;
+  sourceEventId?: string;
+  timeframeLabel: string;
+  title: string;
+  tone: "steady" | "watch" | "follow-up";
 };
 
 const DEFAULT_ACTOR = "Sarah";
@@ -648,6 +666,7 @@ export function createProviderSummary(
   query: TimelineQuery,
 ): ProviderSummary {
   const timeline = projectOperationalTimeline(state, query);
+  const continuitySignals = projectContinuitySignals(state, query);
   const medicationEventCount = timeline.filter((item) => item.family === "medications").length;
   const vitalsEventCount = timeline.filter((item) => item.family === "vitals").length;
   const noteEventCount = timeline.filter((item) => item.family === "notes").length;
@@ -658,6 +677,7 @@ export function createProviderSummary(
 
   return {
     artifactEventCount,
+    continuitySignalCount: continuitySignals.length,
     eventCount: timeline.length,
     lines: [
       `${timeline.length} operational event${timeline.length === 1 ? "" : "s"} in ${formatTimeframeLabel(query)}.`,
@@ -665,6 +685,13 @@ export function createProviderSummary(
       `${vitalsEventCount} vitals event${vitalsEventCount === 1 ? "" : "s"}.`,
       `${noteEventCount} collaborative note${noteEventCount === 1 ? "" : "s"}.`,
       `${artifactEventCount} care artifact${artifactEventCount === 1 ? "" : "s"} referenced.`,
+      `${continuitySignals.length} continuity signal${continuitySignals.length === 1 ? "" : "s"} surfaced.`,
+      continuitySignals.length > 0
+        ? `Attention: ${continuitySignals
+            .slice(0, 2)
+            .map((signal) => signal.title)
+            .join("; ")}.`
+        : "No continuity gaps surfaced for this timeframe.",
       recentDescriptions.length > 0
         ? `Recent: ${recentDescriptions.join("; ")}.`
         : "No operational events in this timeframe.",
@@ -674,6 +701,117 @@ export function createProviderSummary(
     timeframeLabel: formatTimeframeLabel(query),
     vitalsEventCount,
   };
+}
+
+export function projectContinuitySignals(
+  state: HealthEventState,
+  query: TimelineQuery,
+): ContinuitySignal[] {
+  const timeline = projectOperationalTimeline(state, query);
+  const timeframeLabel = formatTimeframeLabel(query);
+  const signals: ContinuitySignal[] = [];
+  const medicationEvents = timeline.filter((item) => item.family === "medications");
+  const vitalsEvents = timeline.filter((item) => item.family === "vitals");
+  const noteEvents = timeline.filter((item) => item.event.type === "CareNoteAddedEvent");
+  const artifactEvents = timeline.filter((item) => item.event.type === "CareArtifactAttachedEvent");
+
+  const medicationsWithoutRecentTaken = state.medications.filter(
+    (medication) =>
+      !medicationEvents.some(
+        (item) =>
+          item.event.type === "MedicationTakenEvent" &&
+          item.event.payload.medicationId === medication.id,
+      ),
+  );
+
+  if (medicationsWithoutRecentTaken.length > 0) {
+    const medicationNames = medicationsWithoutRecentTaken
+      .slice(0, 2)
+      .map((medication) => medication.name)
+      .join(", ");
+    signals.push({
+      detail: `${medicationNames}${medicationsWithoutRecentTaken.length > 2 ? " and others" : ""} have no taken event in ${timeframeLabel}.`,
+      id: `signal-medication-gap-${query.timeframe}`,
+      kind: "medication-gap",
+      timeframeLabel,
+      title: "Medication confirmation gap",
+      tone: "follow-up",
+    });
+  }
+
+  if (vitalsEvents.length === 0) {
+    signals.push({
+      detail: `No vitals event is recorded in ${timeframeLabel}.`,
+      id: `signal-vitals-gap-${query.timeframe}`,
+      kind: "vitals-gap",
+      timeframeLabel,
+      title: "Vitals update missing",
+      tone: "watch",
+    });
+  }
+
+  const recentObservation = noteEvents.find(
+    (item) =>
+      item.event.type === "CareNoteAddedEvent" &&
+      (item.event.payload.noteType === "caregiver-context" ||
+        item.event.payload.noteType === "operational-concern" ||
+        item.event.payload.noteType === "symptom-observation"),
+  );
+
+  if (recentObservation?.event.type === "CareNoteAddedEvent") {
+    signals.push({
+      detail: `Recent caregiver note may need follow-up: ${recentObservation.event.payload.note}`,
+      id: `signal-care-observation-${recentObservation.event.id}`,
+      kind: "care-observation",
+      sourceEventId: recentObservation.event.id,
+      timeframeLabel,
+      title: "Caregiver observation to review",
+      tone: "watch",
+    });
+  }
+
+  const hasDischargeArtifact = artifactEvents.some(
+    (item) =>
+      item.event.type === "CareArtifactAttachedEvent" &&
+      item.event.payload.artifact.kind === "discharge-summary",
+  );
+  const hasFollowUpArtifact = artifactEvents.some(
+    (item) =>
+      item.event.type === "CareArtifactAttachedEvent" &&
+      (item.event.payload.artifact.kind === "appointment-paperwork" ||
+        item.event.payload.artifact.kind === "referral-document"),
+  );
+
+  if (hasDischargeArtifact && !hasFollowUpArtifact) {
+    const dischargeEvent = artifactEvents.find(
+      (item) =>
+        item.event.type === "CareArtifactAttachedEvent" &&
+        item.event.payload.artifact.kind === "discharge-summary",
+    );
+    signals.push({
+      detail: "Discharge instructions are present; no follow-up paperwork is linked yet.",
+      id: `signal-artifact-follow-up-${query.timeframe}`,
+      kind: "artifact-follow-up",
+      sourceEventId: dischargeEvent?.event.id,
+      timeframeLabel,
+      title: "Follow-up artifact pending",
+      tone: "steady",
+    });
+  }
+
+  const activeActorIds = new Set(timeline.map((item) => item.event.actorId));
+  if (activeActorIds.size < state.careCircle.actors.length) {
+    signals.push({
+      detail: `${activeActorIds.size} of ${state.careCircle.actors.length} care-circle members have activity in ${timeframeLabel}.`,
+      id: `signal-circle-participation-${query.timeframe}`,
+      kind: "circle-participation",
+      timeframeLabel,
+      title: "Care-circle participation visibility",
+      tone: "steady",
+    });
+  }
+
+  return signals;
 }
 
 export function createProviderSummaryExport({

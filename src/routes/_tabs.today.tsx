@@ -41,6 +41,7 @@ import {
   type CareArtifact,
   type CareProfile,
   type CareCircle,
+  type ContinuitySignal,
   type Medication,
   type ProviderSummary,
   type TimelineFilter,
@@ -51,6 +52,7 @@ import {
   createProviderSummary,
   createProviderSummaryExport,
   formatTimeframeLabel,
+  projectContinuitySignals,
   projectOperationalTimeline,
 } from "@/lib/health-events";
 
@@ -71,6 +73,7 @@ function Today() {
   );
   const timelineQuery = { filter: timelineFilter, timeframe };
   const timeline = projectOperationalTimeline(healthEventState, timelineQuery);
+  const continuitySignals = projectContinuitySignals(healthEventState, timelineQuery);
   const providerSummary = createProviderSummary(healthEventState, timelineQuery);
   const careProfile = createDefaultCareProfile();
   const providerSummaryExport = createProviderSummaryExport({
@@ -189,6 +192,10 @@ function Today() {
         </div>
       )}
 
+      <Section title="Continuity signals">
+        <ContinuitySignalsCard signals={continuitySignals} timeframe={timeframe} />
+      </Section>
+
       <Section title="Needs attention">
         <Alert
           tone="warn"
@@ -289,6 +296,7 @@ function Today() {
           onAddNote={addCollaborativeNote}
           onFilterChange={setTimelineFilter}
           onTimeframeChange={setTimeframe}
+          signals={continuitySignals}
           summary={providerSummary}
           timeframe={timeframe}
           timeline={timeline}
@@ -299,6 +307,7 @@ function Today() {
         <ProviderSummaryCard
           careProfile={careProfile}
           exportSnapshot={providerSummaryExport}
+          signals={continuitySignals}
           summary={providerSummary}
           timeframe={timeframe}
         />
@@ -369,6 +378,7 @@ function OperationalTimelineCard({
   onAddNote,
   onFilterChange,
   onTimeframeChange,
+  signals,
   summary,
   timeframe,
   timeline,
@@ -378,10 +388,17 @@ function OperationalTimelineCard({
   onAddNote: () => void;
   onFilterChange: (filter: TimelineFilter) => void;
   onTimeframeChange: (timeframe: TimeframePreset) => void;
+  signals: ContinuitySignal[];
   summary: ProviderSummary;
   timeframe: TimeframePreset;
   timeline: TimelineItem[];
 }) {
+  const signalsByEventId = new Map(
+    signals
+      .filter((signal) => signal.sourceEventId)
+      .map((signal) => [signal.sourceEventId, signal.title]),
+  );
+
   return (
     <div className="card-soft p-4">
       <div className="flex items-start justify-between gap-3">
@@ -466,6 +483,11 @@ function OperationalTimelineCard({
               <p className="mt-1 text-[11px] text-muted-foreground">
                 {item.event.type} · {item.event.operationalContext}
               </p>
+              {signalsByEventId.has(item.event.id) && (
+                <p className="mt-1 inline-flex rounded-full bg-card px-2.5 py-1 text-[11px] font-medium text-primary">
+                  {signalsByEventId.get(item.event.id)}
+                </p>
+              )}
             </div>
           </div>
         ))}
@@ -475,6 +497,65 @@ function OperationalTimelineCard({
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function ContinuitySignalsCard({
+  signals,
+  timeframe,
+}: {
+  signals: ContinuitySignal[];
+  timeframe: TimeframePreset;
+}) {
+  return (
+    <div className="card-soft p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[15px] font-medium">Operational attention</p>
+          <p className="text-[12px] text-muted-foreground">
+            Projection-derived signals for {formatTimeframeLabel({ filter: "all", timeframe })}.
+          </p>
+        </div>
+        <span className="rounded-full bg-sage px-2.5 py-1 text-[11px] font-medium text-sage-foreground">
+          Replay-safe
+        </span>
+      </div>
+
+      <div className="mt-3 space-y-2.5">
+        {signals.slice(0, 4).map((signal) => (
+          <div key={signal.id} className="flex gap-3 rounded-2xl bg-secondary px-3.5 py-3">
+            <span
+              className={`mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-full ${getSignalToneClass(signal.tone)}`}
+            >
+              {signal.tone === "follow-up" ? (
+                <AlertCircle className="h-4 w-4" />
+              ) : (
+                <CheckCircle2 className="h-4 w-4" />
+              )}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[13px] font-medium">{signal.title}</p>
+              <p className="mt-0.5 text-[12px] leading-relaxed text-muted-foreground">
+                {signal.detail}
+              </p>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                {signal.kind} · {signal.timeframeLabel}
+              </p>
+            </div>
+          </div>
+        ))}
+        {signals.length === 0 && (
+          <div className="rounded-2xl bg-secondary px-3.5 py-3 text-[13px] text-muted-foreground">
+            No continuity signals surfaced for this view.
+          </div>
+        )}
+      </div>
+
+      <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
+        Signals indicate operational gaps only. EvernestCare does not diagnose, predict, or
+        recommend treatment.
+      </p>
     </div>
   );
 }
@@ -574,11 +655,13 @@ function CareCircleCard({ careCircle }: { careCircle: CareCircle }) {
 function ProviderSummaryCard({
   careProfile,
   exportSnapshot,
+  signals,
   summary,
   timeframe,
 }: {
   careProfile: CareProfile;
   exportSnapshot: ReturnType<typeof createProviderSummaryExport>;
+  signals: ContinuitySignal[];
   summary: ProviderSummary;
   timeframe: TimeframePreset;
 }) {
@@ -609,6 +692,20 @@ function ProviderSummaryCard({
         <ProfileChip label="Allergies" value={careProfile.allergies.join(", ")} />
       </div>
 
+      <div className="mt-3 rounded-2xl bg-secondary px-3.5 py-3">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          Continuity attention
+        </p>
+        <p className="mt-1 text-[13px] leading-relaxed">
+          {signals.length > 0
+            ? signals
+                .slice(0, 2)
+                .map((signal) => signal.title)
+                .join(" · ")
+            : "No continuity signals surfaced."}
+        </p>
+      </div>
+
       <div className="mt-3 rounded-2xl bg-secondary p-3.5">
         <div className="flex items-center gap-2">
           <Share2 className="h-4 w-4 text-primary" />
@@ -629,6 +726,12 @@ function ProviderSummaryCard({
       </div>
     </div>
   );
+}
+
+function getSignalToneClass(tone: ContinuitySignal["tone"]) {
+  if (tone === "follow-up") return "bg-sand text-sand-foreground";
+  if (tone === "watch") return "bg-sky text-sky-foreground";
+  return "bg-sage text-sage-foreground";
 }
 
 function ProfileChip({ label, value }: { label: string; value: string }) {
