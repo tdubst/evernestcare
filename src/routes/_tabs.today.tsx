@@ -21,6 +21,7 @@ import {
   FileText,
   Share2,
   Upload,
+  ClipboardCheck,
 } from "lucide-react";
 
 import { HEALTH_DEVICE_INTEGRATIONS } from "@/lib/integrations/health-devices";
@@ -149,7 +150,7 @@ function Today() {
       </div>
 
       {/* Quick actions */}
-      <div className="px-6 mt-5 grid grid-cols-4 gap-2.5">
+      <div className="px-6 mt-5 grid grid-cols-3 gap-2.5">
         {[
           {
             i: Pill,
@@ -163,8 +164,7 @@ function Today() {
             c: "bg-sage text-sage-foreground",
             onClick: () => openQuickPanel("vitals"),
           },
-          { i: ScanLine, l: "Scan doc", c: "bg-sky text-sky-foreground" },
-          { i: Phone, l: "Call", c: "bg-sand text-sand-foreground" },
+          { i: ClipboardCheck, l: "Visit Prep", c: "bg-sky text-sky-foreground" },
         ].map(({ i: Icon, l, c, onClick }) => (
           <button key={l} onClick={onClick} className="flex flex-col items-center gap-1.5">
             <span
@@ -201,6 +201,15 @@ function Today() {
 
       <Section title="Continuity signals">
         <ContinuitySignalsCard signals={continuitySignals} timeframe={timeframe} />
+      </Section>
+
+      <Section title="Visit Prep">
+        <VisitPrepCard
+          artifacts={healthEventState.artifacts}
+          providerSummary={providerSummary}
+          signals={continuitySignals}
+          timeline={timeline}
+        />
       </Section>
 
       <Section title="Caregiver workflows">
@@ -383,6 +392,86 @@ function Today() {
           <ChevronRight className="h-4 w-4 text-muted-foreground" />
         </Link>
       </div>
+    </div>
+  );
+}
+
+function VisitPrepCard({
+  artifacts,
+  providerSummary,
+  signals,
+  timeline,
+}: {
+  artifacts: CareArtifact[];
+  providerSummary: ProviderSummary;
+  signals: ContinuitySignal[];
+  timeline: TimelineItem[];
+}) {
+  const recentMedicationChange = timeline.find((item) => item.family === "medications");
+  const recentNote = timeline.find((item) => item.family === "notes");
+  const recentArtifact = artifacts.find((artifact) => artifact.summaryVisible);
+
+  return (
+    <div className="card-soft p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[15px] font-medium">Appointment handoff</p>
+          <p className="text-[12px] text-muted-foreground">
+            A concise, provider-facing view from continuity history.
+          </p>
+        </div>
+        <span className="rounded-full bg-sky px-2.5 py-1 text-[11px] font-medium text-sky-foreground">
+          Ready
+        </span>
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-2.5">
+        <VisitPrepItem
+          label="Review first"
+          value={signals[0]?.title ?? "No continuity signals"}
+          detail={signals[0]?.detail ?? "No operational gaps surfaced for this view."}
+        />
+        <VisitPrepItem
+          label="Recent change"
+          value={recentMedicationChange?.description ?? "No medication change"}
+          detail={
+            recentMedicationChange ? describeActor(recentMedicationChange.event) : "Nothing new"
+          }
+        />
+        <VisitPrepItem
+          label="Care note"
+          value={recentNote?.description ?? "No new care note"}
+          detail={recentNote ? describeActor(recentNote.event) : "No recent note in this window"}
+        />
+        <VisitPrepItem
+          label="Attached"
+          value={recentArtifact?.title ?? "No summary artifact"}
+          detail={recentArtifact?.previewLabel ?? "Vault files can be attached when needed"}
+        />
+      </div>
+
+      <div className="mt-3 rounded-2xl bg-secondary px-3.5 py-3">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          Provider snapshot
+        </p>
+        <p className="mt-1 text-[13px] leading-relaxed">
+          {providerSummary.eventCount} events · {providerSummary.continuitySignalCount} signals ·{" "}
+          {providerSummary.artifactEventCount} artifact
+          {providerSummary.artifactEventCount === 1 ? "" : "s"}. Factual and non-diagnostic.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function VisitPrepItem({ detail, label, value }: { detail: string; label: string; value: string }) {
+  return (
+    <div className="rounded-2xl bg-secondary px-3.5 py-3">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        {label}
+      </p>
+      <p className="mt-1 text-[13px] font-medium leading-snug">{value}</p>
+      <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">{detail}</p>
     </div>
   );
 }
@@ -1044,7 +1133,7 @@ function VitalsPanel({
         }
       />
       <div className="px-4 pb-4 space-y-4">
-        <VitalsTrendChart readings={healthEventState.vitalsReadings} />
+        <VitalsTrendCharts readings={healthEventState.vitalsReadings} />
 
         {showAddReading && (
           <div className="rounded-2xl bg-secondary p-3.5">
@@ -1147,85 +1236,177 @@ function VitalsPanel({
   );
 }
 
-function VitalsTrendChart({ readings }: { readings: VitalsReading[] }) {
+function VitalsTrendCharts({ readings }: { readings: VitalsReading[] }) {
   const points = readings.slice(-5);
-  const systolicPath = points
-    .map((point, index) => `${28 + index * 62},${166 - (point.systolic - 110) * 2.1}`)
-    .join(" ");
-  const heartPath = points
-    .map((point, index) => `${28 + index * 62},${166 - (point.heartRate - 60) * 3}`)
-    .join(" ");
+  const bloodPressureSeries = [
+    {
+      label: "Systolic",
+      values: points.map((point) => point.systolic),
+      className: "stroke-primary",
+      dotClassName: "fill-primary",
+      legendClassName: "bg-primary",
+    },
+    {
+      label: "Diastolic",
+      values: points.map((point) => Number(point.bloodPressure.split("/")[1] ?? 78)),
+      className: "stroke-sage-foreground",
+      dotClassName: "fill-sage-foreground",
+      legendClassName: "bg-sage-foreground",
+    },
+  ];
+  const heartRateSeries = [
+    {
+      label: "Heart rate",
+      values: points.map((point) => point.heartRate),
+      className: "stroke-sage-foreground",
+      dotClassName: "fill-sage-foreground",
+      legendClassName: "bg-sage-foreground",
+    },
+  ];
+  const weightSeries = [
+    {
+      label: "Weight",
+      values: points.map((point) => Number.parseFloat(point.weight)),
+      className: "stroke-primary",
+      dotClassName: "fill-primary",
+      legendClassName: "bg-primary",
+    },
+  ];
+
+  return (
+    <div className="space-y-3">
+      <OperationalTrendChart
+        title="Blood pressure"
+        subtitle="Systolic and diastolic trend"
+        ariaLabel="Blood pressure trend chart"
+        labels={points.map((point) => point.label)}
+        series={bloodPressureSeries}
+        min={60}
+        max={145}
+        unit="mmHg"
+      />
+      <OperationalTrendChart
+        title="Heart rate"
+        subtitle="Resting trend visibility"
+        ariaLabel="Heart rate trend chart"
+        labels={points.map((point) => point.label)}
+        series={heartRateSeries}
+        min={55}
+        max={85}
+        unit="bpm"
+      />
+      <OperationalTrendChart
+        title="Weight"
+        subtitle="Longitudinal continuity"
+        ariaLabel="Weight trend chart"
+        labels={points.map((point) => point.label)}
+        series={weightSeries}
+        min={145}
+        max={152}
+        unit="lb"
+      />
+    </div>
+  );
+}
+
+function OperationalTrendChart({
+  ariaLabel,
+  labels,
+  max,
+  min,
+  series,
+  subtitle,
+  title,
+  unit,
+}: {
+  ariaLabel: string;
+  labels: string[];
+  max: number;
+  min: number;
+  series: {
+    className: string;
+    dotClassName: string;
+    label: string;
+    legendClassName: string;
+    values: number[];
+  }[];
+  subtitle: string;
+  title: string;
+  unit: string;
+}) {
+  const chartWidth = 280;
+  const chartHeight = 126;
+  const horizontalStep = labels.length > 1 ? 224 / (labels.length - 1) : 0;
+  const yFor = (value: number) => {
+    const normalized = (value - min) / (max - min);
+    return chartHeight - 18 - Math.max(0, Math.min(1, normalized)) * 88;
+  };
 
   return (
     <div className="rounded-2xl bg-secondary p-3.5">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-[13px] font-semibold">5-day trend</p>
-          <p className="text-[12px] text-muted-foreground">Blood pressure and heart rate</p>
+          <p className="text-[13px] font-semibold">{title}</p>
+          <p className="text-[12px] text-muted-foreground">{subtitle}</p>
         </div>
         <span className="rounded-full bg-card px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
-          Manual
+          {unit}
         </span>
       </div>
       <svg
-        viewBox="0 0 280 180"
-        className="mt-3 h-40 w-full"
+        viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+        className="mt-3 h-32 w-full"
         role="img"
-        aria-label="Vitals history chart"
+        aria-label={ariaLabel}
       >
-        {[42, 78, 114, 150].map((y) => (
-          <line key={y} x1="24" x2="276" y1={y} y2={y} className="stroke-border" strokeWidth="1" />
+        {[28, 62, 96].map((y) => (
+          <line key={y} x1="24" x2="272" y1={y} y2={y} className="stroke-border" strokeWidth="1" />
         ))}
-        <polyline
-          points={systolicPath}
-          fill="none"
-          className="stroke-primary"
-          strokeWidth="3"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <polyline
-          points={heartPath}
-          fill="none"
-          className="stroke-sage-foreground"
-          strokeWidth="3"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        {points.map((point, index) => (
-          <g key={point.label}>
-            <circle
-              cx={28 + index * 62}
-              cy={166 - (point.systolic - 110) * 2.1}
-              r="4"
-              className="fill-primary"
-            />
-            <circle
-              cx={28 + index * 62}
-              cy={166 - (point.heartRate - 60) * 3}
-              r="4"
-              className="fill-sage-foreground"
-            />
-            <text
-              x={28 + index * 62}
-              y="176"
-              textAnchor="middle"
-              className="fill-muted-foreground text-[10px]"
-            >
-              {point.label}
-            </text>
-          </g>
+        {series.map((item) => {
+          const points = item.values
+            .map((value, index) => `${28 + index * horizontalStep},${yFor(value)}`)
+            .join(" ");
+          return (
+            <g key={item.label}>
+              <polyline
+                points={points}
+                fill="none"
+                className={item.className}
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              {item.values.map((value, index) => (
+                <circle
+                  key={`${item.label}-${labels[index]}`}
+                  cx={28 + index * horizontalStep}
+                  cy={yFor(value)}
+                  r="3.5"
+                  className={item.dotClassName}
+                />
+              ))}
+            </g>
+          );
+        })}
+        {labels.map((label, index) => (
+          <text
+            key={label}
+            x={28 + index * horizontalStep}
+            y="118"
+            textAnchor="middle"
+            className="fill-muted-foreground text-[10px]"
+          >
+            {label}
+          </text>
         ))}
       </svg>
-      <div className="mt-2 flex gap-3 text-[11px] text-muted-foreground">
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-primary" />
-          Systolic
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-sage-foreground" />
-          Heart rate
-        </span>
+      <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-muted-foreground">
+        {series.map((item) => (
+          <span key={item.label} className="inline-flex items-center gap-1.5">
+            <span className={`h-2 w-2 rounded-full ${item.legendClassName}`} />
+            {item.label}
+          </span>
+        ))}
       </div>
     </div>
   );
