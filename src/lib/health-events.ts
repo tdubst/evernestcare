@@ -203,6 +203,20 @@ export type ProviderSummaryExport = {
   title: string;
 };
 
+export type CaregiverWorkflowStatus = {
+  detail: string;
+  id: string;
+  nextStep: string;
+  status: "ready" | "review" | "pending";
+  title: string;
+};
+
+export type BetaWorkflowMetric = {
+  detail: string;
+  label: string;
+  value: string;
+};
+
 export type CareProfile = {
   allergies: string[];
   chronicConditions: string[];
@@ -817,16 +831,30 @@ export function projectContinuitySignals(
 export function createProviderSummaryExport({
   artifacts,
   careProfile,
+  signals = [],
   summary,
 }: {
   artifacts: CareArtifact[];
   careProfile: CareProfile;
+  signals?: ContinuitySignal[];
   summary: ProviderSummary;
 }): ProviderSummaryExport {
   const visibleArtifacts = artifacts.filter((artifact) => artifact.summaryVisible);
 
   return {
     sections: [
+      {
+        lines: [
+          `${summary.eventCount} event${summary.eventCount === 1 ? "" : "s"} · ${summary.continuitySignalCount} continuity signal${summary.continuitySignalCount === 1 ? "" : "s"} · ${summary.artifactEventCount} artifact${summary.artifactEventCount === 1 ? "" : "s"}.`,
+          signals.length > 0
+            ? `Review first: ${signals
+                .slice(0, 2)
+                .map((signal) => signal.title)
+                .join("; ")}.`
+            : "No continuity signals surfaced for this summary.",
+        ],
+        title: "Provider scan",
+      },
       {
         lines: summary.lines,
         title: "Operational summary",
@@ -852,6 +880,91 @@ export function createProviderSummaryExport({
     ],
     title: "EvernestCare continuity snapshot",
   };
+}
+
+export function projectCaregiverWorkflows(
+  state: HealthEventState,
+  query: TimelineQuery,
+): CaregiverWorkflowStatus[] {
+  const timeline = projectOperationalTimeline(state, query);
+  const signals = projectContinuitySignals(state, query);
+  const hasMedicationGap = signals.some((signal) => signal.kind === "medication-gap");
+  const hasVitalsGap = signals.some((signal) => signal.kind === "vitals-gap");
+  const hasDischargeArtifact = state.artifacts.some(
+    (artifact) => artifact.kind === "discharge-summary",
+  );
+  const hasSummaryArtifact = state.artifacts.some((artifact) => artifact.summaryVisible);
+  const activeActorCount = new Set(timeline.map((item) => item.event.actorId)).size;
+
+  return [
+    {
+      detail: hasMedicationGap
+        ? "Medication confirmations are incomplete for this view."
+        : "Medication events are visible in the selected continuity window.",
+      id: "workflow-medication",
+      nextStep: hasMedicationGap ? "Open Medications" : "Review history",
+      status: hasMedicationGap ? "review" : "ready",
+      title: "Medication management",
+    },
+    {
+      detail:
+        hasSummaryArtifact && !hasVitalsGap
+          ? "Summary, artifacts, and recent vitals are ready to review."
+          : "A visit summary is available, with a few continuity items to review.",
+      id: "workflow-provider-handoff",
+      nextStep: "Review provider summary",
+      status: hasSummaryArtifact && !hasVitalsGap ? "ready" : "review",
+      title: "Provider handoff",
+    },
+    {
+      detail: hasDischargeArtifact
+        ? "Discharge paperwork is linked to the timeline."
+        : "No discharge paperwork is linked yet.",
+      id: "workflow-post-discharge",
+      nextStep: hasDischargeArtifact ? "Check follow-up items" : "Attach document",
+      status: hasDischargeArtifact ? "review" : "pending",
+      title: "Post-discharge continuity",
+    },
+    {
+      detail: `${activeActorCount} care-circle member${activeActorCount === 1 ? "" : "s"} contributed in ${formatTimeframeLabel(query)}.`,
+      id: "workflow-collaboration",
+      nextStep: activeActorCount > 1 ? "Scan timeline" : "Invite or nudge helper",
+      status: activeActorCount > 1 ? "ready" : "pending",
+      title: "Collaborative caregiving",
+    },
+  ];
+}
+
+export function projectBetaWorkflowMetrics(
+  state: HealthEventState,
+  query: TimelineQuery,
+): BetaWorkflowMetric[] {
+  const timeline = projectOperationalTimeline(state, query);
+  const signals = projectContinuitySignals(state, query);
+  const activeActorCount = new Set(timeline.map((item) => item.event.actorId)).size;
+
+  return [
+    {
+      detail: "Events remain the source for timeline, summary, signals, and workflow surfaces.",
+      label: "Replay integrity",
+      value: `${timeline.length} events`,
+    },
+    {
+      detail: "Artifacts marked for provider summaries are included in export projections.",
+      label: "Export readiness",
+      value: `${state.artifacts.filter((artifact) => artifact.summaryVisible).length} files`,
+    },
+    {
+      detail: "Care-circle participation is visible without realtime infrastructure.",
+      label: "Collaboration",
+      value: `${activeActorCount}/${state.careCircle.actors.length} active`,
+    },
+    {
+      detail: "Operational gaps remain explainable and non-diagnostic.",
+      label: "Continuity confidence",
+      value: `${signals.length} signals`,
+    },
+  ];
 }
 
 export function createDefaultCareProfile(): CareProfile {

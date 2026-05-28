@@ -41,6 +41,7 @@ import {
   type CareArtifact,
   type CareProfile,
   type CareCircle,
+  type CaregiverWorkflowStatus,
   type ContinuitySignal,
   type Medication,
   type ProviderSummary,
@@ -48,10 +49,13 @@ import {
   type TimelineItem,
   type TimeframePreset,
   type VitalsReading,
+  type BetaWorkflowMetric,
   createDefaultCareProfile,
   createProviderSummary,
   createProviderSummaryExport,
   formatTimeframeLabel,
+  projectBetaWorkflowMetrics,
+  projectCaregiverWorkflows,
   projectContinuitySignals,
   projectOperationalTimeline,
 } from "@/lib/health-events";
@@ -74,11 +78,14 @@ function Today() {
   const timelineQuery = { filter: timelineFilter, timeframe };
   const timeline = projectOperationalTimeline(healthEventState, timelineQuery);
   const continuitySignals = projectContinuitySignals(healthEventState, timelineQuery);
+  const caregiverWorkflows = projectCaregiverWorkflows(healthEventState, timelineQuery);
+  const betaWorkflowMetrics = projectBetaWorkflowMetrics(healthEventState, timelineQuery);
   const providerSummary = createProviderSummary(healthEventState, timelineQuery);
   const careProfile = createDefaultCareProfile();
   const providerSummaryExport = createProviderSummaryExport({
     artifacts: healthEventState.artifacts,
     careProfile,
+    signals: continuitySignals,
     summary: providerSummary,
   });
   const careCircle = healthEventState.careCircle;
@@ -194,6 +201,10 @@ function Today() {
 
       <Section title="Continuity signals">
         <ContinuitySignalsCard signals={continuitySignals} timeframe={timeframe} />
+      </Section>
+
+      <Section title="Caregiver workflows">
+        <CaregiverWorkflowsCard workflows={caregiverWorkflows} />
       </Section>
 
       <Section title="Needs attention">
@@ -313,6 +324,10 @@ function Today() {
         />
       </Section>
 
+      <Section title="Beta readiness">
+        <BetaReadinessCard metrics={betaWorkflowMetrics} />
+      </Section>
+
       <Section
         title="Emergency contacts"
         cta={
@@ -367,6 +382,45 @@ function Today() {
           </div>
           <ChevronRight className="h-4 w-4 text-muted-foreground" />
         </Link>
+      </div>
+    </div>
+  );
+}
+
+function CaregiverWorkflowsCard({ workflows }: { workflows: CaregiverWorkflowStatus[] }) {
+  return (
+    <div className="card-soft p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[15px] font-medium">Next best care steps</p>
+          <p className="text-[12px] text-muted-foreground">
+            Workflow status from timeline, signals, artifacts, and attribution.
+          </p>
+        </div>
+        <span className="rounded-full bg-secondary px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+          Beta
+        </span>
+      </div>
+
+      <div className="mt-3 space-y-2.5">
+        {workflows.map((workflow) => (
+          <div key={workflow.id} className="rounded-2xl bg-secondary px-3.5 py-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[13px] font-medium">{workflow.title}</p>
+                <p className="mt-0.5 text-[12px] leading-relaxed text-muted-foreground">
+                  {workflow.detail}
+                </p>
+              </div>
+              <span
+                className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium ${getWorkflowStatusClass(workflow.status)}`}
+              >
+                {workflow.status}
+              </span>
+            </div>
+            <p className="mt-2 text-[12px] font-medium text-primary">{workflow.nextStep}</p>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -709,7 +763,12 @@ function ProviderSummaryCard({
       <div className="mt-3 rounded-2xl bg-secondary p-3.5">
         <div className="flex items-center gap-2">
           <Share2 className="h-4 w-4 text-primary" />
-          <p className="text-[13px] font-semibold">{exportSnapshot.title}</p>
+          <div>
+            <p className="text-[13px] font-semibold">{exportSnapshot.title}</p>
+            <p className="text-[11px] text-muted-foreground">
+              Appointment-ready, event-derived, and non-diagnostic.
+            </p>
+          </div>
         </div>
         <div className="mt-3 space-y-2">
           {exportSnapshot.sections.map((section) => (
@@ -728,10 +787,48 @@ function ProviderSummaryCard({
   );
 }
 
+function BetaReadinessCard({ metrics }: { metrics: BetaWorkflowMetric[] }) {
+  return (
+    <div className="card-soft p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[15px] font-medium">Trust checks</p>
+          <p className="text-[12px] text-muted-foreground">
+            Lightweight observability for closed beta workflows.
+          </p>
+        </div>
+        <span className="rounded-full bg-sage px-2.5 py-1 text-[11px] font-medium text-sage-foreground">
+          Inspectable
+        </span>
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-2.5">
+        {metrics.map((metric) => (
+          <div key={metric.label} className="rounded-2xl bg-secondary px-3.5 py-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              {metric.label}
+            </p>
+            <p className="mt-1 text-[15px] font-semibold">{metric.value}</p>
+            <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+              {metric.detail}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function getSignalToneClass(tone: ContinuitySignal["tone"]) {
   if (tone === "follow-up") return "bg-sand text-sand-foreground";
   if (tone === "watch") return "bg-sky text-sky-foreground";
   return "bg-sage text-sage-foreground";
+}
+
+function getWorkflowStatusClass(status: CaregiverWorkflowStatus["status"]) {
+  if (status === "ready") return "bg-sage text-sage-foreground";
+  if (status === "review") return "bg-sky text-sky-foreground";
+  return "bg-sand text-sand-foreground";
 }
 
 function ProfileChip({ label, value }: { label: string; value: string }) {

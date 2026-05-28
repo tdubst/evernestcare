@@ -78,10 +78,10 @@ function Onboarding() {
                 <Heart className="h-6 w-6" fill="currentColor" />
               </div>
               <h2 className="mt-6 text-[32px] font-semibold tracking-tight leading-tight">
-                Let's set up your circle.
+                Let's make care easier to follow.
               </h2>
               <p className="mt-3 text-[16px] text-muted-foreground leading-relaxed max-w-[34ch]">
-                A few quiet questions to organize care. You can change anything later.
+                Start with one person, one circle, and the key details for the next handoff.
               </p>
             </div>
           )}
@@ -216,7 +216,7 @@ function Onboarding() {
                 Bring in medications
               </h2>
               <p className="mt-2 text-[15px] text-muted-foreground">
-                Optional — we'll set gentle reminders.
+                Optional. Add what helps your family confirm the next dose.
               </p>
               <div className="mt-6 space-y-2.5">
                 {[
@@ -255,7 +255,8 @@ function Onboarding() {
                 Start a continuity trail
               </h2>
               <p className="mt-2 text-[15px] text-muted-foreground">
-                Add only what helps the next handoff feel clearer.
+                EvernestCare keeps a calm record of what happened, who helped, and what is ready for
+                a visit.
               </p>
               <div className="mt-6 space-y-3">
                 {[
