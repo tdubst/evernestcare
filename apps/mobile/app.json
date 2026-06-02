@@ -1,0 +1,18 @@
+{
+  "expo": {
+    "name": "EvernestCare",
+    "slug": "evernestcare",
+    "scheme": "evernestcare",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "care.evernest.app"
+    },
+    "plugins": [],
+    "experiments": {
+      "typedRoutes": false
+    }
+  }
+}
