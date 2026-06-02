@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useReducer, useState } from "react";
 import {
   type LucideIcon,
@@ -7,10 +7,6 @@ import {
   AlertCircle,
   Activity,
   ScanLine,
-  Phone,
-  Heart,
-  ChevronRight,
-  Sparkles,
   CheckCircle2,
   X,
   Plus,
@@ -18,16 +14,13 @@ import {
   Bluetooth,
   Watch,
   Smartphone,
-  FileText,
   Share2,
-  Upload,
   ClipboardCheck,
 } from "lucide-react";
 
 import { HEALTH_DEVICE_INTEGRATIONS } from "@/lib/integrations/health-devices";
 import {
   createCareNoteAddedEvent,
-  createCareArtifactAttachedEvent,
   createInitialHealthEventState,
   createMedicationScheduledEvent,
   createMedicationTakenEvent,
@@ -35,14 +28,12 @@ import {
   createVitalsRecordedEvent,
   describeActor,
   describeHealthEvent,
-  formatActorRole,
   healthEventReducer,
   type HealthEvent,
   type HealthEventState,
   type CareArtifact,
   type CareProfile,
   type CareCircle,
-  type CaregiverWorkflowStatus,
   type ContinuitySignal,
   type Medication,
   type ProviderSummary,
@@ -50,13 +41,10 @@ import {
   type TimelineItem,
   type TimeframePreset,
   type VitalsReading,
-  type BetaWorkflowMetric,
   createDefaultCareProfile,
   createProviderSummary,
   createProviderSummaryExport,
   formatTimeframeLabel,
-  projectBetaWorkflowMetrics,
-  projectCaregiverWorkflows,
   projectContinuitySignals,
   projectOperationalTimeline,
 } from "@/lib/health-events";
@@ -66,9 +54,13 @@ export const Route = createFileRoute("/_tabs/today")({
   component: Today,
 });
 
+type VitalsFocus = "bp" | "hr" | "weight";
+type HomeWorkflow = "home" | "visit" | "med" | "vitals";
+
 function Today() {
-  const [quickPanel, setQuickPanel] = useState<"med" | "vitals" | null>(null);
+  const [activeWorkflow, setActiveWorkflow] = useState<HomeWorkflow>("home");
   const [savedPanel, setSavedPanel] = useState<"med" | "vitals" | null>(null);
+  const [shareSummaryOpen, setShareSummaryOpen] = useState(false);
   const [timelineFilter, setTimelineFilter] = useState<TimelineFilter>("all");
   const [timeframe, setTimeframe] = useState<TimeframePreset>("7d");
   const [healthEventState, dispatchHealthEvent] = useReducer(
@@ -79,8 +71,6 @@ function Today() {
   const timelineQuery = { filter: timelineFilter, timeframe };
   const timeline = projectOperationalTimeline(healthEventState, timelineQuery);
   const continuitySignals = projectContinuitySignals(healthEventState, timelineQuery);
-  const caregiverWorkflows = projectCaregiverWorkflows(healthEventState, timelineQuery);
-  const betaWorkflowMetrics = projectBetaWorkflowMetrics(healthEventState, timelineQuery);
   const providerSummary = createProviderSummary(healthEventState, timelineQuery);
   const careProfile = createDefaultCareProfile();
   const providerSummaryExport = createProviderSummaryExport({
@@ -99,30 +89,13 @@ function Today() {
       }),
     );
   };
-  const attachCareArtifact = () => {
-    dispatchHealthEvent(
-      createCareArtifactAttachedEvent({
-        actor: careCircle.actors[0],
-        artifact: {
-          fileLabel: "medication-list-photo.jpg",
-          id: "artifact-medication-list-photo",
-          kind: "medication-photo",
-          linkedContext: "Medication reconciliation",
-          previewLabel: "Image placeholder",
-          summaryVisible: true,
-          title: "Medication list photo",
-        },
-      }),
-    );
-  };
-
-  const openQuickPanel = (panel: "med" | "vitals") => {
-    setQuickPanel(panel);
+  const openWorkflow = (panel: HomeWorkflow) => {
+    setActiveWorkflow(panel);
     setSavedPanel(null);
   };
 
-  const closeQuickPanel = () => {
-    setQuickPanel(null);
+  const closeWorkflow = () => {
+    setActiveWorkflow("home");
     setSavedPanel(null);
   };
 
@@ -131,8 +104,10 @@ function Today() {
       {/* Header */}
       <header className="px-6 pt-14 pb-4">
         <p className="text-[13px] font-medium text-muted-foreground">Tuesday, May 26</p>
-        <h1 className="mt-1 text-[30px] font-semibold tracking-tight">Good morning, Sarah</h1>
-        <p className="mt-1 text-[15px] text-muted-foreground">Here's what matters for Mom today.</p>
+        <h1 className="mt-1 text-[30px] font-semibold tracking-tight">Home</h1>
+        <p className="mt-1 text-[15px] text-muted-foreground">
+          Good morning, Sarah. Here is what matters for Mom today.
+        </p>
       </header>
 
       {/* Care recipient bar */}
@@ -149,249 +124,238 @@ function Today() {
         </div>
       </div>
 
+      <Section title="Today at a glance">
+        <div className="grid grid-cols-3 gap-2.5">
+          <HomeStatusCard
+            icon={Pill}
+            label="Medications"
+            value="2 due"
+            detail="Next at 1:00 PM"
+            tone="bg-blush text-blush-foreground"
+          />
+          <HomeStatusCard
+            icon={CalendarDays}
+            label="Appointment"
+            value="11:30 AM"
+            detail="David driving"
+            tone="bg-sky text-sky-foreground"
+          />
+          <HomeStatusCard
+            icon={Activity}
+            label="Vitals"
+            value="124/78"
+            detail="Last checked Fri"
+            tone="bg-sage text-sage-foreground"
+          />
+        </div>
+      </Section>
+
       {/* Quick actions */}
       <div className="px-6 mt-5 grid grid-cols-3 gap-2.5">
         {[
           {
             i: Pill,
             l: "Medications",
+            s: "2 due",
+            v: "med",
             c: "bg-blush text-blush-foreground",
-            onClick: () => openQuickPanel("med"),
+            onClick: () => openWorkflow("med"),
           },
           {
             i: Activity,
             l: "Vitals",
+            s: "Last Fri",
+            v: "vitals",
             c: "bg-sage text-sage-foreground",
-            onClick: () => openQuickPanel("vitals"),
+            onClick: () => openWorkflow("vitals"),
           },
-          { i: ClipboardCheck, l: "Visit Prep", c: "bg-sky text-sky-foreground" },
-        ].map(({ i: Icon, l, c, onClick }) => (
+          {
+            i: ClipboardCheck,
+            l: "Visit Prep",
+            s: "Ready",
+            v: "visit",
+            c: "bg-sky text-sky-foreground",
+            onClick: () => openWorkflow("visit"),
+          },
+        ].map(({ i: Icon, l, s, v, c, onClick }) => (
           <button key={l} onClick={onClick} className="flex flex-col items-center gap-1.5">
             <span
-              className={`inline-flex h-14 w-14 items-center justify-center rounded-2xl ${c} shadow-soft`}
+              className={`inline-flex h-14 w-14 items-center justify-center rounded-2xl ${c} shadow-soft ${
+                activeWorkflow === v
+                  ? "ring-2 ring-primary ring-offset-2 ring-offset-background"
+                  : ""
+              }`}
             >
               <Icon className="h-5 w-5" />
             </span>
             <span className="text-[11px] font-medium text-foreground">{l}</span>
+            <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+              {s}
+            </span>
           </button>
         ))}
       </div>
 
-      {quickPanel && (
+      {activeWorkflow === "med" && (
         <div className="px-6 mt-4">
-          {quickPanel === "med" ? (
-            <LogMedicationPanel
-              healthEventState={healthEventState}
-              saved={savedPanel === "med"}
-              onEvent={dispatchHealthEvent}
-              onClose={closeQuickPanel}
-              onSave={() => setSavedPanel("med")}
-            />
-          ) : (
-            <VitalsPanel
-              healthEventState={healthEventState}
-              saved={savedPanel === "vitals"}
-              onEvent={dispatchHealthEvent}
-              onClose={closeQuickPanel}
-              onSave={() => setSavedPanel("vitals")}
-            />
-          )}
+          <LogMedicationPanel
+            healthEventState={healthEventState}
+            saved={savedPanel === "med"}
+            onEvent={dispatchHealthEvent}
+            onClose={closeWorkflow}
+            onSave={() => setSavedPanel("med")}
+          />
         </div>
       )}
 
-      <Section title="Continuity signals">
-        <ContinuitySignalsCard signals={continuitySignals} timeframe={timeframe} />
-      </Section>
-
-      <Section title="Visit Prep">
-        <VisitPrepCard
-          artifacts={healthEventState.artifacts}
-          providerSummary={providerSummary}
-          signals={continuitySignals}
-          timeline={timeline}
-        />
-      </Section>
-
-      <Section title="Caregiver workflows">
-        <CaregiverWorkflowsCard workflows={caregiverWorkflows} />
-      </Section>
-
-      <Section title="Needs attention">
-        <Alert
-          tone="warn"
-          icon={AlertCircle}
-          title="Evening Metformin missed"
-          subtitle="Yesterday, 8:00 PM · 500 mg"
-          action="Mark taken"
-        />
-        <Alert
-          tone="info"
-          icon={ScanLine}
-          title="MRI follow-up in 3 days"
-          subtitle="Dr. Patel · Neurology · Bring imaging"
-          action="Prep visit"
-        />
-      </Section>
-
-      <Section title="Today's schedule">
-        <div className="card-soft divide-y hairline overflow-hidden">
-          <Row
-            time="9:00 AM"
-            icon={Pill}
-            iconBg="bg-blush text-blush-foreground"
-            title="Lisinopril · 10 mg"
-            sub="Taken at 8:14 AM"
-            done
-          />
-          <Row
-            time="11:30 AM"
-            icon={CalendarDays}
-            iconBg="bg-sky text-sky-foreground"
-            title="Cardiology — Dr. Okafor"
-            sub="Mercy Heart Clinic · David driving"
-          />
-          <Row
-            time="1:00 PM"
-            icon={Pill}
-            iconBg="bg-blush text-blush-foreground"
-            title="Metformin · 500 mg"
-            sub="With lunch"
-          />
-          <Row
-            time="3:00 PM"
-            icon={Heart}
-            iconBg="bg-sage text-sage-foreground"
-            title="Physical therapy"
-            sub="Home visit · 45 min"
+      {activeWorkflow === "vitals" && (
+        <div className="px-6 mt-4">
+          <VitalsPanel
+            healthEventState={healthEventState}
+            saved={savedPanel === "vitals"}
+            onEvent={dispatchHealthEvent}
+            onClose={closeWorkflow}
+            onSave={() => setSavedPanel("vitals")}
           />
         </div>
-      </Section>
+      )}
 
-      <Section title="Recent updates">
-        <div className="space-y-3">
-          <UpdateCard
-            who="Dr. Okafor"
-            role="Cardiologist"
-            time="2h ago"
-            body="BP trending in target range. Continue current medications. Re-check in 4 weeks."
-            chip={{ label: "Provider note", tone: "sky" }}
-          />
-          <UpdateCard
-            who="David"
-            role="Brother"
-            time="Yesterday"
-            body="Picked up new prescription — left it on the kitchen counter."
-            chip={{ label: "Family", tone: "sage" }}
-          />
-        </div>
-      </Section>
+      {activeWorkflow === "visit" && (
+        <>
+          <Section title="Visit prep">
+            <VisitPrepCard
+              artifacts={healthEventState.artifacts}
+              providerSummary={providerSummary}
+              signals={continuitySignals}
+              timeline={timeline}
+            />
+          </Section>
+          <Section title="Visit summary">
+            <ProviderSummaryCard
+              careProfile={careProfile}
+              exportSnapshot={providerSummaryExport}
+              signals={continuitySignals}
+              summary={providerSummary}
+              timeframe={timeframe}
+              onShare={() => setShareSummaryOpen(true)}
+            />
+          </Section>
+        </>
+      )}
 
-      <Section title="Care circle">
-        <CareCircleCard careCircle={careCircle} />
-      </Section>
+      {activeWorkflow === "home" && (
+        <>
+          <Section title="Today’s priorities">
+            <ContinuitySignalsCard signals={continuitySignals} timeframe={timeframe} />
+          </Section>
 
-      <Section title="Care artifacts">
-        <CareArtifactsCard
-          artifacts={healthEventState.artifacts}
-          events={healthEventState.events}
-          onAttachArtifact={attachCareArtifact}
-        />
-      </Section>
+          <Section title="Needs attention">
+            <Alert
+              tone="warn"
+              icon={AlertCircle}
+              title="Evening Metformin missed"
+              subtitle="Yesterday, 8:00 PM · 500 mg"
+              action="Mark taken"
+            />
+            <Alert
+              tone="info"
+              icon={ScanLine}
+              title="MRI follow-up in 3 days"
+              subtitle="Dr. Patel · Neurology · Bring imaging"
+              action="Prep visit"
+            />
+          </Section>
 
-      <Section title="Vitals snapshot">
-        <div className="grid grid-cols-3 gap-2.5">
-          <Vital label="Blood pressure" value="124/78" trend="Steady" tone="sage" />
-          <Vital label="Heart rate" value="72" trend="Resting" tone="sky" />
-          <Vital label="Weight" value="148 lb" trend="-1.2 this wk" tone="sand" />
-        </div>
-        <p className="mt-2.5 px-1 text-[11px] text-muted-foreground">
-          Logged manually · EvernestCare does not diagnose or interpret.
-        </p>
-      </Section>
+          <Section title="Today's schedule">
+            <div className="card-soft divide-y hairline overflow-hidden">
+              <Row
+                time="9:00 AM"
+                icon={Pill}
+                iconBg="bg-blush text-blush-foreground"
+                title="Lisinopril · 10 mg"
+                sub="Taken at 8:14 AM"
+                done
+              />
+              <Row
+                time="11:30 AM"
+                icon={CalendarDays}
+                iconBg="bg-sky text-sky-foreground"
+                title="Cardiology — Dr. Okafor"
+                sub="Mercy Heart Clinic · David driving"
+              />
+              <Row
+                time="1:00 PM"
+                icon={Pill}
+                iconBg="bg-blush text-blush-foreground"
+                title="Metformin · 500 mg"
+                sub="With lunch"
+              />
+            </div>
+          </Section>
 
-      <Section title="Operational timeline">
-        <OperationalTimelineCard
-          careCircle={careCircle}
-          filter={timelineFilter}
-          onAddNote={addCollaborativeNote}
-          onFilterChange={setTimelineFilter}
-          onTimeframeChange={setTimeframe}
-          signals={continuitySignals}
-          summary={providerSummary}
-          timeframe={timeframe}
-          timeline={timeline}
-        />
-      </Section>
+          <Section title="Recent changes">
+            <div className="space-y-3">
+              <UpdateCard
+                who="Dr. Okafor"
+                role="Cardiologist"
+                time="2h ago"
+                body="BP trending in target range. Continue current medications. Re-check in 4 weeks."
+                chip={{ label: "Provider note", tone: "sky" }}
+              />
+              <UpdateCard
+                who="David"
+                role="Brother"
+                time="Yesterday"
+                body="Picked up new prescription — left it on the kitchen counter."
+                chip={{ label: "Family", tone: "sage" }}
+              />
+            </div>
+          </Section>
 
-      <Section title="Provider summary">
-        <ProviderSummaryCard
-          careProfile={careProfile}
-          exportSnapshot={providerSummaryExport}
-          signals={continuitySignals}
-          summary={providerSummary}
-          timeframe={timeframe}
-        />
-      </Section>
+          <Section title="Recent updates">
+            <OperationalTimelineCard
+              careCircle={careCircle}
+              filter={timelineFilter}
+              onAddNote={addCollaborativeNote}
+              onFilterChange={setTimelineFilter}
+              onTimeframeChange={setTimeframe}
+              signals={continuitySignals}
+              summary={providerSummary}
+              timeframe={timeframe}
+              timeline={timeline}
+            />
+          </Section>
 
-      <Section title="Beta readiness">
-        <BetaReadinessCard metrics={betaWorkflowMetrics} />
-      </Section>
-
-      <Section
-        title="Emergency contacts"
-        cta={
-          <Link to="/care-team" className="text-[13px] font-medium text-primary">
-            Manage
-          </Link>
-        }
-      >
-        <div className="card-soft divide-y hairline overflow-hidden">
-          {[
-            { n: "David Chen", r: "Primary · Brother", p: "(415) 555-0123" },
-            { n: "Dr. Patel", r: "Primary care", p: "(415) 555-0199" },
-          ].map((c) => (
-            <div key={c.n} className="flex items-center gap-3 px-4 py-3.5">
-              <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-blush text-blush-foreground text-[12px] font-semibold">
-                {c.n
-                  .split(" ")
-                  .map((p) => p[0])
-                  .slice(0, 2)
-                  .join("")}
-              </span>
-              <div className="flex-1">
-                <p className="text-[14px] font-medium">{c.n}</p>
-                <p className="text-[12px] text-muted-foreground">{c.r}</p>
-              </div>
-              <a
-                href={`tel:${c.p}`}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-sage text-sage-foreground"
+          <Section
+            title="Visit prep"
+            cta={
+              <button
+                onClick={() => openWorkflow("visit")}
+                className="text-[13px] font-medium text-primary"
               >
-                <Phone className="h-4 w-4" />
-              </a>
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      <div className="px-6 mt-6">
-        <Link
-          to="/profile-types"
-          className="flex items-center justify-between card-soft px-5 py-4 grad-warm"
-        >
-          <div className="flex items-center gap-3">
-            <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-card">
-              <Sparkles className="h-4 w-4 text-primary" />
-            </span>
-            <div>
-              <p className="text-[14px] font-medium">Care for more than one person?</p>
-              <p className="text-[12px] text-muted-foreground">
-                Add a child, recovery, or chronic profile.
-              </p>
-            </div>
-          </div>
-          <ChevronRight className="h-4 w-4 text-muted-foreground" />
-        </Link>
-      </div>
+                Prepare
+              </button>
+            }
+          >
+            <VisitPrepCard
+              artifacts={healthEventState.artifacts}
+              providerSummary={providerSummary}
+              signals={continuitySignals}
+              timeline={timeline}
+            />
+          </Section>
+        </>
+      )}
+      {shareSummaryOpen && (
+        <PrivacyConfirmationSheet
+          title="Share provider summary"
+          description="This visit-ready snapshot includes medications, recent vitals, care notes, and linked files."
+          audience="Included in visit summary"
+          expires="Access ends after visit"
+          primaryAction="Prepare share"
+          onClose={() => setShareSummaryOpen(false)}
+        />
+      )}
     </div>
   );
 }
@@ -417,7 +381,7 @@ function VisitPrepCard({
         <div>
           <p className="text-[15px] font-medium">Appointment handoff</p>
           <p className="text-[12px] text-muted-foreground">
-            A concise, provider-facing view from continuity history.
+            A concise view for the next appointment.
           </p>
         </div>
         <span className="rounded-full bg-sky px-2.5 py-1 text-[11px] font-medium text-sky-foreground">
@@ -428,8 +392,8 @@ function VisitPrepCard({
       <div className="mt-3 grid grid-cols-2 gap-2.5">
         <VisitPrepItem
           label="Review first"
-          value={signals[0]?.title ?? "No continuity signals"}
-          detail={signals[0]?.detail ?? "No operational gaps surfaced for this view."}
+          value={signals[0]?.title ?? "Nothing urgent"}
+          detail={signals[0]?.detail ?? "No care gaps surfaced for this view."}
         />
         <VisitPrepItem
           label="Recent change"
@@ -445,7 +409,7 @@ function VisitPrepCard({
         />
         <VisitPrepItem
           label="Attached"
-          value={recentArtifact?.title ?? "No summary artifact"}
+          value={recentArtifact?.title ?? "No summary file"}
           detail={recentArtifact?.previewLabel ?? "Vault files can be attached when needed"}
         />
       </div>
@@ -455,11 +419,43 @@ function VisitPrepCard({
           Provider snapshot
         </p>
         <p className="mt-1 text-[13px] leading-relaxed">
-          {providerSummary.eventCount} events · {providerSummary.continuitySignalCount} signals ·{" "}
-          {providerSummary.artifactEventCount} artifact
-          {providerSummary.artifactEventCount === 1 ? "" : "s"}. Factual and non-diagnostic.
+          {providerSummary.eventCount} updates · {providerSummary.continuitySignalCount} things to
+          review · {providerSummary.artifactEventCount} file
+          {providerSummary.artifactEventCount === 1 ? "" : "s"}. For coordination only.
         </p>
       </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <PrivacyPill label="Included in visit summary" />
+        <PrivacyPill label="Access ends after visit" />
+        <PrivacyPill label="For coordination only" />
+      </div>
+    </div>
+  );
+}
+
+function HomeStatusCard({
+  icon: Icon,
+  label,
+  value,
+  detail,
+  tone,
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: string;
+  detail: string;
+  tone: string;
+}) {
+  return (
+    <div className="card-soft p-3.5">
+      <span className={`inline-flex h-9 w-9 items-center justify-center rounded-2xl ${tone}`}>
+        <Icon className="h-4 w-4" />
+      </span>
+      <p className="mt-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        {label}
+      </p>
+      <p className="mt-1 text-[17px] font-semibold tracking-tight">{value}</p>
+      <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">{detail}</p>
     </div>
   );
 }
@@ -472,45 +468,6 @@ function VisitPrepItem({ detail, label, value }: { detail: string; label: string
       </p>
       <p className="mt-1 text-[13px] font-medium leading-snug">{value}</p>
       <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">{detail}</p>
-    </div>
-  );
-}
-
-function CaregiverWorkflowsCard({ workflows }: { workflows: CaregiverWorkflowStatus[] }) {
-  return (
-    <div className="card-soft p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-[15px] font-medium">Next best care steps</p>
-          <p className="text-[12px] text-muted-foreground">
-            Workflow status from timeline, signals, artifacts, and attribution.
-          </p>
-        </div>
-        <span className="rounded-full bg-secondary px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
-          Beta
-        </span>
-      </div>
-
-      <div className="mt-3 space-y-2.5">
-        {workflows.map((workflow) => (
-          <div key={workflow.id} className="rounded-2xl bg-secondary px-3.5 py-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-[13px] font-medium">{workflow.title}</p>
-                <p className="mt-0.5 text-[12px] leading-relaxed text-muted-foreground">
-                  {workflow.detail}
-                </p>
-              </div>
-              <span
-                className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium ${getWorkflowStatusClass(workflow.status)}`}
-              >
-                {workflow.status}
-              </span>
-            </div>
-            <p className="mt-2 text-[12px] font-medium text-primary">{workflow.nextStep}</p>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }
@@ -546,9 +503,9 @@ function OperationalTimelineCard({
     <div className="card-soft p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[15px] font-medium">Care activity</p>
+          <p className="text-[15px] font-medium">Family activity</p>
           <p className="text-[12px] text-muted-foreground">
-            {summary.eventCount} event{summary.eventCount === 1 ? "" : "s"} in{" "}
+            {summary.eventCount} update{summary.eventCount === 1 ? "" : "s"} in{" "}
             {formatTimeframeLabel({ filter, timeframe })}
           </p>
         </div>
@@ -623,9 +580,7 @@ function OperationalTimelineCard({
               <p className="text-[12px] text-muted-foreground">
                 {describeActor(item.event)} · {item.event.createdAt}
               </p>
-              <p className="mt-1 text-[11px] text-muted-foreground">
-                {item.event.type} · {item.event.operationalContext}
-              </p>
+              <p className="mt-1 text-[11px] text-muted-foreground">Shared care update</p>
               {signalsByEventId.has(item.event.id) && (
                 <p className="mt-1 inline-flex rounded-full bg-card px-2.5 py-1 text-[11px] font-medium text-primary">
                   {signalsByEventId.get(item.event.id)}
@@ -636,7 +591,7 @@ function OperationalTimelineCard({
         ))}
         {timeline.length === 0 && (
           <div className="rounded-2xl bg-secondary px-3.5 py-3 text-[13px] text-muted-foreground">
-            No operational events match this view.
+            No recent updates match this view.
           </div>
         )}
       </div>
@@ -655,13 +610,13 @@ function ContinuitySignalsCard({
     <div className="card-soft p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[15px] font-medium">Operational attention</p>
+          <p className="text-[15px] font-medium">Things to review</p>
           <p className="text-[12px] text-muted-foreground">
-            Projection-derived signals for {formatTimeframeLabel({ filter: "all", timeframe })}.
+            Based on recent updates from {formatTimeframeLabel({ filter: "all", timeframe })}.
           </p>
         </div>
         <span className="rounded-full bg-sage px-2.5 py-1 text-[11px] font-medium text-sage-foreground">
-          Replay-safe
+          Up to date
         </span>
       </div>
 
@@ -683,116 +638,39 @@ function ContinuitySignalsCard({
                 {signal.detail}
               </p>
               <p className="mt-1 text-[11px] text-muted-foreground">
-                {signal.kind} · {signal.timeframeLabel}
+                {formatSignalKind(signal.kind)} · {signal.timeframeLabel}
               </p>
             </div>
           </div>
         ))}
         {signals.length === 0 && (
           <div className="rounded-2xl bg-secondary px-3.5 py-3 text-[13px] text-muted-foreground">
-            No continuity signals surfaced for this view.
+            Nothing needs review in this view.
           </div>
         )}
       </div>
 
       <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
-        Signals indicate operational gaps only. EvernestCare does not diagnose, predict, or
-        recommend treatment.
+        These are care coordination reminders only. EvernestCare does not diagnose, predict, or
+        recommend care.
       </p>
     </div>
   );
 }
 
-function CareArtifactsCard({
-  artifacts,
-  events,
-  onAttachArtifact,
-}: {
-  artifacts: CareArtifact[];
-  events: HealthEvent[];
-  onAttachArtifact: () => void;
-}) {
-  const artifactEvents = events.filter((event) => event.type === "CareArtifactAttachedEvent");
-
-  return (
-    <div className="card-soft p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-[15px] font-medium">Continuity documents</p>
-          <p className="text-[12px] text-muted-foreground">
-            Timeline-linked attachments for visits and handoffs.
-          </p>
-        </div>
-        <button
-          onClick={onAttachArtifact}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground"
-          aria-label="Attach care artifact"
-        >
-          <Upload className="h-4 w-4" />
-        </button>
-      </div>
-
-      <div className="mt-3 space-y-2.5">
-        {artifacts.map((artifact) => {
-          const event = artifactEvents.find((item) => item.payload.artifact.id === artifact.id);
-          return (
-            <div key={artifact.id} className="flex gap-3 rounded-2xl bg-secondary px-3.5 py-3">
-              <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-sky text-sky-foreground">
-                <FileText className="h-4 w-4" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-[13px] font-medium">{artifact.title}</p>
-                <p className="text-[12px] text-muted-foreground">
-                  {artifact.previewLabel} · {artifact.linkedContext}
-                </p>
-                <p className="mt-1 text-[11px] text-muted-foreground">
-                  {event ? `${describeActor(event)} · ${event.createdAt}` : artifact.fileLabel}
-                </p>
-              </div>
-              {artifact.summaryVisible && (
-                <span className="self-start rounded-full bg-card px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
-                  Summary
-                </span>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
-        Uploads are placeholders in alpha. Each attachment is represented as a replay-safe
-        operational event before storage is connected.
-      </p>
-    </div>
-  );
-}
-
-function CareCircleCard({ careCircle }: { careCircle: CareCircle }) {
-  return (
-    <div className="card-soft p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-[15px] font-medium">{careCircle.name}</p>
-          <p className="text-[12px] text-muted-foreground">
-            Centered on {careCircle.careSubject.displayName}
-          </p>
-        </div>
-        <span className="rounded-full bg-sage px-2.5 py-1 text-[11px] font-medium text-sage-foreground">
-          Shared
-        </span>
-      </div>
-      <div className="mt-3 grid grid-cols-2 gap-2.5">
-        {careCircle.actors.map((actor) => (
-          <div key={actor.id} className="rounded-2xl bg-secondary px-3.5 py-3">
-            <p className="text-[13px] font-medium">{actor.displayName}</p>
-            <p className="text-[11px] text-muted-foreground">
-              {actor.relationship} · {formatActorRole(actor.role)}
-            </p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+function formatSignalKind(kind: ContinuitySignal["kind"]) {
+  switch (kind) {
+    case "medication-gap":
+      return "Medication";
+    case "vitals-gap":
+      return "Vitals";
+    case "care-observation":
+      return "Care note";
+    case "artifact-follow-up":
+      return "Files";
+    case "circle-participation":
+      return "Care circle";
+  }
 }
 
 function ProviderSummaryCard({
@@ -801,12 +679,14 @@ function ProviderSummaryCard({
   signals,
   summary,
   timeframe,
+  onShare,
 }: {
   careProfile: CareProfile;
   exportSnapshot: ReturnType<typeof createProviderSummaryExport>;
   signals: ContinuitySignal[];
   summary: ProviderSummary;
   timeframe: TimeframePreset;
+  onShare: () => void;
 }) {
   return (
     <div className="card-soft p-4">
@@ -814,11 +694,11 @@ function ProviderSummaryCard({
         <div>
           <p className="text-[15px] font-medium">Visit-ready summary</p>
           <p className="text-[12px] text-muted-foreground">
-            Deterministic · {formatTimeframeLabel({ filter: "all", timeframe })}
+            {formatTimeframeLabel({ filter: "all", timeframe })}
           </p>
         </div>
         <span className="rounded-full bg-sky px-2.5 py-1 text-[11px] font-medium text-sky-foreground">
-          Factual
+          For visit
         </span>
       </div>
 
@@ -837,7 +717,7 @@ function ProviderSummaryCard({
 
       <div className="mt-3 rounded-2xl bg-secondary px-3.5 py-3">
         <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          Continuity attention
+          Things to mention
         </p>
         <p className="mt-1 text-[13px] leading-relaxed">
           {signals.length > 0
@@ -845,17 +725,20 @@ function ProviderSummaryCard({
                 .slice(0, 2)
                 .map((signal) => signal.title)
                 .join(" · ")
-            : "No continuity signals surfaced."}
+            : "Nothing needs review."}
         </p>
       </div>
 
-      <div className="mt-3 rounded-2xl bg-secondary p-3.5">
+      <button
+        onClick={onShare}
+        className="mt-3 w-full rounded-2xl bg-secondary p-3.5 text-left active:scale-[0.99] transition"
+      >
         <div className="flex items-center gap-2">
           <Share2 className="h-4 w-4 text-primary" />
           <div>
             <p className="text-[13px] font-semibold">{exportSnapshot.title}</p>
             <p className="text-[11px] text-muted-foreground">
-              Appointment-ready, event-derived, and non-diagnostic.
+              Built from recent care updates for coordination.
             </p>
           </div>
         </div>
@@ -871,39 +754,11 @@ function ProviderSummaryCard({
             </div>
           ))}
         </div>
-      </div>
-    </div>
-  );
-}
-
-function BetaReadinessCard({ metrics }: { metrics: BetaWorkflowMetric[] }) {
-  return (
-    <div className="card-soft p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-[15px] font-medium">Trust checks</p>
-          <p className="text-[12px] text-muted-foreground">
-            Lightweight observability for closed beta workflows.
-          </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <PrivacyPill label="Included in visit summary" />
+          <PrivacyPill label="Access ends after visit" />
         </div>
-        <span className="rounded-full bg-sage px-2.5 py-1 text-[11px] font-medium text-sage-foreground">
-          Inspectable
-        </span>
-      </div>
-
-      <div className="mt-3 grid grid-cols-2 gap-2.5">
-        {metrics.map((metric) => (
-          <div key={metric.label} className="rounded-2xl bg-secondary px-3.5 py-3">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-              {metric.label}
-            </p>
-            <p className="mt-1 text-[15px] font-semibold">{metric.value}</p>
-            <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-              {metric.detail}
-            </p>
-          </div>
-        ))}
-      </div>
+      </button>
     </div>
   );
 }
@@ -914,12 +769,6 @@ function getSignalToneClass(tone: ContinuitySignal["tone"]) {
   return "bg-sage text-sage-foreground";
 }
 
-function getWorkflowStatusClass(status: CaregiverWorkflowStatus["status"]) {
-  if (status === "ready") return "bg-sage text-sage-foreground";
-  if (status === "review") return "bg-sky text-sky-foreground";
-  return "bg-sand text-sand-foreground";
-}
-
 function ProfileChip({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl bg-secondary px-3.5 py-3">
@@ -927,6 +776,71 @@ function ProfileChip({ label, value }: { label: string; value: string }) {
         {label}
       </p>
       <p className="mt-1 text-[13px] font-medium">{value}</p>
+    </div>
+  );
+}
+
+function PrivacyPill({ label }: { label: string }) {
+  return (
+    <span className="rounded-full bg-card px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+      {label}
+    </span>
+  );
+}
+
+function PrivacyConfirmationSheet({
+  title,
+  description,
+  audience,
+  expires,
+  primaryAction,
+  onClose,
+}: {
+  title: string;
+  description: string;
+  audience: string;
+  expires: string;
+  primaryAction: string;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30">
+      <div className="w-full max-w-[440px] rounded-t-3xl bg-card p-5 pb-8 shadow-card">
+        <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-muted" />
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          Before sharing
+        </p>
+        <h3 className="mt-1 text-[22px] font-semibold tracking-tight">{title}</h3>
+        <p className="mt-2 text-[14px] leading-relaxed text-muted-foreground">{description}</p>
+        <div className="mt-4 space-y-2">
+          <PrivacyRow label="Audience" value={audience} />
+          <PrivacyRow label="Access" value={expires} />
+          <PrivacyRow label="Use" value="For coordination only" />
+        </div>
+        <div className="mt-5 grid grid-cols-2 gap-2.5">
+          <button
+            onClick={onClose}
+            className="rounded-full bg-secondary py-3 text-[14px] font-medium"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onClose}
+            className="rounded-full bg-primary py-3 text-[14px] font-medium text-primary-foreground"
+          >
+            {primaryAction}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PrivacyRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-2xl bg-secondary px-3.5 py-3">
+      <span className="text-[12px] text-muted-foreground">{label}</span>
+      <span className="text-right text-[13px] font-medium">{value}</span>
     </div>
   );
 }
@@ -1075,7 +989,7 @@ function LogMedicationPanel({
         <RecentHealthEvents
           events={healthEventState.events}
           medications={healthEventState.medications}
-          title="Operational events"
+          title="Activity history"
         />
 
         {saved && (
@@ -1103,6 +1017,9 @@ function VitalsPanel({
   onSave: () => void;
 }) {
   const [showAddReading, setShowAddReading] = useState(false);
+  const [selectedVital, setSelectedVital] = useState<VitalsFocus>("bp");
+  const selectedVitalLabel =
+    selectedVital === "bp" ? "blood pressure" : selectedVital === "hr" ? "heart rate" : "weight";
   const addReading = () => {
     onEvent(
       createVitalsRecordedEvent({
@@ -1133,19 +1050,62 @@ function VitalsPanel({
         }
       />
       <div className="px-4 pb-4 space-y-4">
-        <VitalsTrendCharts readings={healthEventState.vitalsReadings} />
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Select a vital
+          </p>
+          <div className="mt-2 grid grid-cols-3 gap-2.5">
+            <VitalSelector
+              active={selectedVital === "bp"}
+              label="Blood pressure"
+              onClick={() => setSelectedVital("bp")}
+              value={latestReading.bloodPressure}
+              trend={latestReading.label}
+              tone="sage"
+            />
+            <VitalSelector
+              active={selectedVital === "hr"}
+              label="Heart rate"
+              onClick={() => setSelectedVital("hr")}
+              value={String(latestReading.heartRate)}
+              trend="Resting"
+              tone="sky"
+            />
+            <VitalSelector
+              active={selectedVital === "weight"}
+              label="Weight"
+              onClick={() => setSelectedVital("weight")}
+              value={latestReading.weight}
+              trend="Manual"
+              tone="sand"
+            />
+          </div>
+        </div>
+
+        <VitalsTrendCharts
+          readings={healthEventState.vitalsReadings}
+          selectedVital={selectedVital}
+        />
 
         {showAddReading && (
           <div className="rounded-2xl bg-secondary p-3.5">
-            <p className="text-[13px] font-semibold">Add vitals reading</p>
-            <div className="mt-3 grid grid-cols-2 gap-2.5">
-              <Field label="Systolic" value="124" />
-              <Field label="Diastolic" value="78" />
-            </div>
-            <div className="mt-2.5 grid grid-cols-2 gap-2.5">
-              <Field label="Heart rate" value="72 bpm" />
-              <Field label="Weight" value="148 lb" />
-            </div>
+            <p className="text-[13px] font-semibold">Add {selectedVitalLabel} reading</p>
+            {selectedVital === "bp" && (
+              <div className="mt-3 grid grid-cols-2 gap-2.5">
+                <Field label="Systolic" value="124" />
+                <Field label="Diastolic" value="78" />
+              </div>
+            )}
+            {selectedVital === "hr" && (
+              <div className="mt-3">
+                <Field label="Heart rate" value="72 bpm" />
+              </div>
+            )}
+            {selectedVital === "weight" && (
+              <div className="mt-3">
+                <Field label="Weight" value="148 lb" />
+              </div>
+            )}
             <label className="mt-2.5 block rounded-2xl bg-card px-3.5 py-3">
               <span className="block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Context
@@ -1163,27 +1123,6 @@ function VitalsPanel({
             </button>
           </div>
         )}
-
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Recent readings
-          </p>
-          <div className="mt-2 grid grid-cols-3 gap-2.5">
-            <Vital
-              label="Blood pressure"
-              value={latestReading.bloodPressure}
-              trend={latestReading.label}
-              tone="sage"
-            />
-            <Vital
-              label="Heart rate"
-              value={String(latestReading.heartRate)}
-              trend="Resting"
-              tone="sky"
-            />
-            <Vital label="Weight" value={latestReading.weight} trend="Manual" tone="sand" />
-          </div>
-        </div>
 
         <RecentHealthEvents
           events={healthEventState.events.filter((event) => event.type === "VitalsRecordedEvent")}
@@ -1222,6 +1161,7 @@ function VitalsPanel({
           </div>
           <p className="mt-2 px-1 text-[11px] leading-relaxed text-muted-foreground">
             Device sync will require the mobile app and explicit permission before importing data.
+            Sensitive care details should stay out of notifications and device logs.
           </p>
         </div>
 
@@ -1236,7 +1176,13 @@ function VitalsPanel({
   );
 }
 
-function VitalsTrendCharts({ readings }: { readings: VitalsReading[] }) {
+function VitalsTrendCharts({
+  readings,
+  selectedVital,
+}: {
+  readings: VitalsReading[];
+  selectedVital: VitalsFocus;
+}) {
   const points = readings.slice(-5);
   const bloodPressureSeries = [
     {
@@ -1273,8 +1219,8 @@ function VitalsTrendCharts({ readings }: { readings: VitalsReading[] }) {
     },
   ];
 
-  return (
-    <div className="space-y-3">
+  if (selectedVital === "bp") {
+    return (
       <OperationalTrendChart
         title="Blood pressure"
         subtitle="Systolic and diastolic trend"
@@ -1285,6 +1231,11 @@ function VitalsTrendCharts({ readings }: { readings: VitalsReading[] }) {
         max={145}
         unit="mmHg"
       />
+    );
+  }
+
+  if (selectedVital === "hr") {
+    return (
       <OperationalTrendChart
         title="Heart rate"
         subtitle="Resting trend visibility"
@@ -1295,17 +1246,20 @@ function VitalsTrendCharts({ readings }: { readings: VitalsReading[] }) {
         max={85}
         unit="bpm"
       />
-      <OperationalTrendChart
-        title="Weight"
-        subtitle="Longitudinal continuity"
-        ariaLabel="Weight trend chart"
-        labels={points.map((point) => point.label)}
-        series={weightSeries}
-        min={145}
-        max={152}
-        unit="lb"
-      />
-    </div>
+    );
+  }
+
+  return (
+    <OperationalTrendChart
+      title="Weight"
+      subtitle="Longitudinal continuity"
+      ariaLabel="Weight trend chart"
+      labels={points.map((point) => point.label)}
+      series={weightSeries}
+      min={145}
+      max={152}
+      unit="lb"
+    />
   );
 }
 
@@ -1437,9 +1391,7 @@ function RecentHealthEvents({
             <p className="text-[12px] text-muted-foreground">
               {describeActor(event)} · {event.createdAt}
             </p>
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              {event.type} · {event.operationalContext}
-            </p>
+            <p className="mt-1 text-[11px] text-muted-foreground">Shared care update</p>
           </div>
         ))}
       </div>
@@ -1621,13 +1573,17 @@ function UpdateCard({
   );
 }
 
-function Vital({
+function VitalSelector({
+  active,
   label,
+  onClick,
   value,
   trend,
   tone,
 }: {
+  active: boolean;
   label: string;
+  onClick: () => void;
   value: string;
   trend: string;
   tone: "sage" | "sky" | "sand";
@@ -1638,8 +1594,15 @@ function Vital({
       : tone === "sky"
         ? "bg-sky text-sky-foreground"
         : "bg-sand text-sand-foreground";
+
   return (
-    <div className="card-soft p-3.5">
+    <button
+      onClick={onClick}
+      className={`card-soft p-3.5 text-left transition ${
+        active ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""
+      }`}
+      aria-pressed={active}
+    >
       <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
         {label}
       </p>
@@ -1649,6 +1612,6 @@ function Vital({
       >
         {trend}
       </span>
-    </div>
+    </button>
   );
 }

@@ -639,7 +639,7 @@ export function describeHealthEvent(event: HealthEvent, medications: Medication[
   }
 
   if (event.type === "CareArtifactAttachedEvent") {
-    return `Artifact attached · ${event.payload.artifact.title}`;
+    return `File attached · ${event.payload.artifact.title}`;
   }
 
   return "Reminder dismissed";
@@ -694,22 +694,22 @@ export function createProviderSummary(
     continuitySignalCount: continuitySignals.length,
     eventCount: timeline.length,
     lines: [
-      `${timeline.length} operational event${timeline.length === 1 ? "" : "s"} in ${formatTimeframeLabel(query)}.`,
-      `${medicationEventCount} medication event${medicationEventCount === 1 ? "" : "s"}.`,
-      `${vitalsEventCount} vitals event${vitalsEventCount === 1 ? "" : "s"}.`,
+      `${timeline.length} care update${timeline.length === 1 ? "" : "s"} in ${formatTimeframeLabel(query)}.`,
+      `${medicationEventCount} medication update${medicationEventCount === 1 ? "" : "s"}.`,
+      `${vitalsEventCount} vitals update${vitalsEventCount === 1 ? "" : "s"}.`,
       `${noteEventCount} collaborative note${noteEventCount === 1 ? "" : "s"}.`,
-      `${artifactEventCount} care artifact${artifactEventCount === 1 ? "" : "s"} referenced.`,
-      `${continuitySignals.length} continuity signal${continuitySignals.length === 1 ? "" : "s"} surfaced.`,
+      `${artifactEventCount} care file${artifactEventCount === 1 ? "" : "s"} referenced.`,
+      `${continuitySignals.length} thing${continuitySignals.length === 1 ? "" : "s"} to review.`,
       continuitySignals.length > 0
-        ? `Attention: ${continuitySignals
+        ? `Mention first: ${continuitySignals
             .slice(0, 2)
             .map((signal) => signal.title)
             .join("; ")}.`
-        : "No continuity gaps surfaced for this timeframe.",
+        : "No care gaps surfaced for this timeframe.",
       recentDescriptions.length > 0
         ? `Recent: ${recentDescriptions.join("; ")}.`
-        : "No operational events in this timeframe.",
-      "Summary is factual and non-diagnostic.",
+        : "No recent care updates in this timeframe.",
+      "For care coordination only. EvernestCare does not diagnose or recommend treatment.",
     ],
     medicationEventCount,
     timeframeLabel: formatTimeframeLabel(query),
@@ -744,7 +744,7 @@ export function projectContinuitySignals(
       .map((medication) => medication.name)
       .join(", ");
     signals.push({
-      detail: `${medicationNames}${medicationsWithoutRecentTaken.length > 2 ? " and others" : ""} have no taken event in ${timeframeLabel}.`,
+      detail: `${medicationNames}${medicationsWithoutRecentTaken.length > 2 ? " and others" : ""} have not been marked taken in ${timeframeLabel}.`,
       id: `signal-medication-gap-${query.timeframe}`,
       kind: "medication-gap",
       timeframeLabel,
@@ -755,7 +755,7 @@ export function projectContinuitySignals(
 
   if (vitalsEvents.length === 0) {
     signals.push({
-      detail: `No vitals event is recorded in ${timeframeLabel}.`,
+      detail: `No vitals have been added in ${timeframeLabel}.`,
       id: `signal-vitals-gap-${query.timeframe}`,
       kind: "vitals-gap",
       timeframeLabel,
@@ -808,7 +808,7 @@ export function projectContinuitySignals(
       kind: "artifact-follow-up",
       sourceEventId: dischargeEvent?.event.id,
       timeframeLabel,
-      title: "Follow-up artifact pending",
+      title: "Follow-up file pending",
       tone: "steady",
     });
   }
@@ -816,7 +816,7 @@ export function projectContinuitySignals(
   const activeActorIds = new Set(timeline.map((item) => item.event.actorId));
   if (activeActorIds.size < state.careCircle.actors.length) {
     signals.push({
-      detail: `${activeActorIds.size} of ${state.careCircle.actors.length} care-circle members have activity in ${timeframeLabel}.`,
+      detail: `${activeActorIds.size} of ${state.careCircle.actors.length} care circle members shared an update in ${timeframeLabel}.`,
       id: `signal-circle-participation-${query.timeframe}`,
       kind: "circle-participation",
       timeframeLabel,
@@ -845,19 +845,19 @@ export function createProviderSummaryExport({
     sections: [
       {
         lines: [
-          `${summary.eventCount} event${summary.eventCount === 1 ? "" : "s"} · ${summary.continuitySignalCount} continuity signal${summary.continuitySignalCount === 1 ? "" : "s"} · ${summary.artifactEventCount} artifact${summary.artifactEventCount === 1 ? "" : "s"}.`,
+          `${summary.eventCount} update${summary.eventCount === 1 ? "" : "s"} · ${summary.continuitySignalCount} thing${summary.continuitySignalCount === 1 ? "" : "s"} to review · ${summary.artifactEventCount} file${summary.artifactEventCount === 1 ? "" : "s"}.`,
           signals.length > 0
             ? `Review first: ${signals
                 .slice(0, 2)
                 .map((signal) => signal.title)
                 .join("; ")}.`
-            : "No continuity signals surfaced for this summary.",
+            : "Nothing needs review for this summary.",
         ],
-        title: "Provider scan",
+        title: "Quick provider view",
       },
       {
         lines: summary.lines,
-        title: "Operational summary",
+        title: "Care summary",
       },
       {
         lines: [
@@ -874,8 +874,8 @@ export function createProviderSummaryExport({
                 (artifact) =>
                   `${artifact.title} (${artifact.previewLabel}) · ${artifact.linkedContext}`,
               )
-            : ["No care artifacts marked for this summary."],
-        title: "Attached care artifacts",
+            : ["No care files marked for this summary."],
+        title: "Attached care files",
       },
     ],
     title: "EvernestCare continuity snapshot",
@@ -900,7 +900,7 @@ export function projectCaregiverWorkflows(
     {
       detail: hasMedicationGap
         ? "Medication confirmations are incomplete for this view."
-        : "Medication events are visible in the selected continuity window.",
+        : "Medication updates are visible in this view.",
       id: "workflow-medication",
       nextStep: hasMedicationGap ? "Open Medications" : "Review history",
       status: hasMedicationGap ? "review" : "ready",
@@ -909,8 +909,8 @@ export function projectCaregiverWorkflows(
     {
       detail:
         hasSummaryArtifact && !hasVitalsGap
-          ? "Summary, artifacts, and recent vitals are ready to review."
-          : "A visit summary is available, with a few continuity items to review.",
+          ? "Summary, files, and recent vitals are ready to review."
+          : "A visit summary is available, with a few care items to review.",
       id: "workflow-provider-handoff",
       nextStep: "Review provider summary",
       status: hasSummaryArtifact && !hasVitalsGap ? "ready" : "review",
@@ -945,24 +945,24 @@ export function projectBetaWorkflowMetrics(
 
   return [
     {
-      detail: "Events remain the source for timeline, summary, signals, and workflow surfaces.",
-      label: "Replay integrity",
-      value: `${timeline.length} events`,
+      detail: "Recent care updates stay consistent across Home, summaries, and the timeline.",
+      label: "Care history",
+      value: `${timeline.length} updates`,
     },
     {
-      detail: "Artifacts marked for provider summaries are included in export projections.",
+      detail: "Files marked for visit summaries are included when sharing.",
       label: "Export readiness",
       value: `${state.artifacts.filter((artifact) => artifact.summaryVisible).length} files`,
     },
     {
-      detail: "Care-circle participation is visible without realtime infrastructure.",
+      detail: "Care circle participation is visible without adding extra noise.",
       label: "Collaboration",
       value: `${activeActorCount}/${state.careCircle.actors.length} active`,
     },
     {
-      detail: "Operational gaps remain explainable and non-diagnostic.",
+      detail: "Care gaps stay explainable and focused on coordination.",
       label: "Continuity confidence",
-      value: `${signals.length} signals`,
+      value: `${signals.length} items`,
     },
   ];
 }

@@ -19,9 +19,9 @@ function TabsLayout() {
   const { pathname } = useLocation();
   return (
     <ProtectedShell>
-      <div className="phone-shell pb-24">
+      <div className="phone-shell pb-[calc(9rem+env(safe-area-inset-bottom))]">
         <Outlet />
-        <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[440px] px-4 pb-5 pt-2 pointer-events-none">
+        <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[440px] px-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2 pointer-events-none">
           <div className="pointer-events-auto mx-auto flex items-center justify-between rounded-full bg-card/85 backdrop-blur-xl border hairline shadow-card px-2 py-1.5">
             {TABS.map(({ to, label, icon: Icon }) => {
               const active = pathname.startsWith(to);

@@ -114,13 +114,14 @@ const VAULT_ACTIONS = [
   { label: "Upload File", icon: Upload, tone: "bg-sky text-sky-foreground" },
   { label: "Scan Document", icon: ScanLine, tone: "bg-sage text-sage-foreground" },
   { label: "Add Photo", icon: Image, tone: "bg-blush text-blush-foreground" },
-  { label: "Attach Artifact", icon: Paperclip, tone: "bg-sand text-sand-foreground" },
+  { label: "Attach File", icon: Paperclip, tone: "bg-sand text-sand-foreground" },
 ];
 
 function Vault() {
   const [section, setSection] = useState<string | null>(null);
   const [imagingId, setImagingId] = useState<string | null>(null);
   const [area, setArea] = useState("All");
+  const [actionLabel, setActionLabel] = useState<string | null>(null);
 
   if (imagingId) {
     const study = IMAGING.find((i) => i.id === imagingId)!;
@@ -185,7 +186,7 @@ function Vault() {
       <header className="px-6 pt-14 pb-2">
         <h1 className="text-[28px] font-semibold tracking-tight">Vault</h1>
         <p className="text-[13px] text-muted-foreground mt-1">
-          Continuity memory for files, scans, photos, and visit artifacts.
+          Continuity memory for files, scans, photos, and visit documents.
         </p>
         <div className="mt-4 flex items-center gap-2 rounded-full bg-secondary px-4 py-2.5">
           <Search className="h-4 w-4 text-muted-foreground" />
@@ -202,7 +203,11 @@ function Vault() {
         </h2>
         <div className="grid grid-cols-2 gap-3">
           {VAULT_ACTIONS.map(({ icon: Icon, label, tone }) => (
-            <button key={label} className="card-soft p-4 text-left active:scale-[0.98] transition">
+            <button
+              key={label}
+              onClick={() => setActionLabel(label)}
+              className="card-soft p-4 text-left active:scale-[0.98] transition"
+            >
               <span
                 className={`inline-flex h-10 w-10 items-center justify-center rounded-2xl ${tone}`}
               >
@@ -211,6 +216,9 @@ function Vault() {
               <p className="mt-3 text-[14px] font-medium">{label}</p>
               <p className="mt-0.5 text-[11px] text-muted-foreground">
                 Timeline-linked when attached to care.
+              </p>
+              <p className="mt-2 inline-flex rounded-full bg-secondary px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+                Private until shared
               </p>
             </button>
           ))}
@@ -269,17 +277,25 @@ function Vault() {
               <div className="flex-1">
                 <p className="text-[14px] font-medium">{r.t}</p>
                 <p className="text-[12px] text-muted-foreground">{r.s}</p>
+                <p className="mt-1 text-[11px] font-medium text-primary">
+                  Included in visit summary
+                </p>
               </div>
               <Share2 className="h-4 w-4 text-muted-foreground" />
             </div>
           ))}
         </div>
       </section>
+      {actionLabel && (
+        <VaultActionSheet actionLabel={actionLabel} onClose={() => setActionLabel(null)} />
+      )}
     </div>
   );
 }
 
 function ImagingDetail({ study, onBack }: { study: (typeof IMAGING)[number]; onBack: () => void }) {
+  const [shareOpen, setShareOpen] = useState(false);
+
   return (
     <div>
       <header className="px-6 pt-14 pb-3">
@@ -333,11 +349,58 @@ function ImagingDetail({ study, onBack }: { study: (typeof IMAGING)[number]; onB
           <button className="rounded-full bg-secondary py-3.5 text-[14px] font-medium inline-flex items-center justify-center gap-2">
             <Paperclip className="h-4 w-4" /> Attach
           </button>
-          <button className="rounded-full bg-primary text-primary-foreground py-3.5 text-[14px] font-medium inline-flex items-center justify-center gap-2">
+          <button
+            onClick={() => setShareOpen(true)}
+            className="rounded-full bg-primary text-primary-foreground py-3.5 text-[14px] font-medium inline-flex items-center justify-center gap-2"
+          >
             <Share2 className="h-4 w-4" /> Share with circle
           </button>
         </div>
+        {shareOpen && (
+          <VaultActionSheet actionLabel="Share imaging study" onClose={() => setShareOpen(false)} />
+        )}
       </div>
+    </div>
+  );
+}
+
+function VaultActionSheet({ actionLabel, onClose }: { actionLabel: string; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30" onClick={onClose}>
+      <div
+        className="w-full max-w-[440px] rounded-t-3xl bg-card p-6 pb-10"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-muted" />
+        <p className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
+          Document sharing
+        </p>
+        <h3 className="mt-1 text-[22px] font-semibold tracking-tight">{actionLabel}</h3>
+        <p className="mt-2 text-[14px] leading-relaxed text-muted-foreground">
+          Files are continuity memory. They stay private until attached to a care update or shared
+          with the care circle.
+        </p>
+        <div className="mt-4 space-y-2">
+          <VaultPrivacyRow label="Default" value="Private" />
+          <VaultPrivacyRow label="Optional" value="Included in visit summary" />
+          <VaultPrivacyRow label="Share window" value="Access ends after visit" />
+        </div>
+        <button
+          onClick={onClose}
+          className="mt-5 w-full rounded-full bg-primary py-3 text-[14px] font-medium text-primary-foreground"
+        >
+          Continue
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function VaultPrivacyRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-2xl bg-secondary px-3.5 py-3">
+      <span className="text-[12px] text-muted-foreground">{label}</span>
+      <span className="text-right text-[13px] font-medium">{value}</span>
     </div>
   );
 }
