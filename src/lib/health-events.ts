@@ -283,7 +283,7 @@ export const DEFAULT_CARE_CIRCLE: CareCircle = {
     relationshipContext: "Older adult care",
   },
   id: "circle-margaret-chen",
-  name: "Margaret's care circle",
+  name: "Margaret's care team",
 };
 
 export function createInitialHealthEventState(): HealthEventState {
@@ -709,7 +709,7 @@ export function createProviderSummary(
       recentDescriptions.length > 0
         ? `Recent: ${recentDescriptions.join("; ")}.`
         : "No recent care updates in this timeframe.",
-      "For care coordination only. EvernestCare does not diagnose or recommend treatment.",
+      "For care coordination only. Evernest Care does not diagnose or recommend treatment.",
     ],
     medicationEventCount,
     timeframeLabel: formatTimeframeLabel(query),
@@ -816,7 +816,7 @@ export function projectContinuitySignals(
   const activeActorIds = new Set(timeline.map((item) => item.event.actorId));
   if (activeActorIds.size < state.careCircle.actors.length) {
     signals.push({
-      detail: `${activeActorIds.size} of ${state.careCircle.actors.length} care circle members shared an update in ${timeframeLabel}.`,
+      detail: `${activeActorIds.size} of ${state.careCircle.actors.length} care team members shared an update in ${timeframeLabel}.`,
       id: `signal-circle-participation-${query.timeframe}`,
       kind: "circle-participation",
       timeframeLabel,
@@ -878,7 +878,7 @@ export function createProviderSummaryExport({
         title: "Attached care files",
       },
     ],
-    title: "EvernestCare continuity snapshot",
+    title: "Evernest Care continuity snapshot",
   };
 }
 
@@ -955,7 +955,7 @@ export function projectBetaWorkflowMetrics(
       value: `${state.artifacts.filter((artifact) => artifact.summaryVisible).length} files`,
     },
     {
-      detail: "Care circle participation is visible without adding extra noise.",
+      detail: "Care team participation is visible without adding extra noise.",
       label: "Collaboration",
       value: `${activeActorCount}/${state.careCircle.actors.length} active`,
     },

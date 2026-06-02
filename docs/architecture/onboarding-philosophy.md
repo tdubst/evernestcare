@@ -1,6 +1,6 @@
 # Onboarding Philosophy
 
-EvernestCare onboarding should reduce caregiver load. It should help a family establish enough structure to coordinate care without forcing a large intake process.
+Evernest Care onboarding should reduce caregiver load. It should help a family establish enough structure to coordinate care without forcing a large intake process.
 
 ## Principles
 
@@ -26,7 +26,7 @@ Setup may continue after onboarding. Caregivers should be able to add artifacts,
 
 ## Continuity-First Onboarding
 
-The first experience should make it clear that EvernestCare is a family coordination operating system, not an EHR, diagnostic product, or provider portal. The goal is to preserve operational context so care handoffs become less chaotic.
+The first experience should make it clear that Evernest Care is a family coordination operating system, not an EHR, diagnostic product, or provider portal. The goal is to preserve operational context so care handoffs become less chaotic.
 
 ## Non-Goals
 

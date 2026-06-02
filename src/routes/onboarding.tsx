@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/onboarding")({
-  head: () => ({ meta: [{ title: "Welcome — EvernestCare" }] }),
+  head: () => ({ meta: [{ title: "Welcome — Evernest Care" }] }),
   component: Onboarding,
 });
 
@@ -255,7 +255,7 @@ function Onboarding() {
                 Start a continuity trail
               </h2>
               <p className="mt-2 text-[15px] text-muted-foreground">
-                EvernestCare keeps a calm record of what happened, who helped, and what is ready for
+                Evernest Care keeps a calm record of what happened, who helped, and what is ready for
                 a visit.
               </p>
               <div className="mt-6 space-y-3">
@@ -336,7 +336,7 @@ function Onboarding() {
           onClick={next}
           className="mt-8 w-full flex items-center justify-center gap-2 rounded-full bg-primary py-4 text-[17px] font-medium text-primary-foreground shadow-card active:scale-[0.99] transition"
         >
-          {step === STEPS.length - 1 ? "Enter EvernestCare" : "Continue"}
+          {step === STEPS.length - 1 ? "Enter Evernest Care" : "Continue"}
           <ArrowRight className="h-4 w-4" />
         </button>
       </div>

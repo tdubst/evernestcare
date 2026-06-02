@@ -1,6 +1,6 @@
 # Navigation Continuity Model
 
-EvernestCare navigation should follow the caregiver mental model and avoid duplicate top-level surfaces.
+Evernest Care navigation should follow the caregiver mental model and avoid duplicate top-level surfaces.
 
 ## Bottom Navigation
 

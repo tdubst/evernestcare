@@ -11,7 +11,7 @@ export function ProtectedShell({ children }: { children: React.ReactNode }) {
   const authRequired = isAuthRequiredForRoutes();
 
   if (status === "loading") {
-    return <ShellNotice title="Opening EvernestCare" body="Checking your care workspace." />;
+    return <ShellNotice title="Opening Evernest Care" body="Checking your care workspace." />;
   }
 
   if (status === "unconfigured" && authRequired) {
@@ -27,7 +27,7 @@ export function ProtectedShell({ children }: { children: React.ReactNode }) {
     return (
       <ShellNotice
         title="Sign in required"
-        body="EvernestCare protects care coordination spaces before showing family information."
+        body="Evernest Care protects care coordination spaces before showing family information."
         action={
           <Link to="/onboarding" className="text-[14px] font-medium text-primary">
             Start onboarding

@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ChevronLeft, Heart, Baby, Activity, Sparkles, Check } from "lucide-react";
 
 export const Route = createFileRoute("/profile-types")({
-  head: () => ({ meta: [{ title: "Care profiles — EvernestCare" }] }),
+  head: () => ({ meta: [{ title: "Care profiles — Evernest Care" }] }),
   component: ProfileTypes,
 });
 
@@ -51,7 +51,7 @@ function ProfileTypes() {
         </Link>
         <h1 className="text-[28px] font-semibold tracking-tight">Care profiles</h1>
         <p className="text-[14px] text-muted-foreground mt-1 max-w-[36ch]">
-          EvernestCare is built to grow with your family. Add a profile for anyone in your circle.
+          Evernest Care is built to grow with your family. Add a profile for anyone on your care team.
         </p>
       </header>
 

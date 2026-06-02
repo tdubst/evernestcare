@@ -22,7 +22,7 @@ function NotFoundComponent() {
           to="/"
           className="mt-6 inline-flex items-center justify-center rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground"
         >
-          Back to EvernestCare
+          Back to Evernest Care
         </Link>
       </div>
     </div>
@@ -56,19 +56,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
-      { title: "EvernestCare — Family care, coordinated" },
+      { title: "Evernest Care — Family care, coordinated" },
       {
         name: "description",
         content: "A calm shared workspace for families coordinating care for the people they love.",
       },
       { name: "theme-color", content: "#f7f6f1" },
-      { property: "og:title", content: "EvernestCare — Family care, coordinated" },
+      { property: "og:title", content: "Evernest Care — Family care, coordinated" },
       {
         property: "og:description",
         content: "A calm shared workspace for families coordinating care for the people they love.",
       },
       { property: "og:type", content: "website" },
-      { name: "twitter:title", content: "EvernestCare — Family care, coordinated" },
+      { name: "twitter:title", content: "Evernest Care — Family care, coordinated" },
       {
         name: "twitter:description",
         content: "A calm shared workspace for families coordinating care for the people they love.",

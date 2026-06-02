@@ -1,6 +1,6 @@
 # Vitals Visualization Philosophy
 
-Vitals visualization in EvernestCare exists for continuity awareness. Charts should help a caregiver and provider quickly understand recent trends without turning the app into a clinical monitoring dashboard.
+Vitals visualization in Evernest Care exists for continuity awareness. Charts should help a caregiver and provider quickly understand recent trends without turning the app into a clinical monitoring dashboard.
 
 ## Principles
 

@@ -44,7 +44,7 @@ Artifacts may be marked as visible in provider summaries. Summary inclusion is f
 - linked context
 - attribution when relevant
 
-EvernestCare does not interpret document contents or generate clinical conclusions from artifacts.
+Evernest Care does not interpret document contents or generate clinical conclusions from artifacts.
 
 ## Non-Goals
 

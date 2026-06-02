@@ -1,6 +1,6 @@
 # Beta Readiness Principles
 
-Beta readiness for EvernestCare means caregivers can trust the continuity record during normal family coordination. It does not require feature breadth.
+Beta readiness for Evernest Care means caregivers can trust the continuity record during normal family coordination. It does not require feature breadth.
 
 ## Stability Philosophy
 

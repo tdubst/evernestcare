@@ -50,7 +50,7 @@ import {
 } from "@/lib/health-events";
 
 export const Route = createFileRoute("/_tabs/today")({
-  head: () => ({ meta: [{ title: "Today — EvernestCare" }] }),
+  head: () => ({ meta: [{ title: "Today — Evernest Care" }] }),
   component: Today,
 });
 
@@ -651,7 +651,7 @@ function ContinuitySignalsCard({
       </div>
 
       <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
-        These are care coordination reminders only. EvernestCare does not diagnose, predict, or
+        These are care coordination reminders only. Evernest Care does not diagnose, predict, or
         recommend care.
       </p>
     </div>
@@ -669,7 +669,7 @@ function formatSignalKind(kind: ContinuitySignal["kind"]) {
     case "artifact-follow-up":
       return "Files";
     case "circle-participation":
-      return "Care circle";
+      return "Care team";
   }
 }
 

@@ -1,4 +1,4 @@
--- EvernestCare core trust runtime.
+-- Evernest Care core trust runtime.
 -- Source of truth: FOUNDATION/ENTITY_MODEL.md, PERMISSIONS_RUNTIME.md, RLS_ARCHITECTURE.md.
 
 create extension if not exists pgcrypto;

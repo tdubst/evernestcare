@@ -4,7 +4,7 @@ import { Heart, ShieldCheck, Users } from "lucide-react";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "EvernestCare — Family care, coordinated" },
+      { title: "Evernest Care — Family care, coordinated" },
       { name: "description", content: "Organize medications, appointments, documents and family updates in one calm place." },
     ],
   }),
@@ -19,7 +19,7 @@ function Welcome() {
           <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground">
             <Heart className="h-3.5 w-3.5" fill="currentColor" />
           </span>
-          EvernestCare
+          Evernest Care
         </div>
 
         <div className="mt-16">
@@ -64,7 +64,7 @@ function Welcome() {
             Skip — see the demo
           </Link>
           <p className="text-center text-[12px] text-muted-foreground pt-1">
-            EvernestCare is not a medical, diagnostic or emergency service.
+            Evernest Care is not a medical, diagnostic or emergency service.
           </p>
         </div>
       </div>

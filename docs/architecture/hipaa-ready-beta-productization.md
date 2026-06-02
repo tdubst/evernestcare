@@ -1,6 +1,6 @@
 # HIPAA-Ready Beta Productization
 
-EvernestCare should be treated as a sensitive care coordination product even before formal HIPAA applicability is finalized. This document defines product and engineering guardrails for beta work; it is not a legal certification plan.
+Evernest Care should be treated as a sensitive care coordination product even before formal HIPAA applicability is finalized. This document defines product and engineering guardrails for beta work; it is not a legal certification plan.
 
 ## Sensitive Surfaces
 
@@ -19,7 +19,7 @@ UI labels should make visibility understandable without adding clinical bureaucr
 
 ## Product Boundaries
 
-EvernestCare supports family coordination, continuity history, factual summaries, and visit preparation. It must not present itself as diagnosis, treatment guidance, clinical decision support, a provider portal, or an EHR replacement.
+Evernest Care supports family coordination, continuity history, factual summaries, and visit preparation. It must not present itself as diagnosis, treatment guidance, clinical decision support, a provider portal, or an EHR replacement.
 
 Continuity signals remain operational awareness only. Provider summaries must remain factual, deterministic, event-derived, and non-diagnostic.
 
@@ -47,7 +47,7 @@ Initial vendor review targets:
 - email and push notification providers
 - file storage and document scanning services
 
-Push notification text should avoid PHI. Prefer neutral copy such as "EvernestCare update ready" over medication names, diagnoses, or recipient details.
+Push notification text should avoid PHI. Prefer neutral copy such as "Evernest Care update ready" over medication names, diagnoses, or recipient details.
 
 ## Native iOS Readiness
 

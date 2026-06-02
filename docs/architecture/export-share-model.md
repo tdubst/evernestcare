@@ -4,7 +4,7 @@ Export and share support exists to help caregivers prepare factual continuity pa
 
 ## Philosophy
 
-Provider-facing exports are projections of operational history, care profile context, and selected care artifacts. They should be easy to print, review, and hand to a provider without implying EvernestCare is a provider portal or medical record system.
+Provider-facing exports are projections of operational history, care profile context, and selected care artifacts. They should be easy to print, review, and hand to a provider without implying Evernest Care is a provider portal or medical record system.
 
 ## Supported Initial Shape
 

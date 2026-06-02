@@ -1,6 +1,6 @@
 # Caregiver Workflows
 
-EvernestCare optimizes for continuity confidence, not task overload. Workflows should help families understand what happened, what changed, and what is ready for the next handoff.
+Evernest Care optimizes for continuity confidence, not task overload. Workflows should help families understand what happened, what changed, and what is ready for the next handoff.
 
 ## Canonical Workflows
 

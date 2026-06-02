@@ -1,6 +1,6 @@
 # Mobile Continuity UX
 
-EvernestCare is mobile-first because caregiving often happens between appointments, errands, calls, and family handoffs.
+Evernest Care is mobile-first because caregiving often happens between appointments, errands, calls, and family handoffs.
 
 ## Principles
 

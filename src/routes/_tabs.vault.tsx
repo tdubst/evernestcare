@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/_tabs/vault")({
-  head: () => ({ meta: [{ title: "Vault — EvernestCare" }] }),
+  head: () => ({ meta: [{ title: "Vault — Evernest Care" }] }),
   component: Vault,
 });
 
@@ -331,7 +331,7 @@ function ImagingDetail({ study, onBack }: { study: (typeof IMAGING)[number]; onB
           </p>
           <p className="mt-2 text-[15px] leading-relaxed">{study.summary}</p>
           <p className="mt-3 text-[11px] text-muted-foreground">
-            Provider-written summary. EvernestCare does not interpret images.
+            Provider-written summary. Evernest Care does not interpret images.
           </p>
         </div>
 
@@ -378,7 +378,7 @@ function VaultActionSheet({ actionLabel, onClose }: { actionLabel: string; onClo
         <h3 className="mt-1 text-[22px] font-semibold tracking-tight">{actionLabel}</h3>
         <p className="mt-2 text-[14px] leading-relaxed text-muted-foreground">
           Files are continuity memory. They stay private until attached to a care update or shared
-          with the care circle.
+          with the care team.
         </p>
         <div className="mt-4 space-y-2">
           <VaultPrivacyRow label="Default" value="Private" />

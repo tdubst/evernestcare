@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/_tabs/calendar")({
-  head: () => ({ meta: [{ title: "Calendar — EvernestCare" }] }),
+  head: () => ({ meta: [{ title: "Calendar — Evernest Care" }] }),
   component: CalendarPage,
 });
 

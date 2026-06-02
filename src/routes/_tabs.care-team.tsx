@@ -13,7 +13,7 @@ import {
 import { useState } from "react";
 
 export const Route = createFileRoute("/_tabs/care-team")({
-  head: () => ({ meta: [{ title: "Care team — EvernestCare" }] }),
+  head: () => ({ meta: [{ title: "Care team — Evernest Care" }] }),
   component: CareTeam,
 });
 
@@ -124,7 +124,7 @@ function CareTeam() {
   return (
     <div>
       <header className="px-6 pt-14 pb-3">
-        <h1 className="text-[28px] font-semibold tracking-tight">Care circle</h1>
+        <h1 className="text-[28px] font-semibold tracking-tight">Care team</h1>
         <p className="text-[13px] text-muted-foreground mt-1">9 people supporting Margaret.</p>
       </header>
 
