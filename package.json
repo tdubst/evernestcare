@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
+    "build:vercel": "vite --config vite.vercel.config.ts build --outDir dist-vercel",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
