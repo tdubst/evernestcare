@@ -820,7 +820,7 @@ export function projectContinuitySignals(
       id: `signal-circle-participation-${query.timeframe}`,
       kind: "circle-participation",
       timeframeLabel,
-      title: "Care-circle participation visibility",
+      title: "Care team participation visibility",
       tone: "steady",
     });
   }
@@ -926,7 +926,7 @@ export function projectCaregiverWorkflows(
       title: "Post-discharge continuity",
     },
     {
-      detail: `${activeActorCount} care-circle member${activeActorCount === 1 ? "" : "s"} contributed in ${formatTimeframeLabel(query)}.`,
+      detail: `${activeActorCount} care team member${activeActorCount === 1 ? "" : "s"} contributed in ${formatTimeframeLabel(query)}.`,
       id: "workflow-collaboration",
       nextStep: activeActorCount > 1 ? "Scan timeline" : "Invite or nudge helper",
       status: activeActorCount > 1 ? "ready" : "pending",

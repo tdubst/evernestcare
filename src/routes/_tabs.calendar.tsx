@@ -250,7 +250,7 @@ function CalendarPage() {
           </h2>
           <EventList
             events={events}
-            emptyText="A quiet day for the circle."
+            emptyText="A quiet day for the care team."
             onOpenEvent={(event) => setOpen({ day: selected, event })}
           />
         </section>

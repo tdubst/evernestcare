@@ -81,7 +81,7 @@ function Onboarding() {
                 Let's make care easier to follow.
               </h2>
               <p className="mt-3 text-[16px] text-muted-foreground leading-relaxed max-w-[34ch]">
-                Start with one person, one circle, and the key details for the next handoff.
+                Start with one person, one care team, and the key details for the next handoff.
               </p>
             </div>
           )}
@@ -153,7 +153,7 @@ function Onboarding() {
           {step === 3 && (
             <div>
               <h2 className="text-[28px] font-semibold tracking-tight leading-tight">
-                Invite your circle
+                Invite your care team
               </h2>
               <p className="mt-2 text-[15px] text-muted-foreground">Care is lighter when shared.</p>
               <div className="mt-6 card-soft p-2">

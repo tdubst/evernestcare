@@ -29,7 +29,7 @@ export default function App() {
           </View>
           <View style={styles.profileText}>
             <Text style={styles.profileName}>Margaret Chen</Text>
-            <Text style={styles.profileMeta}>82 · Older adult care · 4 in circle</Text>
+            <Text style={styles.profileMeta}>82 · Older adult care · 4 on team</Text>
           </View>
           <Text style={styles.switchText}>Switch</Text>
         </View>

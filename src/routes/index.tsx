@@ -28,7 +28,7 @@ function Welcome() {
             <span className="text-primary">together.</span>
           </h1>
           <p className="mt-5 text-[17px] leading-relaxed text-muted-foreground max-w-[34ch]">
-            A calm shared space for medications, appointments, documents and family updates — built for the whole circle.
+            A calm shared space for medications, appointments, documents and family updates — built for the whole care team.
           </p>
         </div>
 

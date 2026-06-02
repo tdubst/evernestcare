@@ -118,7 +118,7 @@ function Today() {
           </span>
           <div className="flex-1">
             <p className="text-[15px] font-medium">Margaret Chen</p>
-            <p className="text-[12px] text-muted-foreground">82 · Older adult care · 4 in circle</p>
+            <p className="text-[12px] text-muted-foreground">82 · Older adult care · 4 on team</p>
           </div>
           <button className="text-[12px] font-medium text-primary">Switch</button>
         </div>
