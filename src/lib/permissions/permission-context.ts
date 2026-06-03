@@ -3,7 +3,9 @@ import { createContext, useContext } from "react";
 export type PermissionRuntimeStatus = "auth-required" | "ready" | "unconfigured";
 
 export type PermissionContextValue = {
+  activeCareTeamId: string | null;
   activeCareRecipientId: string | null;
+  appUserId: string | null;
   grants: string[];
   status: PermissionRuntimeStatus;
 };

@@ -64,3 +64,16 @@ These scenarios define the required alpha trust checks for `202605260001_core_tr
 - A user in Family A cannot read care recipients, teams, memberships, messages, documents, or tasks from Family B.
 - A direct resource grant must not expose unrelated care-team or sibling recipient data.
 - Revoked members cannot continue receiving notifications tied to inaccessible resources.
+
+## Care Event Persistence
+
+- Authorized care-team members can append medication, vitals, care-note, artifact, and reminder events for their care recipient.
+- Unauthenticated users cannot read or append care events.
+- Non-members cannot read or append care events across families.
+- Care events cannot be updated or deleted after insertion.
+- Medication events require medication logging or management capability according to event type.
+- Vitals events require vitals logging capability.
+- Care-note events require care-note creation capability.
+- Artifact events require document upload capability.
+- Revoked members immediately lose future care-event reads and writes.
+- Care-event audit metadata stores event type, source, and schema version only; event payload content is not copied into audit metadata.

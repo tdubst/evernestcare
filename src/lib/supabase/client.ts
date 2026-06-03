@@ -5,6 +5,10 @@ import { getSupabaseRuntimeConfig } from "./config";
 let browserClient: SupabaseClient | null | undefined;
 
 export function getSupabaseBrowserClient(): SupabaseClient | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
   if (browserClient !== undefined) {
     return browserClient;
   }

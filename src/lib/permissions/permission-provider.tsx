@@ -13,7 +13,9 @@ export function PermissionProvider({ children }: { children: React.ReactNode }) 
   const value = useMemo<PermissionContextValue>(() => {
     if (status === "unconfigured") {
       return {
+        activeCareTeamId: null,
         activeCareRecipientId: null,
+        appUserId: null,
         grants: [],
         status: "unconfigured",
       };
@@ -21,14 +23,18 @@ export function PermissionProvider({ children }: { children: React.ReactNode }) 
 
     if (!user && isAuthRequiredForRoutes()) {
       return {
+        activeCareTeamId: null,
         activeCareRecipientId: null,
+        appUserId: null,
         grants: [],
         status: "auth-required",
       };
     }
 
     return {
+      activeCareTeamId: null,
       activeCareRecipientId: null,
+      appUserId: null,
       grants: [],
       status: "ready",
     };

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useReducer, useState } from "react";
+import { useCallback, useReducer, useState } from "react";
 import {
   type LucideIcon,
   Pill,
@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 
 import { HEALTH_DEVICE_INTEGRATIONS } from "@/lib/integrations/health-devices";
+import { useAuth } from "@/lib/auth/auth-context";
 import {
   createCareNoteAddedEvent,
   createInitialHealthEventState,
@@ -48,6 +49,8 @@ import {
   projectContinuitySignals,
   projectOperationalTimeline,
 } from "@/lib/health-events";
+import { usePermissions } from "@/lib/permissions/permission-context";
+import { persistHealthEvent } from "@/lib/persistence/care-events-repository";
 
 export const Route = createFileRoute("/_tabs/today")({
   head: () => ({ meta: [{ title: "Today — Evernest Care" }] }),
@@ -73,6 +76,30 @@ function Today() {
     undefined,
     createInitialHealthEventState,
   );
+  const { client } = useAuth();
+  const permissions = usePermissions();
+  const recordHealthEvent = useCallback(
+    (event: HealthEvent) => {
+      dispatchHealthEvent(event);
+
+      const boundary =
+        permissions.activeCareTeamId && permissions.activeCareRecipientId && permissions.appUserId
+          ? {
+              actorUserId: permissions.appUserId,
+              careRecipientId: permissions.activeCareRecipientId,
+              careTeamId: permissions.activeCareTeamId,
+            }
+          : null;
+
+      void persistHealthEvent({ boundary, client, event });
+    },
+    [
+      client,
+      permissions.activeCareRecipientId,
+      permissions.activeCareTeamId,
+      permissions.appUserId,
+    ],
+  );
   const timelineQuery = { filter: timelineFilter, timeframe };
   const timeline = projectOperationalTimeline(healthEventState, timelineQuery);
   const continuitySignals = projectContinuitySignals(healthEventState, timelineQuery);
@@ -86,7 +113,7 @@ function Today() {
   });
   const careCircle = healthEventState.careCircle;
   const addCollaborativeNote = () => {
-    dispatchHealthEvent(
+    recordHealthEvent(
       createCareNoteAddedEvent({
         actor: careCircle.actors[1],
         note: "Shared observation: Margaret was more tired than usual after lunch but comfortable after resting.",
@@ -218,7 +245,7 @@ function Today() {
           <LogMedicationPanel
             healthEventState={healthEventState}
             saved={savedPanel === "med"}
-            onEvent={dispatchHealthEvent}
+            onEvent={recordHealthEvent}
             onClose={closeWorkflow}
             onSave={() => setSavedPanel("med")}
           />
@@ -230,7 +257,7 @@ function Today() {
           <VitalsPanel
             healthEventState={healthEventState}
             saved={savedPanel === "vitals"}
-            onEvent={dispatchHealthEvent}
+            onEvent={recordHealthEvent}
             onClose={closeWorkflow}
             onSave={() => setSavedPanel("vitals")}
           />
