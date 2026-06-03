@@ -106,6 +106,16 @@ function Messages() {
         </div>
       </header>
 
+      <section className="px-6 mt-3">
+        <div className="rounded-2xl bg-sand/60 px-4 py-3">
+          <p className="text-[13px] font-semibold text-sand-foreground">Care updates for beta</p>
+          <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">
+            Realtime chat is intentionally planned for later. Use this space to test calm family
+            updates, attachments, and visit context.
+          </p>
+        </div>
+      </section>
+
       <section className="px-3 mt-3">
         {THREADS.map((threadItem) => (
           <button
@@ -269,7 +279,11 @@ function Thread({ thread, onBack }: { thread: ThreadSummary; onBack: () => void 
               <Send className="h-4 w-4" />
             </button>
           ) : (
-            <button className="h-9 w-9 rounded-full bg-secondary inline-flex items-center justify-center shrink-0">
+            <button
+              onClick={() => setAttachOpen(true)}
+              className="h-9 w-9 rounded-full bg-secondary inline-flex items-center justify-center shrink-0"
+              aria-label="Voice note planned"
+            >
               <Mic className="h-4 w-4" />
             </button>
           )}
@@ -294,10 +308,14 @@ function MessagePrivacySheet({ title, onClose }: { title: string; onClose: () =>
           Message privacy
         </p>
         <h3 className="mt-1 text-[22px] font-semibold tracking-tight">{title}</h3>
+        <p className="mt-2 text-[14px] leading-relaxed text-muted-foreground">
+          This beta keeps messages as local care updates. Realtime delivery and push notifications
+          will come after access controls and privacy rules are fully tested.
+        </p>
         <div className="mt-4 space-y-2">
           <PrivacyRow label="Default" value="Family visible" />
           <PrivacyRow label="Sensitive files" value="Attach through Vault" />
-          <PrivacyRow label="Notifications" value="No private details in preview" />
+          <PrivacyRow label="Realtime chat" value="Planned after beta hardening" />
         </div>
         <button
           onClick={onClose}

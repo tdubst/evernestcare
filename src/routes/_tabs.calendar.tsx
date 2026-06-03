@@ -366,6 +366,7 @@ function VisitDetailSheet({
   selected: number;
   onClose: () => void;
 }) {
+  const [notice, setNotice] = useState<"document" | "thread" | null>(null);
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30" onClick={onClose}>
       <div
@@ -399,14 +400,54 @@ function VisitDetailSheet({
         </div>
 
         <div className="mt-5 grid grid-cols-2 gap-2.5">
-          <button className="rounded-full bg-secondary py-3 text-[14px] font-medium">
+          <button
+            onClick={() => setNotice("document")}
+            className="rounded-full bg-secondary py-3 text-[14px] font-medium"
+          >
             Attach document
           </button>
-          <button className="rounded-full bg-primary text-primary-foreground py-3 text-[14px] font-medium">
-            Open thread
+          <button
+            onClick={() => setNotice("thread")}
+            className="rounded-full bg-primary text-primary-foreground py-3 text-[14px] font-medium"
+          >
+            Add care update
           </button>
         </div>
+        {notice && (
+          <CalendarNotice
+            title={notice === "document" ? "Attach a visit file" : "Add a care update"}
+            body={
+              notice === "document"
+                ? "Documents will attach from Vault during beta. Files stay private until shared with the care team or included in a visit summary."
+                : "Real-time messaging is not part of this beta. Visit notes will be saved as care updates for the family to review."
+            }
+            onClose={() => setNotice(null)}
+          />
+        )}
       </div>
+    </div>
+  );
+}
+
+function CalendarNotice({
+  body,
+  onClose,
+  title,
+}: {
+  body: string;
+  onClose: () => void;
+  title: string;
+}) {
+  return (
+    <div className="mt-4 rounded-2xl bg-secondary p-4">
+      <p className="text-[14px] font-semibold">{title}</p>
+      <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">{body}</p>
+      <button
+        onClick={onClose}
+        className="mt-3 w-full rounded-full bg-card py-2.5 text-[13px] font-medium text-primary"
+      >
+        Got it
+      </button>
     </div>
   );
 }

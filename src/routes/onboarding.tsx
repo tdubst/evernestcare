@@ -34,6 +34,8 @@ function Onboarding() {
   const [step, setStep] = useState(0);
   const [name, setName] = useState("Margaret");
   const [relation, setRelation] = useState("Parent");
+  const [profileType, setProfileType] = useState("Older adult");
+  const [setupNotice, setSetupNotice] = useState<string | null>(null);
   const [textSize, setTextSize] = useState(1);
 
   const next = () => {
@@ -113,7 +115,8 @@ function Onboarding() {
                 ].map((t) => (
                   <button
                     key={t.label}
-                    className={`text-left card-soft p-4 border ${t.active ? "ring-2 ring-primary border-transparent" : "hairline"}`}
+                    onClick={() => setProfileType(t.label)}
+                    className={`text-left card-soft p-4 border ${profileType === t.label ? "ring-2 ring-primary border-transparent" : "hairline"}`}
                   >
                     <p className="text-[15px] font-medium">{t.label}</p>
                     <p className="text-[12px] text-muted-foreground mt-0.5">{t.desc}</p>
@@ -176,9 +179,15 @@ function Onboarding() {
                   </div>
                 ))}
               </div>
-              <button className="mt-3 w-full flex items-center justify-center gap-2 rounded-2xl border hairline bg-card py-4 text-[15px] font-medium">
+              <button
+                onClick={() =>
+                  setSetupNotice("Invite links will be sent once test accounts are connected.")
+                }
+                className="mt-3 w-full flex items-center justify-center gap-2 rounded-2xl border hairline bg-card py-4 text-[15px] font-medium"
+              >
                 <UserPlus className="h-4 w-4" /> Invite someone else
               </button>
+              {setupNotice && <SetupNotice text={setupNotice} onClose={() => setSetupNotice(null)} />}
             </div>
           )}
 
@@ -240,7 +249,10 @@ function Onboarding() {
                   </label>
                 ))}
               </div>
-              <button className="mt-3 w-full rounded-2xl border hairline bg-card py-3.5 text-[14px] font-medium text-muted-foreground">
+              <button
+                onClick={next}
+                className="mt-3 w-full rounded-2xl border hairline bg-card py-3.5 text-[14px] font-medium text-muted-foreground"
+              >
                 Skip for now
               </button>
             </div>
@@ -340,6 +352,17 @@ function Onboarding() {
           <ArrowRight className="h-4 w-4" />
         </button>
       </div>
+    </div>
+  );
+}
+
+function SetupNotice({ onClose, text }: { onClose: () => void; text: string }) {
+  return (
+    <div className="mt-3 rounded-2xl bg-sand/70 px-4 py-3">
+      <p className="text-[13px] leading-relaxed text-muted-foreground">{text}</p>
+      <button onClick={onClose} className="mt-2 text-[13px] font-medium text-primary">
+        Got it
+      </button>
     </div>
   );
 }

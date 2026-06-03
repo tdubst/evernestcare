@@ -295,6 +295,7 @@ function Vault() {
 
 function ImagingDetail({ study, onBack }: { study: (typeof IMAGING)[number]; onBack: () => void }) {
   const [shareOpen, setShareOpen] = useState(false);
+  const [attachOpen, setAttachOpen] = useState(false);
 
   return (
     <div>
@@ -346,7 +347,10 @@ function ImagingDetail({ study, onBack }: { study: (typeof IMAGING)[number]; onB
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-2.5">
-          <button className="rounded-full bg-secondary py-3.5 text-[14px] font-medium inline-flex items-center justify-center gap-2">
+          <button
+            onClick={() => setAttachOpen(true)}
+            className="rounded-full bg-secondary py-3.5 text-[14px] font-medium inline-flex items-center justify-center gap-2"
+          >
             <Paperclip className="h-4 w-4" /> Attach
           </button>
           <button
@@ -358,6 +362,9 @@ function ImagingDetail({ study, onBack }: { study: (typeof IMAGING)[number]; onB
         </div>
         {shareOpen && (
           <VaultActionSheet actionLabel="Share imaging study" onClose={() => setShareOpen(false)} />
+        )}
+        {attachOpen && (
+          <VaultActionSheet actionLabel="Attach to visit prep" onClose={() => setAttachOpen(false)} />
         )}
       </div>
     </div>

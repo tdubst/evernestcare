@@ -153,17 +153,17 @@ function CareTeam() {
 
       <Section title="Family">
         {FAMILY.map((person) => (
-          <Person key={person.n} {...person} />
+          <Person key={person.n} {...person} onManage={() => setSheet("role")} />
         ))}
       </Section>
       <Section title="Providers">
         {PROVIDERS.map((person) => (
-          <Person key={person.n} {...person} />
+          <Person key={person.n} {...person} onManage={() => setSheet("role")} />
         ))}
       </Section>
       <Section title="Caregivers">
         {CAREGIVERS.map((person) => (
-          <Person key={person.n} {...person} />
+          <Person key={person.n} {...person} onManage={() => setSheet("role")} />
         ))}
       </Section>
 
@@ -226,7 +226,16 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function Person({ n, r, role, color, you, emergency, providerBadge }: PersonRecord) {
+function Person({
+  n,
+  r,
+  role,
+  color,
+  you,
+  emergency,
+  providerBadge,
+  onManage,
+}: PersonRecord & { onManage: () => void }) {
   const meta = ROLE_META[role];
   return (
     <div className="flex items-center gap-3 px-4 py-3.5">
@@ -264,7 +273,11 @@ function Person({ n, r, role, color, you, emergency, providerBadge }: PersonReco
         >
           {meta.label}
         </span>
-        <button className="h-7 w-7 inline-flex items-center justify-center text-muted-foreground">
+        <button
+          onClick={onManage}
+          className="h-7 w-7 inline-flex items-center justify-center text-muted-foreground"
+          aria-label={`Review access for ${n}`}
+        >
           <MoreHorizontal className="h-4 w-4" />
         </button>
       </div>

@@ -61,6 +61,11 @@ function Today() {
   const [activeWorkflow, setActiveWorkflow] = useState<HomeWorkflow>("home");
   const [savedPanel, setSavedPanel] = useState<"med" | "vitals" | null>(null);
   const [shareSummaryOpen, setShareSummaryOpen] = useState(false);
+  const [homeNotice, setHomeNotice] = useState<{
+    title: string;
+    description: string;
+    action: string;
+  } | null>(null);
   const [timelineFilter, setTimelineFilter] = useState<TimelineFilter>("all");
   const [timeframe, setTimeframe] = useState<TimeframePreset>("7d");
   const [healthEventState, dispatchHealthEvent] = useReducer(
@@ -120,7 +125,19 @@ function Today() {
             <p className="text-[15px] font-medium">Margaret Chen</p>
             <p className="text-[12px] text-muted-foreground">82 · Older adult care · 4 on team</p>
           </div>
-          <button className="text-[12px] font-medium text-primary">Switch</button>
+          <button
+            onClick={() =>
+              setHomeNotice({
+                action: "Got it",
+                description:
+                  "Multiple care profiles are supported in the app structure. Switching profiles is planned for closed beta once persistence is connected.",
+                title: "Profile switching",
+              })
+            }
+            className="text-[12px] font-medium text-primary"
+          >
+            Switch
+          </button>
         </div>
       </div>
 
@@ -256,6 +273,7 @@ function Today() {
               title="Evening Metformin missed"
               subtitle="Yesterday, 8:00 PM · 500 mg"
               action="Mark taken"
+              onAction={() => openWorkflow("med")}
             />
             <Alert
               tone="info"
@@ -263,6 +281,7 @@ function Today() {
               title="MRI follow-up in 3 days"
               subtitle="Dr. Patel · Neurology · Bring imaging"
               action="Prep visit"
+              onAction={() => openWorkflow("visit")}
             />
           </Section>
 
@@ -354,6 +373,16 @@ function Today() {
           expires="Access ends after visit"
           primaryAction="Prepare share"
           onClose={() => setShareSummaryOpen(false)}
+        />
+      )}
+      {homeNotice && (
+        <PrivacyConfirmationSheet
+          title={homeNotice.title}
+          description={homeNotice.description}
+          audience="Family visible"
+          expires="Available during beta testing"
+          primaryAction={homeNotice.action}
+          onClose={() => setHomeNotice(null)}
         />
       )}
     </div>
@@ -1477,12 +1506,14 @@ function Alert({
   title,
   subtitle,
   action,
+  onAction,
 }: {
   tone: "warn" | "info";
   icon: LucideIcon;
   title: string;
   subtitle: string;
   action: string;
+  onAction: () => void;
 }) {
   const toneCls = tone === "warn" ? "bg-sand text-sand-foreground" : "bg-sky text-sky-foreground";
   return (
@@ -1494,7 +1525,10 @@ function Alert({
         <p className="text-[14px] font-medium">{title}</p>
         <p className="text-[12px] text-muted-foreground">{subtitle}</p>
       </div>
-      <button className="text-[12px] font-medium text-primary px-3 py-1.5 rounded-full bg-secondary">
+      <button
+        onClick={onAction}
+        className="text-[12px] font-medium text-primary px-3 py-1.5 rounded-full bg-secondary"
+      >
         {action}
       </button>
     </div>
