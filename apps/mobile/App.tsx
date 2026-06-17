@@ -1,262 +1,358 @@
 import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
-import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useState } from "react";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
-const todayCards = [
-  { icon: "medical-outline", label: "Medications", value: "2 due", detail: "Next at 1:00 PM" },
-  { icon: "calendar-outline", label: "Appointment", value: "11:30 AM", detail: "David driving" },
-  { icon: "pulse-outline", label: "Vitals", value: "124/78", detail: "Last checked Fri" },
+type NoticeState = "idle" | "auth" | "cleared";
+
+const continuityRows = [
+  {
+    icon: "shield-checkmark-outline",
+    label: "Signed-out state",
+    value: "Ready",
+    detail: "No care details are shown until a signed-in workspace is available.",
+  },
+  {
+    icon: "reader-outline",
+    label: "Continuity mode",
+    value: "Read-only",
+    detail: "Native writes stay off for this beta baseline.",
+  },
+  {
+    icon: "lock-closed-outline",
+    label: "Local session",
+    value: "Clearable",
+    detail: "The current proof stores no care content on this device.",
+  },
 ] as const;
 
-const actions = [
-  { icon: "medical-outline", label: "Medications", badge: "2 due", tone: "#ffd8d5" },
-  { icon: "pulse-outline", label: "Vitals", badge: "Last Fri", tone: "#b8dfc6" },
-  { icon: "clipboard-outline", label: "Visit Prep", badge: "Ready", tone: "#c9ebfb" },
+const readinessRows = [
+  "Expo app loads from a single safe entry point.",
+  "Safe areas and scroll behavior are supported on iPhone-class screens.",
+  "Camera, scanner, native sharing, push details, and Apple Health are off.",
+  "Crash and QA evidence must remain content-free.",
 ] as const;
 
 export default function App() {
+  const [notice, setNotice] = useState<NoticeState>("idle");
+
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={styles.content}
+      contentInsetAdjustmentBehavior="automatic"
+      showsVerticalScrollIndicator={false}
+    >
       <StatusBar style="dark" />
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.date}>Tuesday, May 26</Text>
-        <Text style={styles.title}>Home</Text>
-        <Text style={styles.subtitle}>Good morning, Sarah. Here is what matters for Mom today.</Text>
 
-        <View style={styles.profileCard}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>MC</Text>
-          </View>
-          <View style={styles.profileText}>
-            <Text style={styles.profileName}>Margaret Chen</Text>
-            <Text style={styles.profileMeta}>82 · Older adult care · 4 on team</Text>
-          </View>
-          <Text style={styles.switchText}>Switch</Text>
+      <View style={styles.header}>
+        <Text style={styles.eyebrow}>Native beta baseline</Text>
+        <Text style={styles.title}>Evernest Care</Text>
+        <Text style={styles.subtitle}>
+          Mobile continuity is in safe read-only setup while signed-in access is prepared.
+        </Text>
+      </View>
+
+      <View style={styles.statusCard}>
+        <View style={styles.statusIcon}>
+          <Ionicons name="phone-portrait-outline" size={24} color="#0f3d32" />
         </View>
-
-        <Text style={styles.sectionTitle}>Today at a glance</Text>
-        <View style={styles.cardGrid}>
-          {todayCards.map((card) => (
-            <View key={card.label} style={styles.glanceCard}>
-              <View style={styles.iconBubble}>
-                <Ionicons name={card.icon} size={24} color="#103d32" />
-              </View>
-              <Text style={styles.cardLabel}>{card.label}</Text>
-              <Text style={styles.cardValue}>{card.value}</Text>
-              <Text style={styles.cardDetail}>{card.detail}</Text>
-            </View>
-          ))}
-        </View>
-
-        <View style={styles.actionRow}>
-          {actions.map((action) => (
-            <TouchableOpacity key={action.label} style={styles.action}>
-              <View style={[styles.actionIcon, { backgroundColor: action.tone }]}>
-                <Ionicons name={action.icon} size={30} color="#173c33" />
-              </View>
-              <Text style={styles.actionLabel}>{action.label}</Text>
-              <Text style={styles.actionBadge}>{action.badge}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <Text style={styles.sectionTitle}>Today’s priorities</Text>
-        <View style={styles.reviewCard}>
-          <Text style={styles.reviewTitle}>Things to review</Text>
-          <Text style={styles.reviewText}>
-            Medication confirmations and vitals updates are ready to review before the next visit.
+        <View style={styles.statusCopy}>
+          <Text style={styles.cardTitle}>Mobile workspace unavailable</Text>
+          <Text style={styles.cardText}>
+            Sign-in is deferred in this baseline. Care details stay hidden until the native auth
+            path is reviewed and connected.
           </Text>
-          <View style={styles.reviewPill}>
-            <Text style={styles.reviewPillText}>For care coordination only</Text>
-          </View>
         </View>
-      </ScrollView>
-    </SafeAreaView>
+      </View>
+
+      {notice !== "idle" && (
+        <View style={notice === "cleared" ? styles.readyNotice : styles.infoNotice}>
+          <Ionicons
+            name={notice === "cleared" ? "checkmark-circle-outline" : "information-circle-outline"}
+            size={20}
+            color={notice === "cleared" ? "#174235" : "#224b63"}
+          />
+          <Text style={styles.noticeText}>
+            {notice === "cleared"
+              ? "Local beta session state cleared."
+              : "Native sign-in will use the reviewed Supabase session path before beta use."}
+          </Text>
+        </View>
+      )}
+
+      <View style={styles.actions}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => setNotice("auth")}
+          style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}
+        >
+          <Ionicons name="log-in-outline" size={20} color="#ffffff" />
+          <Text style={styles.primaryButtonText}>Review sign-in status</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => setNotice("cleared")}
+          style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]}
+        >
+          <Ionicons name="trash-outline" size={20} color="#173c33" />
+          <Text style={styles.secondaryButtonText}>Clear local session state</Text>
+        </Pressable>
+      </View>
+
+      <SectionTitle label="Continuity readiness" />
+      <View style={styles.rowStack}>
+        {continuityRows.map((row) => (
+          <View key={row.label} style={styles.rowCard}>
+            <View style={styles.rowIcon}>
+              <Ionicons name={row.icon} size={21} color="#173c33" />
+            </View>
+            <View style={styles.rowCopy}>
+              <Text style={styles.rowLabel}>{row.label}</Text>
+              <Text style={styles.rowDetail}>{row.detail}</Text>
+            </View>
+            <Text style={styles.rowValue}>{row.value}</Text>
+          </View>
+        ))}
+      </View>
+
+      <SectionTitle label="Beta limits" />
+      <View style={styles.limitCard}>
+        {readinessRows.map((item) => (
+          <View key={item} style={styles.limitRow}>
+            <View style={styles.limitDot} />
+            <Text style={styles.limitText}>{item}</Text>
+          </View>
+        ))}
+      </View>
+    </ScrollView>
   );
 }
 
+function SectionTitle({ label }: { label: string }) {
+  return <Text style={styles.sectionTitle}>{label}</Text>;
+}
+
+const colors = {
+  background: "#f8f6f1",
+  blush: "#ffd8d5",
+  border: "#e5ddd0",
+  card: "#fffaf4",
+  foreground: "#111827",
+  muted: "#68727f",
+  primary: "#174235",
+  sage: "#b8dfc6",
+  sky: "#c9ebfb",
+  skyText: "#224b63",
+};
+
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#f8f6f1",
-  },
-  content: {
-    paddingHorizontal: 24,
-    paddingBottom: 40,
-  },
-  date: {
-    marginTop: 24,
-    color: "#68727f",
-    fontSize: 17,
-    fontWeight: "600",
-  },
-  title: {
-    marginTop: 14,
-    color: "#111827",
-    fontSize: 42,
-    fontWeight: "800",
-    letterSpacing: 0,
-  },
-  subtitle: {
-    marginTop: 18,
-    color: "#68727f",
-    fontSize: 22,
-    lineHeight: 32,
-  },
-  profileCard: {
-    alignItems: "center",
-    backgroundColor: "#fff",
-    borderRadius: 28,
-    flexDirection: "row",
-    gap: 16,
-    marginTop: 28,
-    padding: 18,
-    shadowColor: "#233129",
-    shadowOpacity: 0.08,
-    shadowRadius: 18,
-  },
-  avatar: {
-    alignItems: "center",
-    backgroundColor: "#ffd8d5",
-    borderRadius: 28,
-    height: 56,
-    justifyContent: "center",
-    width: 56,
-  },
-  avatarText: {
-    color: "#7f332d",
-    fontSize: 18,
-    fontWeight: "800",
-  },
-  profileText: {
-    flex: 1,
-  },
-  profileName: {
-    color: "#111827",
-    fontSize: 21,
-    fontWeight: "800",
-  },
-  profileMeta: {
-    color: "#68727f",
-    fontSize: 15,
-    marginTop: 4,
-  },
-  switchText: {
-    color: "#2c92c8",
-    fontSize: 17,
-    fontWeight: "700",
-  },
-  sectionTitle: {
-    color: "#68727f",
-    fontSize: 17,
-    fontWeight: "800",
-    letterSpacing: 2,
-    marginTop: 34,
-    textTransform: "uppercase",
-  },
-  cardGrid: {
-    flexDirection: "row",
+  actions: {
     gap: 12,
-    marginTop: 16,
+    marginTop: 18,
   },
-  glanceCard: {
-    backgroundColor: "#fff",
-    borderRadius: 26,
-    flex: 1,
-    minHeight: 174,
-    padding: 16,
-    shadowColor: "#233129",
-    shadowOpacity: 0.06,
-    shadowRadius: 14,
+  background: {
+    backgroundColor: colors.background,
   },
-  iconBubble: {
-    alignItems: "center",
-    backgroundColor: "#c9ebfb",
-    borderRadius: 24,
-    height: 48,
-    justifyContent: "center",
-    width: 48,
-  },
-  cardLabel: {
-    color: "#68727f",
-    fontSize: 13,
-    fontWeight: "800",
-    letterSpacing: 1,
-    marginTop: 24,
-    textTransform: "uppercase",
-  },
-  cardValue: {
-    color: "#111827",
-    fontSize: 24,
-    fontWeight: "800",
-    marginTop: 12,
-  },
-  cardDetail: {
-    color: "#68727f",
-    fontSize: 14,
-    marginTop: 8,
-  },
-  actionRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 28,
-  },
-  action: {
-    alignItems: "center",
-    flex: 1,
-  },
-  actionIcon: {
-    alignItems: "center",
-    borderRadius: 34,
-    height: 68,
-    justifyContent: "center",
-    width: 68,
-  },
-  actionLabel: {
-    color: "#111827",
-    fontSize: 16,
-    fontWeight: "800",
-    marginTop: 12,
-  },
-  actionBadge: {
-    backgroundColor: "#eaf1f5",
-    borderRadius: 14,
-    color: "#68727f",
-    fontSize: 14,
-    fontWeight: "700",
-    marginTop: 8,
-    overflow: "hidden",
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-  },
-  reviewCard: {
-    backgroundColor: "#fff",
-    borderRadius: 26,
-    marginTop: 14,
-    padding: 18,
-  },
-  reviewTitle: {
-    color: "#111827",
-    fontSize: 18,
-    fontWeight: "800",
-  },
-  reviewText: {
-    color: "#68727f",
+  cardText: {
+    color: colors.muted,
     fontSize: 15,
     lineHeight: 22,
-    marginTop: 8,
+    marginTop: 6,
   },
-  reviewPill: {
-    alignSelf: "flex-start",
-    backgroundColor: "#eaf1f5",
-    borderRadius: 16,
-    marginTop: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+  cardTitle: {
+    color: colors.foreground,
+    fontSize: 17,
+    fontWeight: "800",
   },
-  reviewPillText: {
-    color: "#38515f",
+  content: {
+    gap: 0,
+    paddingBottom: 40,
+    paddingHorizontal: 22,
+    paddingTop: 22,
+  },
+  eyebrow: {
+    color: colors.muted,
     fontSize: 13,
-    fontWeight: "700",
+    fontWeight: "800",
+    letterSpacing: 1.4,
+    textTransform: "uppercase",
+  },
+  header: {
+    gap: 10,
+    paddingTop: 12,
+  },
+  infoNotice: {
+    alignItems: "flex-start",
+    backgroundColor: colors.sky,
+    borderRadius: 18,
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 14,
+    padding: 14,
+  },
+  limitCard: {
+    backgroundColor: colors.card,
+    borderColor: colors.border,
+    borderRadius: 22,
+    borderWidth: 1,
+    gap: 12,
+    marginTop: 12,
+    padding: 16,
+  },
+  limitDot: {
+    backgroundColor: colors.primary,
+    borderRadius: 4,
+    height: 8,
+    marginTop: 7,
+    width: 8,
+  },
+  limitRow: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    gap: 10,
+  },
+  limitText: {
+    color: colors.foreground,
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 21,
+  },
+  noticeText: {
+    color: colors.foreground,
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  pressed: {
+    opacity: 0.78,
+  },
+  primaryButton: {
+    alignItems: "center",
+    backgroundColor: colors.primary,
+    borderRadius: 999,
+    flexDirection: "row",
+    gap: 9,
+    justifyContent: "center",
+    minHeight: 52,
+    paddingHorizontal: 18,
+  },
+  primaryButtonText: {
+    color: "#ffffff",
+    fontSize: 15,
+    fontWeight: "800",
+  },
+  readyNotice: {
+    alignItems: "flex-start",
+    backgroundColor: colors.sage,
+    borderRadius: 18,
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 14,
+    padding: 14,
+  },
+  rowCard: {
+    alignItems: "center",
+    backgroundColor: colors.card,
+    borderColor: colors.border,
+    borderRadius: 22,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 12,
+    padding: 14,
+  },
+  rowCopy: {
+    flex: 1,
+    gap: 4,
+  },
+  rowDetail: {
+    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  rowIcon: {
+    alignItems: "center",
+    backgroundColor: colors.sage,
+    borderRadius: 20,
+    height: 40,
+    justifyContent: "center",
+    width: 40,
+  },
+  rowLabel: {
+    color: colors.foreground,
+    fontSize: 15,
+    fontWeight: "800",
+  },
+  rowStack: {
+    gap: 10,
+    marginTop: 12,
+  },
+  rowValue: {
+    color: colors.primary,
+    fontSize: 13,
+    fontVariant: ["tabular-nums"],
+    fontWeight: "800",
+  },
+  screen: {
+    backgroundColor: colors.background,
+    flex: 1,
+  },
+  secondaryButton: {
+    alignItems: "center",
+    backgroundColor: colors.card,
+    borderColor: colors.border,
+    borderRadius: 999,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 9,
+    justifyContent: "center",
+    minHeight: 52,
+    paddingHorizontal: 18,
+  },
+  secondaryButtonText: {
+    color: colors.primary,
+    fontSize: 15,
+    fontWeight: "800",
+  },
+  sectionTitle: {
+    color: colors.muted,
+    fontSize: 13,
+    fontWeight: "800",
+    letterSpacing: 1.4,
+    marginTop: 30,
+    textTransform: "uppercase",
+  },
+  statusCard: {
+    alignItems: "flex-start",
+    backgroundColor: colors.card,
+    borderColor: colors.border,
+    borderRadius: 24,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 14,
+    marginTop: 22,
+    padding: 16,
+  },
+  statusCopy: {
+    flex: 1,
+  },
+  statusIcon: {
+    alignItems: "center",
+    backgroundColor: colors.blush,
+    borderRadius: 22,
+    height: 44,
+    justifyContent: "center",
+    width: 44,
+  },
+  subtitle: {
+    color: colors.muted,
+    fontSize: 18,
+    lineHeight: 27,
+  },
+  title: {
+    color: colors.foreground,
+    fontSize: 38,
+    fontWeight: "800",
+    letterSpacing: 0,
   },
 });

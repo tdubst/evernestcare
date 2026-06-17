@@ -8,20 +8,20 @@ export type HealthDeviceIntegration = {
 export const HEALTH_DEVICE_INTEGRATIONS: HealthDeviceIntegration[] = [
   {
     id: "apple-health",
-    name: "Apple Health",
-    scope: "Vitals sync through the future iOS app",
+    name: "Mobile connection path",
+    scope: "Future app review required",
     status: "mobile-required",
   },
   {
     id: "bluetooth-bp",
-    name: "Bluetooth blood pressure cuffs",
-    scope: "Manual pairing bridge for supported devices",
+    name: "Accessory connection path",
+    scope: "Manual setup review required",
     status: "planned",
   },
   {
     id: "smart-scale",
-    name: "Smart scales",
-    scope: "Weight history import when device support is enabled",
+    name: "Home reading connection path",
+    scope: "Import review required",
     status: "planned",
   },
 ];

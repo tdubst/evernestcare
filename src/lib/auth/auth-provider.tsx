@@ -17,9 +17,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     setStatus("loading");
-    const { data, error } = await client.auth.getSession();
+    const { data, error } = await Promise.race([
+      client.auth.getSession(),
+      new Promise<Awaited<ReturnType<typeof client.auth.getSession>>>((resolve) => {
+        window.setTimeout(() => {
+          resolve({
+            data: { session: null },
+            error: null,
+          });
+        }, 5000);
+      }),
+    ]);
     if (error) {
-      console.error(error);
       setSession(null);
       setStatus("unauthenticated");
       return;

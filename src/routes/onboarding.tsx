@@ -32,9 +32,9 @@ const STEPS = [
 function Onboarding() {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
-  const [name, setName] = useState("Margaret");
-  const [relation, setRelation] = useState("Parent");
-  const [profileType, setProfileType] = useState("Older adult");
+  const [name, setName] = useState("Care recipient");
+  const [relation, setRelation] = useState("Family caregiver");
+  const [profileType, setProfileType] = useState("Family care");
   const [setupNotice, setSetupNotice] = useState<string | null>(null);
   const [textSize, setTextSize] = useState(1);
 
@@ -108,10 +108,10 @@ function Onboarding() {
               </div>
               <div className="mt-4 grid grid-cols-2 gap-3">
                 {[
-                  { label: "Older adult", desc: "Geriatric care", active: true },
-                  { label: "Child", desc: "Coming soon" },
-                  { label: "Recovery", desc: "Post-op" },
-                  { label: "Chronic", desc: "Ongoing care" },
+                  { label: "Family care", desc: "Active beta" },
+                  { label: "Team care", desc: "Planned" },
+                  { label: "Recovery", desc: "Beta later" },
+                  { label: "Long-term", desc: "Beta later" },
                 ].map((t) => (
                   <button
                     key={t.label}
@@ -133,12 +133,12 @@ function Onboarding() {
               </h2>
               <div className="mt-6 space-y-2.5">
                 {[
-                  "Parent",
-                  "Spouse / Partner",
+                  "Family caregiver",
+                  "Care partner",
                   "Sibling",
-                  "Child",
+                  "Adult child",
                   "Friend",
-                  "Professional caregiver",
+                  "Supporter",
                 ].map((r) => (
                   <button
                     key={r}
@@ -158,11 +158,13 @@ function Onboarding() {
               <h2 className="text-[28px] font-semibold tracking-tight leading-tight">
                 Invite your care team
               </h2>
-              <p className="mt-2 text-[15px] text-muted-foreground">Care is lighter when shared.</p>
+              <p className="mt-2 text-[15px] text-muted-foreground">
+                Care is lighter with a prepared team.
+              </p>
               <div className="mt-6 card-soft p-2">
                 {[
-                  { n: "Sarah Chen", r: "Sister", e: "sarah@example.com" },
-                  { n: "David Chen", r: "Brother", e: "david@example.com" },
+                  { n: "Family helper", r: "Care team", e: "Invite pending" },
+                  { n: "Backup helper", r: "Care team", e: "Invite pending" },
                 ].map((p) => (
                   <div
                     key={p.n}
@@ -181,13 +183,15 @@ function Onboarding() {
               </div>
               <button
                 onClick={() =>
-                  setSetupNotice("Invite links will be sent once test accounts are connected.")
+                  setSetupNotice("Invite setup will activate once beta accounts are connected.")
                 }
                 className="mt-3 w-full flex items-center justify-center gap-2 rounded-2xl border hairline bg-card py-4 text-[15px] font-medium"
               >
                 <UserPlus className="h-4 w-4" /> Invite someone else
               </button>
-              {setupNotice && <SetupNotice text={setupNotice} onClose={() => setSetupNotice(null)} />}
+              {setupNotice && (
+                <SetupNotice text={setupNotice} onClose={() => setSetupNotice(null)} />
+              )}
             </div>
           )}
 
@@ -203,7 +207,7 @@ function Onboarding() {
                 {[
                   { i: ShieldCheck, t: "Granular access", s: "Per person, per category." },
                   { i: Users, t: "Family-first", s: "No data sold. No ads. Ever." },
-                  { i: Heart, t: "Always yours", s: "Export or delete at any time." },
+                  { i: Heart, t: "Controlled beta", s: "Release actions stay reviewed." },
                 ].map(({ i: Icon, t, s }) => (
                   <div key={t} className="flex items-start gap-3 card-soft px-4 py-4">
                     <span className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-full bg-sage text-sage-foreground">
@@ -225,13 +229,13 @@ function Onboarding() {
                 Bring in medications
               </h2>
               <p className="mt-2 text-[15px] text-muted-foreground">
-                Optional. Add what helps your family confirm the next dose.
+                Optional. Add category and status context for family coordination.
               </p>
               <div className="mt-6 space-y-2.5">
                 {[
-                  { n: "Lisinopril", d: "10 mg · once daily" },
-                  { n: "Metformin", d: "500 mg · twice daily" },
-                  { n: "Atorvastatin", d: "20 mg · evening" },
+                  { n: "Morning medication", d: "Schedule details hidden for beta preview" },
+                  { n: "Midday medication", d: "Schedule details hidden for beta preview" },
+                  { n: "Evening medication", d: "Schedule details hidden for beta preview" },
                 ].map((m) => (
                   <label key={m.n} className="flex items-center gap-3 card-soft px-4 py-3.5">
                     <input
@@ -267,22 +271,22 @@ function Onboarding() {
                 Start a continuity trail
               </h2>
               <p className="mt-2 text-[15px] text-muted-foreground">
-                Evernest Care keeps a calm record of what happened, who helped, and what is ready for
-                a visit.
+                Evernest Care keeps a calm record of what happened, who helped, and what is ready
+                for a visit.
               </p>
               <div className="mt-6 space-y-3">
                 {[
                   {
-                    t: "Attach key documents",
-                    s: "Discharge notes, medication photos, and appointment paperwork.",
+                    t: "Add safe Vault placeholders",
+                    s: "Vault details stay summarized for beta preview.",
                   },
                   {
                     t: "Build the timeline",
-                    s: "Medications, vitals, notes, and documents stay linked to care events.",
+                    s: "Care updates stay grouped for family coordination.",
                   },
                   {
-                    t: "Prepare the first summary",
-                    s: "A factual visit-ready snapshot can be shared when needed.",
+                    t: "Prepare the workspace",
+                    s: "Workspace details stay in beta-safe summaries.",
                   },
                 ].map((item) => (
                   <div key={item.t} className="card-soft px-4 py-4">
@@ -321,7 +325,7 @@ function Onboarding() {
                   <span className="text-[22px] font-semibold">A</span>
                 </div>
                 <p className="mt-4 text-[15px]" style={{ fontSize: 14 + textSize * 3 }}>
-                  Margaret took her morning Lisinopril at 8:14am.
+                  Care update recorded this morning.
                 </p>
               </div>
               <div className="mt-3 card-soft p-5 flex items-center justify-between">

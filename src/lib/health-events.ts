@@ -245,32 +245,26 @@ export type ContinuitySignal = {
   tone: "steady" | "watch" | "follow-up";
 };
 
-const DEFAULT_ACTOR = "Sarah";
-const DEFAULT_CARE_SUBJECT_ID = "margaret-chen";
+const DEFAULT_ACTOR = "Primary helper";
+const DEFAULT_CARE_SUBJECT_ID = "active-care-workspace";
 
 export const DEFAULT_CARE_ACTORS: CareActor[] = [
   {
-    displayName: "Sarah Chen",
-    id: "actor-sarah",
-    relationship: "Daughter",
+    displayName: "Primary helper",
+    id: "actor-primary-helper",
+    relationship: "Care team",
     role: "primary-caregiver",
   },
   {
-    displayName: "David Chen",
-    id: "actor-david",
-    relationship: "Son",
+    displayName: "Backup helper",
+    id: "actor-backup-helper",
+    relationship: "Care team",
     role: "family-member",
   },
   {
-    displayName: "Dr. Okafor",
-    id: "actor-okafor",
-    relationship: "Cardiologist",
-    role: "provider",
-  },
-  {
-    displayName: "Maya Lee",
-    id: "actor-maya",
-    relationship: "Neighbor",
+    displayName: "Support helper",
+    id: "actor-support-helper",
+    relationship: "Care team",
     role: "supporter",
   },
 ];
@@ -278,33 +272,33 @@ export const DEFAULT_CARE_ACTORS: CareActor[] = [
 export const DEFAULT_CARE_CIRCLE: CareCircle = {
   actors: DEFAULT_CARE_ACTORS,
   careSubject: {
-    displayName: "Margaret Chen",
+    displayName: "Active care workspace",
     id: DEFAULT_CARE_SUBJECT_ID,
-    relationshipContext: "Older adult care",
+    relationshipContext: "Family care",
   },
-  id: "circle-margaret-chen",
-  name: "Margaret's care team",
+  id: "circle-active-care-workspace",
+  name: "Family care team",
 };
 
 export function createInitialHealthEventState(): HealthEventState {
   return {
     adherence: {
-      lisinopril: {
-        actorName: "Sarah",
-        medicationId: "lisinopril",
+      morningMedication: {
+        actorName: DEFAULT_ACTOR,
+        medicationId: "morningMedication",
         status: "taken",
         timestamp: "Today, 8:14 AM",
       },
     },
     artifacts: [
       {
-        fileLabel: "discharge-instructions.pdf",
-        id: "artifact-discharge-instructions",
-        kind: "discharge-summary",
-        linkedContext: "MRI follow-up preparation",
-        previewLabel: "PDF · 3 pages",
+        fileLabel: "Vault placeholder",
+        id: "artifact-vault-placeholder",
+        kind: "other-care-record",
+        linkedContext: "Care timeline placeholder",
+        previewLabel: "Placeholder",
         summaryVisible: true,
-        title: "Discharge instructions",
+        title: "Care artifact placeholder",
       },
     ],
     careCircle: DEFAULT_CARE_CIRCLE,
@@ -312,62 +306,60 @@ export function createInitialHealthEventState(): HealthEventState {
       createCareArtifactAttachedEvent({
         actor: DEFAULT_CARE_ACTORS[0],
         artifact: {
-          fileLabel: "discharge-instructions.pdf",
-          id: "artifact-discharge-instructions",
-          kind: "discharge-summary",
-          linkedContext: "MRI follow-up preparation",
-          previewLabel: "PDF · 3 pages",
+          fileLabel: "Vault placeholder",
+          id: "artifact-vault-placeholder",
+          kind: "other-care-record",
+          linkedContext: "Care timeline placeholder",
+          previewLabel: "Placeholder",
           summaryVisible: true,
-          title: "Discharge instructions",
+          title: "Care artifact placeholder",
         },
         createdAt: "Today, 9:10 AM",
-        eventId: "event-artifact-discharge-instructions",
+        eventId: "event-artifact-vault-placeholder",
         occurredAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
       }),
       createMedicationTakenEvent({
         actor: DEFAULT_CARE_ACTORS[0],
         createdAt: "Today, 8:14 AM",
-        eventId: "event-med-lisinopril-taken",
-        medicationId: "lisinopril",
+        eventId: "event-med-morning-check-taken",
+        medicationId: "morningMedication",
         occurredAt: new Date().toISOString(),
       }),
       createCareNoteAddedEvent({
         actor: DEFAULT_CARE_ACTORS[1],
         createdAt: "Yesterday, 6:20 PM",
-        note: "Dinner went well. Margaret seemed tired after the walk but recovered after resting.",
+        note: "Family care update recorded for the active workspace.",
         noteType: "caregiver-context",
         occurredAt: new Date(Date.now() - 18 * 60 * 60 * 1000).toISOString(),
       }),
     ],
     medications: [
       {
-        dose: "10 mg",
-        frequency: "Once daily",
-        id: "lisinopril",
-        name: "Lisinopril",
-        reminderTime: "8:00 AM",
+        dose: "Hidden in beta preview",
+        frequency: "Cadence hidden",
+        id: "morningMedication",
+        name: "Care status category",
+        reminderTime: "Hidden",
       },
       {
-        dose: "500 mg",
-        frequency: "Twice daily",
-        id: "metformin",
-        name: "Metformin",
-        reminderTime: "1:00 PM",
+        dose: "Hidden in beta preview",
+        frequency: "Cadence hidden",
+        id: "middayMedication",
+        name: "Care status category",
+        reminderTime: "Hidden",
       },
       {
-        dose: "20 mg",
-        frequency: "Evening",
-        id: "atorvastatin",
-        name: "Atorvastatin",
-        reminderTime: "8:00 PM",
+        dose: "Hidden in beta preview",
+        frequency: "Cadence hidden",
+        id: "eveningMedication",
+        name: "Care status category",
+        reminderTime: "Hidden",
       },
     ],
     vitalsReadings: [
-      createVitalsReading("Mon", 132, 76, "150 lb", "Manual log"),
-      createVitalsReading("Tue", 128, 74, "149 lb", "Manual log"),
-      createVitalsReading("Wed", 130, 75, "149 lb", "Manual log"),
-      createVitalsReading("Thu", 126, 73, "148 lb", "Manual log"),
-      createVitalsReading("Fri", 124, 72, "148 lb", "Manual log"),
+      createVitalsReading("Logged", 0, 0, "Hidden", "Content-free beta preview"),
+      createVitalsReading("Checked", 0, 0, "Hidden", "Content-free beta preview"),
+      createVitalsReading("Ready", 0, 0, "Hidden", "Content-free beta preview"),
     ],
   };
 }
@@ -415,6 +407,7 @@ export function createMedicationScheduledEvent({
   causationId,
   correlationId,
   createdAt = formatEventTimestamp(),
+  eventId,
   medication,
   occurredAt = new Date().toISOString(),
   operationalContext = "medication-schedule",
@@ -424,6 +417,7 @@ export function createMedicationScheduledEvent({
   causationId?: string;
   correlationId?: string;
   createdAt?: string;
+  eventId?: string;
   medication: Medication;
   occurredAt?: string;
   operationalContext?: string;
@@ -436,7 +430,7 @@ export function createMedicationScheduledEvent({
       operationalContext,
     }),
     createdAt,
-    id: createEventId("medication-scheduled", medication.id),
+    id: eventId ?? createEventId("medication-scheduled", medication.id),
     occurredAt,
     payload: medication,
     source: "manual",
@@ -450,6 +444,7 @@ export function createVitalsRecordedEvent({
   causationId,
   correlationId,
   createdAt = formatEventTimestamp(),
+  eventId,
   occurredAt = new Date().toISOString(),
   operationalContext = "vitals-recording",
   reading,
@@ -459,6 +454,7 @@ export function createVitalsRecordedEvent({
   causationId?: string;
   correlationId?: string;
   createdAt?: string;
+  eventId?: string;
   occurredAt?: string;
   operationalContext?: string;
   reading: VitalsReading;
@@ -471,7 +467,7 @@ export function createVitalsRecordedEvent({
       operationalContext,
     }),
     createdAt,
-    id: createEventId("vitals-recorded", reading.id),
+    id: eventId ?? createEventId("vitals-recorded", reading.id),
     occurredAt,
     payload: { reading: { ...reading, recordedAt: createdAt } },
     source: "manual",
@@ -551,7 +547,7 @@ export function createVitalsReading(
   context: string,
 ): VitalsReading {
   return {
-    bloodPressure: `${systolic}/78`,
+    bloodPressure: systolic > 0 ? `${systolic}/78` : "Hidden",
     context,
     heartRate,
     id: createEventId("vitals-reading", label.toLowerCase()),
@@ -619,27 +615,38 @@ export function healthEventReducer(state: HealthEventState, event: HealthEvent):
   }
 }
 
+export function mergeHealthEventsIntoState(
+  state: HealthEventState,
+  incomingEvents: HealthEvent[],
+): HealthEventState {
+  const existingEventIds = new Set(state.events.map((event) => event.id));
+  const newEvents = incomingEvents
+    .filter((event) => !existingEventIds.has(event.id))
+    .sort((left, right) => left.occurredAt.localeCompare(right.occurredAt));
+
+  return newEvents.reduce(healthEventReducer, state);
+}
+
 export function describeHealthEvent(event: HealthEvent, medications: Medication[]) {
   if (event.type === "MedicationTakenEvent" || event.type === "MedicationMissedEvent") {
-    const medication = medications.find((item) => item.id === event.payload.medicationId);
-    const action = event.type === "MedicationTakenEvent" ? "marked taken" : "marked missed";
-    return `${medication?.name ?? "Medication"} ${action}`;
+    const action = event.type === "MedicationTakenEvent" ? "reviewed" : "needs review";
+    return `Care status ${action}`;
   }
 
   if (event.type === "MedicationScheduledEvent") {
-    return `${event.payload.name} scheduled`;
+    return "Care status category added";
   }
 
   if (event.type === "VitalsRecordedEvent") {
-    return `Vitals recorded · ${event.payload.reading.bloodPressure}`;
+    return "Check-in status recorded";
   }
 
   if (event.type === "CareNoteAddedEvent") {
-    return `Care note · ${event.payload.note}`;
+    return "Care note recorded";
   }
 
   if (event.type === "CareArtifactAttachedEvent") {
-    return `File attached · ${event.payload.artifact.title}`;
+    return "Vault placeholder linked";
   }
 
   return "Reminder dismissed";
@@ -679,11 +686,12 @@ export function createProviderSummary(
   state: HealthEventState,
   query: TimelineQuery,
 ): ProviderSummary {
-  const timeline = projectOperationalTimeline(state, query);
+  const timeline = projectOperationalTimeline(state, query).filter(
+    (item) => item.family !== "notes",
+  );
   const continuitySignals = projectContinuitySignals(state, query);
   const medicationEventCount = timeline.filter((item) => item.family === "medications").length;
   const vitalsEventCount = timeline.filter((item) => item.family === "vitals").length;
-  const noteEventCount = timeline.filter((item) => item.family === "notes").length;
   const artifactEventCount = timeline.filter((item) => item.family === "artifacts").length;
   const recentDescriptions = timeline
     .slice(0, 3)
@@ -695,10 +703,10 @@ export function createProviderSummary(
     eventCount: timeline.length,
     lines: [
       `${timeline.length} care update${timeline.length === 1 ? "" : "s"} in ${formatTimeframeLabel(query)}.`,
-      `${medicationEventCount} medication update${medicationEventCount === 1 ? "" : "s"}.`,
-      `${vitalsEventCount} vitals update${vitalsEventCount === 1 ? "" : "s"}.`,
-      `${noteEventCount} collaborative note${noteEventCount === 1 ? "" : "s"}.`,
-      `${artifactEventCount} care file${artifactEventCount === 1 ? "" : "s"} referenced.`,
+      `${medicationEventCount} care status update${medicationEventCount === 1 ? "" : "s"}.`,
+      `${vitalsEventCount} check-in status update${vitalsEventCount === 1 ? "" : "s"}.`,
+      "Care notes stay in Recent Updates for this beta preview.",
+      `${artifactEventCount} Vault placeholder${artifactEventCount === 1 ? "" : "s"} referenced.`,
       `${continuitySignals.length} thing${continuitySignals.length === 1 ? "" : "s"} to review.`,
       continuitySignals.length > 0
         ? `Mention first: ${continuitySignals
@@ -707,9 +715,9 @@ export function createProviderSummary(
             .join("; ")}.`
         : "No care gaps surfaced for this timeframe.",
       recentDescriptions.length > 0
-        ? `Recent: ${recentDescriptions.join("; ")}.`
+        ? `${recentDescriptions.length} recent safe update${recentDescriptions.length === 1 ? "" : "s"} available.`
         : "No recent care updates in this timeframe.",
-      "For care coordination only. Evernest Care does not diagnose or recommend treatment.",
+      "For in-app coordination only.",
     ],
     medicationEventCount,
     timeframeLabel: formatTimeframeLabel(query),
@@ -721,12 +729,13 @@ export function projectContinuitySignals(
   state: HealthEventState,
   query: TimelineQuery,
 ): ContinuitySignal[] {
-  const timeline = projectOperationalTimeline(state, query);
+  const timeline = projectOperationalTimeline(state, query).filter(
+    (item) => item.family !== "notes",
+  );
   const timeframeLabel = formatTimeframeLabel(query);
   const signals: ContinuitySignal[] = [];
   const medicationEvents = timeline.filter((item) => item.family === "medications");
   const vitalsEvents = timeline.filter((item) => item.family === "vitals");
-  const noteEvents = timeline.filter((item) => item.event.type === "CareNoteAddedEvent");
   const artifactEvents = timeline.filter((item) => item.event.type === "CareArtifactAttachedEvent");
 
   const medicationsWithoutRecentTaken = state.medications.filter(
@@ -739,76 +748,42 @@ export function projectContinuitySignals(
   );
 
   if (medicationsWithoutRecentTaken.length > 0) {
-    const medicationNames = medicationsWithoutRecentTaken
-      .slice(0, 2)
-      .map((medication) => medication.name)
-      .join(", ");
     signals.push({
-      detail: `${medicationNames}${medicationsWithoutRecentTaken.length > 2 ? " and others" : ""} have not been marked taken in ${timeframeLabel}.`,
+      detail: `${medicationsWithoutRecentTaken.length} care status categor${medicationsWithoutRecentTaken.length === 1 ? "y" : "ies"} need review in ${timeframeLabel}.`,
       id: `signal-medication-gap-${query.timeframe}`,
       kind: "medication-gap",
       timeframeLabel,
-      title: "Medication confirmation gap",
+      title: "Care status review",
       tone: "follow-up",
     });
   }
 
   if (vitalsEvents.length === 0) {
     signals.push({
-      detail: `No vitals have been added in ${timeframeLabel}.`,
+      detail: `No check-in status has been added in ${timeframeLabel}.`,
       id: `signal-vitals-gap-${query.timeframe}`,
       kind: "vitals-gap",
       timeframeLabel,
-      title: "Vitals update missing",
+      title: "Check-in status missing",
       tone: "watch",
     });
   }
 
-  const recentObservation = noteEvents.find(
-    (item) =>
-      item.event.type === "CareNoteAddedEvent" &&
-      (item.event.payload.noteType === "caregiver-context" ||
-        item.event.payload.noteType === "operational-concern" ||
-        item.event.payload.noteType === "symptom-observation"),
+  const hasVaultPlaceholder = artifactEvents.some(
+    (item) => item.event.type === "CareArtifactAttachedEvent",
   );
 
-  if (recentObservation?.event.type === "CareNoteAddedEvent") {
-    signals.push({
-      detail: `Recent caregiver note may need follow-up: ${recentObservation.event.payload.note}`,
-      id: `signal-care-observation-${recentObservation.event.id}`,
-      kind: "care-observation",
-      sourceEventId: recentObservation.event.id,
-      timeframeLabel,
-      title: "Caregiver observation to review",
-      tone: "watch",
-    });
-  }
-
-  const hasDischargeArtifact = artifactEvents.some(
-    (item) =>
-      item.event.type === "CareArtifactAttachedEvent" &&
-      item.event.payload.artifact.kind === "discharge-summary",
-  );
-  const hasFollowUpArtifact = artifactEvents.some(
-    (item) =>
-      item.event.type === "CareArtifactAttachedEvent" &&
-      (item.event.payload.artifact.kind === "appointment-paperwork" ||
-        item.event.payload.artifact.kind === "referral-document"),
-  );
-
-  if (hasDischargeArtifact && !hasFollowUpArtifact) {
-    const dischargeEvent = artifactEvents.find(
-      (item) =>
-        item.event.type === "CareArtifactAttachedEvent" &&
-        item.event.payload.artifact.kind === "discharge-summary",
+  if (hasVaultPlaceholder) {
+    const artifactEvent = artifactEvents.find(
+      (item) => item.event.type === "CareArtifactAttachedEvent",
     );
     signals.push({
-      detail: "Discharge instructions are present; no follow-up paperwork is linked yet.",
+      detail: "A Vault placeholder is linked; content stays hidden in beta.",
       id: `signal-artifact-follow-up-${query.timeframe}`,
       kind: "artifact-follow-up",
-      sourceEventId: dischargeEvent?.event.id,
+      sourceEventId: artifactEvent?.event.id,
       timeframeLabel,
-      title: "Follow-up file pending",
+      title: "Vault placeholder linked",
       tone: "steady",
     });
   }
@@ -816,7 +791,7 @@ export function projectContinuitySignals(
   const activeActorIds = new Set(timeline.map((item) => item.event.actorId));
   if (activeActorIds.size < state.careCircle.actors.length) {
     signals.push({
-      detail: `${activeActorIds.size} of ${state.careCircle.actors.length} care team members shared an update in ${timeframeLabel}.`,
+      detail: `${activeActorIds.size} of ${state.careCircle.actors.length} care team members added an update in ${timeframeLabel}.`,
       id: `signal-circle-participation-${query.timeframe}`,
       kind: "circle-participation",
       timeframeLabel,
@@ -845,7 +820,7 @@ export function createProviderSummaryExport({
     sections: [
       {
         lines: [
-          `${summary.eventCount} update${summary.eventCount === 1 ? "" : "s"} · ${summary.continuitySignalCount} thing${summary.continuitySignalCount === 1 ? "" : "s"} to review · ${summary.artifactEventCount} file${summary.artifactEventCount === 1 ? "" : "s"}.`,
+          `${summary.eventCount} update${summary.eventCount === 1 ? "" : "s"} · ${summary.continuitySignalCount} thing${summary.continuitySignalCount === 1 ? "" : "s"} to review · ${summary.artifactEventCount} Vault placeholder${summary.artifactEventCount === 1 ? "" : "s"}.`,
           signals.length > 0
             ? `Review first: ${signals
                 .slice(0, 2)
@@ -853,7 +828,7 @@ export function createProviderSummaryExport({
                 .join("; ")}.`
             : "Nothing needs review for this summary.",
         ],
-        title: "Quick provider view",
+        title: "Internal visit view",
       },
       {
         lines: summary.lines,
@@ -861,21 +836,18 @@ export function createProviderSummaryExport({
       },
       {
         lines: [
-          `Conditions: ${careProfile.chronicConditions.join(", ")}`,
-          `Allergies: ${careProfile.allergies.join(", ")}`,
-          `Providers: ${careProfile.providers.join("; ")}`,
+          `Care categories: ${careProfile.chronicConditions.length}`,
+          `Safety notes: ${careProfile.allergies.length}`,
+          `Workspace contacts: ${careProfile.providers.length}`,
         ],
         title: "Background profile",
       },
       {
         lines:
           visibleArtifacts.length > 0
-            ? visibleArtifacts.map(
-                (artifact) =>
-                  `${artifact.title} (${artifact.previewLabel}) · ${artifact.linkedContext}`,
-              )
-            : ["No care files marked for this summary."],
-        title: "Attached care files",
+            ? visibleArtifacts.map(() => "Vault placeholder · content hidden in beta")
+            : ["No Vault placeholders marked for this view."],
+        title: "Vault placeholders",
       },
     ],
     title: "Evernest Care continuity snapshot",
@@ -886,44 +858,44 @@ export function projectCaregiverWorkflows(
   state: HealthEventState,
   query: TimelineQuery,
 ): CaregiverWorkflowStatus[] {
-  const timeline = projectOperationalTimeline(state, query);
+  const timeline = projectOperationalTimeline(state, query).filter(
+    (item) => item.family !== "notes",
+  );
   const signals = projectContinuitySignals(state, query);
   const hasMedicationGap = signals.some((signal) => signal.kind === "medication-gap");
   const hasVitalsGap = signals.some((signal) => signal.kind === "vitals-gap");
-  const hasDischargeArtifact = state.artifacts.some(
-    (artifact) => artifact.kind === "discharge-summary",
-  );
+  const hasVaultPlaceholder = state.artifacts.length > 0;
   const hasSummaryArtifact = state.artifacts.some((artifact) => artifact.summaryVisible);
   const activeActorCount = new Set(timeline.map((item) => item.event.actorId)).size;
 
   return [
     {
       detail: hasMedicationGap
-        ? "Medication confirmations are incomplete for this view."
-        : "Medication updates are visible in this view.",
+        ? "Care status categories need review for this view."
+        : "Care status updates are visible in this view.",
       id: "workflow-medication",
-      nextStep: hasMedicationGap ? "Open Medications" : "Review history",
+      nextStep: hasMedicationGap ? "Open care status" : "Review history",
       status: hasMedicationGap ? "review" : "ready",
-      title: "Medication management",
+      title: "Care status",
     },
     {
       detail:
         hasSummaryArtifact && !hasVitalsGap
-          ? "Summary, files, and recent vitals are ready to review."
-          : "A visit summary is available, with a few care items to review.",
-      id: "workflow-provider-handoff",
-      nextStep: "Review provider summary",
+          ? "Internal prep view and recent care updates are ready to review."
+          : "Internal prep view is available with a few care items to review.",
+      id: "workflow-visit-prep",
+      nextStep: "Review visit prep",
       status: hasSummaryArtifact && !hasVitalsGap ? "ready" : "review",
-      title: "Provider handoff",
+      title: "Visit prep",
     },
     {
-      detail: hasDischargeArtifact
-        ? "Discharge paperwork is linked to the timeline."
-        : "No discharge paperwork is linked yet.",
-      id: "workflow-post-discharge",
-      nextStep: hasDischargeArtifact ? "Check follow-up items" : "Attach document",
-      status: hasDischargeArtifact ? "review" : "pending",
-      title: "Post-discharge continuity",
+      detail: hasVaultPlaceholder
+        ? "A Vault placeholder is linked to the timeline."
+        : "No Vault placeholder is linked yet.",
+      id: "workflow-vault-placeholder",
+      nextStep: hasVaultPlaceholder ? "Review placeholder status" : "Open Vault",
+      status: hasVaultPlaceholder ? "review" : "pending",
+      title: "Vault continuity",
     },
     {
       detail: `${activeActorCount} care team member${activeActorCount === 1 ? "" : "s"} contributed in ${formatTimeframeLabel(query)}.`,
@@ -939,7 +911,9 @@ export function projectBetaWorkflowMetrics(
   state: HealthEventState,
   query: TimelineQuery,
 ): BetaWorkflowMetric[] {
-  const timeline = projectOperationalTimeline(state, query);
+  const timeline = projectOperationalTimeline(state, query).filter(
+    (item) => item.family !== "notes",
+  );
   const signals = projectContinuitySignals(state, query);
   const activeActorCount = new Set(timeline.map((item) => item.event.actorId)).size;
 
@@ -950,9 +924,9 @@ export function projectBetaWorkflowMetrics(
       value: `${timeline.length} updates`,
     },
     {
-      detail: "Files marked for visit summaries are included when sharing.",
-      label: "Export readiness",
-      value: `${state.artifacts.filter((artifact) => artifact.summaryVisible).length} files`,
+      detail: "Vault placeholders stay content-free in beta readiness checks.",
+      label: "Vault readiness",
+      value: `${state.artifacts.filter((artifact) => artifact.summaryVisible).length} placeholders`,
     },
     {
       detail: "Care team participation is visible without adding extra noise.",
@@ -969,14 +943,14 @@ export function projectBetaWorkflowMetrics(
 
 export function createDefaultCareProfile(): CareProfile {
   return {
-    allergies: ["Penicillin"],
-    chronicConditions: ["Hypertension", "Type 2 diabetes"],
-    emergencyContacts: ["David Chen"],
-    hospitalizationHistory: ["No recent hospitalization recorded"],
-    insuranceInfo: "Medicare Advantage · informational only",
-    medicalHistory: ["High blood pressure", "Elevated A1C history"],
-    providers: ["Dr. Okafor · Cardiology", "Dr. Patel · Primary care"],
-    surgicalHistory: ["Appendectomy · remote"],
+    allergies: ["Safety note category"],
+    chronicConditions: ["Care category"],
+    emergencyContacts: ["Backup helper"],
+    hospitalizationHistory: ["History details hidden in beta"],
+    insuranceInfo: "Coverage details hidden in beta",
+    medicalHistory: ["History category"],
+    providers: ["Workspace contact"],
+    surgicalHistory: ["Procedure details hidden in beta"],
   };
 }
 

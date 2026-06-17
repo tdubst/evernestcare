@@ -5,7 +5,10 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Evernest Care — Family care, coordinated" },
-      { name: "description", content: "Organize medications, appointments, documents and family updates in one calm place." },
+      {
+        name: "description",
+        content: "A calm family workspace for beta care coordination.",
+      },
     ],
   }),
   component: Welcome,
@@ -24,19 +27,26 @@ function Welcome() {
 
         <div className="mt-16">
           <h1 className="text-[40px] leading-[1.05] font-semibold tracking-tight text-foreground">
-            Care for the people<br />you love,<br />
+            Care for the people
+            <br />
+            you love,
+            <br />
             <span className="text-primary">together.</span>
           </h1>
           <p className="mt-5 text-[17px] leading-relaxed text-muted-foreground max-w-[34ch]">
-            A calm shared space for medications, appointments, documents and family updates — built for the whole care team.
+            A calm shared beta workspace for family coordination, status checks, and safe setup.
           </p>
         </div>
 
         <ul className="mt-10 space-y-3">
           {[
-            { icon: Users, t: "Built for the whole family", s: "Siblings, partners, providers — everyone aligned." },
+            {
+              icon: Users,
+              t: "Built for the whole family",
+              s: "Helpers stay oriented around the same care workspace.",
+            },
             { icon: ShieldCheck, t: "Private by design", s: "Granular permissions you control." },
-            { icon: Heart, t: "Warm, not clinical", s: "Designed to reduce caregiver overwhelm." },
+            { icon: Heart, t: "Warm and focused", s: "Designed to reduce caregiver overwhelm." },
           ].map(({ icon: Icon, t, s }) => (
             <li key={t} className="flex items-start gap-3 card-soft px-4 py-3.5">
               <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky text-sky-foreground">
@@ -61,10 +71,10 @@ function Welcome() {
             to="/today"
             className="block w-full rounded-full bg-card py-4 text-center text-[15px] font-medium text-foreground hairline border"
           >
-            Skip — see the demo
+            Open beta workspace
           </Link>
           <p className="text-center text-[12px] text-muted-foreground pt-1">
-            Evernest Care is not a medical, diagnostic or emergency service.
+            Beta preview keeps sensitive details out of proof surfaces.
           </p>
         </div>
       </div>

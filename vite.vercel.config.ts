@@ -4,10 +4,30 @@ import { defineConfig } from "vite";
 import tsConfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
-  plugins: [tailwindcss(), tsConfigPaths({ projects: ["./tsconfig.json"] }), react()],
+  plugins: [
+    {
+      name: "evernest-vercel-static-entry",
+      enforce: "pre",
+      transformIndexHtml: {
+        order: "pre",
+        handler(html) {
+          return html.replace(/\/src\/client\.tsx/g, "/src/client.vercel.tsx");
+        },
+      },
+    },
+    tailwindcss(),
+    tsConfigPaths({ projects: ["./tsconfig.json"] }),
+    react(),
+  ],
+  build: {
+    rollupOptions: {
+      input: "index.html",
+    },
+  },
   resolve: {
     alias: {
       "@": `${process.cwd()}/src`,
+      "node:async_hooks": `${process.cwd()}/src/lib/vercel/async-hooks-browser-shim.ts`,
     },
     dedupe: [
       "react",

@@ -1,17 +1,23 @@
 import { Link } from "@tanstack/react-router";
 import { ShieldCheck } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { useAuth } from "@/lib/auth/auth-context";
 import { usePermissions } from "@/lib/permissions/permission-context";
 import { isAuthRequiredForRoutes } from "@/lib/supabase/config";
 
 export function ProtectedShell({ children }: { children: React.ReactNode }) {
+  const [hydrated, setHydrated] = useState(false);
   const { status } = useAuth();
   const permissions = usePermissions();
   const authRequired = isAuthRequiredForRoutes();
 
-  if (status === "loading") {
-    return <ShellNotice title="Opening Evernest Care" body="Checking your care workspace." />;
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
+
+  if (!hydrated || status === "loading" || permissions.status === "loading") {
+    return <ShellNotice title="Preparing beta preview" body="Loading workspace preview." />;
   }
 
   if (status === "unconfigured" && authRequired) {
@@ -33,6 +39,15 @@ export function ProtectedShell({ children }: { children: React.ReactNode }) {
             Start onboarding
           </Link>
         }
+      />
+    );
+  }
+
+  if (permissions.status === "error") {
+    return (
+      <ShellNotice
+        title="Care workspace unavailable"
+        body="We could not open your care workspace. Please try again after checking the Supabase setup."
       />
     );
   }

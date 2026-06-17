@@ -33,3 +33,4 @@ dist-ssr
 *.sw?
 .vercel
 apps/mobile/.expo/
+supabase/.temp/
