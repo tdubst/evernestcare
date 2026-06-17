@@ -25,6 +25,7 @@ export type PermissionContextValue = {
   appUserId: string | null;
   careNoteAccess: CareNoteAccess;
   grants: string[];
+  isBetaPreviewWorkspace: boolean;
   membershipId: string | null;
   membershipStatus: string | null;
   permissionVersion: string | null;

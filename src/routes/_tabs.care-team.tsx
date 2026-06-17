@@ -13,6 +13,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useAuth } from "@/lib/auth/auth-context";
 import {
+  BETA_DEMO_CARE_CIRCLE_INVITATIONS,
+  BETA_DEMO_CARE_CIRCLE_PERMISSIONS,
+  BETA_DEMO_CARE_CIRCLE_SUMMARY,
+  BETA_DEMO_INVITE_PREVIEW,
+} from "@/lib/beta-demo-workspace";
+import {
   acceptCareCircleInvitation,
   createCareCircleInvitation,
   denyCareCircleInvitation,
@@ -89,9 +95,18 @@ function CareTeam() {
   const canManageInvitations = advisoryPermissions.some(
     (item) => item.capabilityKey === "invitation.manage" && item.accessState === "allowed",
   );
-  const signedInReady = permissions.status === "ready" && Boolean(client);
+  const signedInReady =
+    permissions.status === "ready" && (Boolean(client) || permissions.isBetaPreviewWorkspace);
 
   const refreshCareCircle = useCallback(async () => {
+    if (permissions.isBetaPreviewWorkspace) {
+      setSummary(BETA_DEMO_CARE_CIRCLE_SUMMARY);
+      setPermissionsSummary(BETA_DEMO_CARE_CIRCLE_PERMISSIONS);
+      setInboundInvitations([]);
+      setRefreshing(false);
+      return;
+    }
+
     if (!client || permissions.status !== "ready") {
       setSummary({
         status: permissions.status === "unconfigured" ? "unavailable" : "auth_required",
@@ -115,7 +130,7 @@ function CareTeam() {
     );
     setInboundInvitations(invitationResult.status === "ready" ? invitationResult.invitations : []);
     setRefreshing(false);
-  }, [client, permissions.status]);
+  }, [client, permissions.isBetaPreviewWorkspace, permissions.status]);
 
   useEffect(() => {
     void refreshCareCircle();
@@ -132,6 +147,16 @@ function CareTeam() {
   });
 
   const previewInvite = () => {
+    if (permissions.isBetaPreviewWorkspace) {
+      setPreview(BETA_DEMO_INVITE_PREVIEW);
+      setActionState({
+        detail: "Invite preview ready for this beta workspace.",
+        status: "ready",
+        title: "Invite preview ready",
+      });
+      return;
+    }
+
     if (!client || permissions.status !== "ready") {
       setActionState({
         detail: "Sign in to review invitation access.",
@@ -166,6 +191,21 @@ function CareTeam() {
         detail: "Add an invite address before sending.",
         status: "warn",
         title: "Invite address needed",
+      });
+      return;
+    }
+
+    if (permissions.isBetaPreviewWorkspace) {
+      setActionState({
+        detail: "Invite preview was prepared without sending a real invitation.",
+        status: "ready",
+        title: "Invite preview ready",
+      });
+      setInviteAddress("");
+      setSheet(null);
+      setSummary({
+        ...BETA_DEMO_CARE_CIRCLE_SUMMARY,
+        pendingInvitations: BETA_DEMO_CARE_CIRCLE_INVITATIONS,
       });
       return;
     }
@@ -234,9 +274,34 @@ function CareTeam() {
   };
 
   const updateInvitation = () => {
-    if (!client || !confirmAction) return;
+    if (!confirmAction) return;
 
     const { invitation, kind } = confirmAction;
+
+    if (permissions.isBetaPreviewWorkspace) {
+      setConfirmAction(null);
+      setSummary((current) =>
+        current.status === "ready"
+          ? {
+              ...current,
+              pendingInvitations: current.pendingInvitations.map((item) =>
+                item.invitePreviewId === invitation.invitePreviewId
+                  ? { ...item, inviteStatus: kind === "revoke" ? "revoked" : "expired" }
+                  : item,
+              ),
+            }
+          : current,
+      );
+      setActionState({
+        detail: "Invite status updated in this beta workspace preview.",
+        status: "ready",
+        title: kind === "revoke" ? "Invite revoked" : "Invite expired",
+      });
+      return;
+    }
+
+    if (!client) return;
+
     setActionState({
       detail: "Checking invitation status before updating.",
       status: "loading",
@@ -269,6 +334,15 @@ function CareTeam() {
   };
 
   const expireElapsed = () => {
+    if (permissions.isBetaPreviewWorkspace) {
+      setActionState({
+        detail: "Invite statuses refreshed in this beta workspace preview.",
+        status: "ready",
+        title: "Invite statuses refreshed",
+      });
+      return;
+    }
+
     if (!client) return;
 
     setActionState({
@@ -288,7 +362,7 @@ function CareTeam() {
       <header className="px-6 pt-14 pb-3">
         <h1 className="text-[28px] font-semibold tracking-tight">Care Circle</h1>
         <p className="text-[13px] text-muted-foreground mt-1">
-          Family coordination access from the signed-in workspace.
+          Family coordination access from the authorized workspace.
         </p>
       </header>
 
@@ -742,7 +816,7 @@ function ReviewSheet({
   return (
     <SheetFrame title="Access preview" eyebrow="Advisory permissions" onClose={onClose}>
       <p className="text-[13px] leading-relaxed text-muted-foreground">
-        These categories explain what the signed-in workspace reported. Server rules remain the
+        These categories explain what the authorized workspace reported. Server rules remain the
         authority.
       </p>
       <div className="mt-4 space-y-2.5">
@@ -780,7 +854,7 @@ function ConfirmSheet({
       onClose={onCancel}
     >
       <p className="text-[13px] leading-relaxed text-muted-foreground">
-        This updates the invitation state through the signed-in workspace. It does not reveal
+        This updates the invitation state through the authorized workspace. It does not reveal
         recipient details.
       </p>
       <div className="mt-5 grid grid-cols-2 gap-2.5">
@@ -953,7 +1027,7 @@ function getRouteStatusDisplay({
 function getActionStateFromStatus(status: CareCircleRpcStatus, successTitle: string): ActionState {
   if (status === "ready" || status === "created" || status === "accepted") {
     return {
-      detail: "Updated through the signed-in workspace.",
+      detail: "Updated through the authorized workspace.",
       status: "ready",
       title: successTitle,
     };

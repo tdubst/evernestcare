@@ -13,6 +13,11 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useAuth } from "@/lib/auth/auth-context";
+import {
+  BETA_DEMO_PERMISSION_VERSION,
+  BETA_DEMO_VAULT_ARTIFACTS,
+  BETA_DEMO_VAULT_CAPABILITIES,
+} from "@/lib/beta-demo-workspace";
 import { usePermissions } from "@/lib/permissions/permission-context";
 import {
   attachVaultArtifactToTimeline,
@@ -55,7 +60,7 @@ const VISIBILITY_OPTIONS = [
     value: "family_visible",
   },
   {
-    description: "Available only where the signed-in workspace allows it.",
+    description: "Available only where the authorized workspace allows it.",
     label: "Private",
     value: "private",
   },
@@ -91,11 +96,30 @@ function Vault() {
   const [refreshing, setRefreshing] = useState(false);
 
   const permissionVersion = summary.permissionVersion ?? advisory.permissionVersion;
-  const signedInReady = permissions.status === "ready" && Boolean(client);
+  const signedInReady =
+    permissions.status === "ready" && (Boolean(client) || permissions.isBetaPreviewWorkspace);
   const canAddArtifact = advisory.capabilityKeys.includes("document.upload");
   const canViewArtifacts = advisory.capabilityKeys.includes("document.view");
 
   const refreshVault = useCallback(async () => {
+    if (permissions.isBetaPreviewWorkspace) {
+      setAdvisory({
+        capabilityKeys: BETA_DEMO_VAULT_CAPABILITIES,
+        permissionVersion: BETA_DEMO_PERMISSION_VERSION,
+        status: "ready",
+      });
+      setSummary({
+        capabilityKeys: BETA_DEMO_VAULT_CAPABILITIES,
+        count: BETA_DEMO_VAULT_ARTIFACTS.length,
+        permissionVersion: BETA_DEMO_PERMISSION_VERSION,
+        result: "available",
+        status: "ready",
+      });
+      setArtifacts(BETA_DEMO_VAULT_ARTIFACTS);
+      setRefreshing(false);
+      return;
+    }
+
     if (!client || permissions.status !== "ready") {
       setAdvisory({
         capabilityKeys: [],
@@ -149,7 +173,12 @@ function Vault() {
       ),
     );
     setRefreshing(false);
-  }, [client, permissions.permissionVersion, permissions.status]);
+  }, [
+    client,
+    permissions.isBetaPreviewWorkspace,
+    permissions.permissionVersion,
+    permissions.status,
+  ]);
 
   useEffect(() => {
     void refreshVault();
@@ -167,7 +196,7 @@ function Vault() {
   );
 
   const addArtifact = () => {
-    if (!client || !signedInReady) {
+    if (!signedInReady) {
       setActionState({
         detail: "Vault access is not available for this workspace.",
         status: "warn",
@@ -184,6 +213,38 @@ function Vault() {
       });
       return;
     }
+
+    if (permissions.isBetaPreviewWorkspace) {
+      const nextArtifact: VaultArtifactProjection = {
+        artifactAlias: `beta-placeholder-${Date.now()}`,
+        artifactCategory,
+        attachmentStatus: "unattached",
+        capabilityKeys: BETA_DEMO_VAULT_CAPABILITIES,
+        count: artifacts.length + 1,
+        createdTimeBucket: "today",
+        permissionVersion: BETA_DEMO_PERMISSION_VERSION,
+        result: "available",
+        status: "ready",
+        visibilityCategory,
+      };
+      setArtifacts((current) => [nextArtifact, ...current]);
+      setSummary({
+        capabilityKeys: BETA_DEMO_VAULT_CAPABILITIES,
+        count: artifacts.length + 1,
+        permissionVersion: BETA_DEMO_PERMISSION_VERSION,
+        result: "available",
+        status: "ready",
+      });
+      setIsSheetOpen(false);
+      setActionState({
+        detail: "Placeholder added to this beta workspace preview.",
+        status: "ready",
+        title: "Placeholder added.",
+      });
+      return;
+    }
+
+    if (!client) return;
 
     setActionState({
       detail: "Checking the care workspace before adding.",
@@ -207,7 +268,7 @@ function Vault() {
   };
 
   const attachArtifact = (artifact: VaultArtifactProjection) => {
-    if (!client || !artifact.artifactAlias || !canAddArtifact) {
+    if (!artifact.artifactAlias || !canAddArtifact) {
       setActionState({
         detail: "Access changed. Vault details are unavailable.",
         status: "warn",
@@ -215,6 +276,24 @@ function Vault() {
       });
       return;
     }
+
+    if (permissions.isBetaPreviewWorkspace) {
+      setArtifacts((current) =>
+        current.map((item) =>
+          item.artifactAlias === artifact.artifactAlias
+            ? { ...item, attachmentStatus: "attached" }
+            : item,
+        ),
+      );
+      setActionState({
+        detail: "Linked to care timeline.",
+        status: "ready",
+        title: "Linked to care timeline.",
+      });
+      return;
+    }
+
+    if (!client) return;
 
     setActionState({
       detail: "Checking the care workspace before linking.",
@@ -616,7 +695,7 @@ function getVaultStatusDisplay({
 }): { detail: string; icon: LucideIcon; title: string; tone: string } {
   if (permissionStatus === "loading") {
     return {
-      detail: "Checking the signed-in care workspace.",
+      detail: "Checking the authorized care workspace.",
       icon: Clock3,
       title: "Checking Vault access",
       tone: "bg-sky text-sky-foreground",
@@ -643,7 +722,7 @@ function getVaultStatusDisplay({
 
   if (canViewArtifacts || canAddArtifact) {
     return {
-      detail: "Last checked through your signed-in workspace.",
+      detail: "Last checked through your authorized workspace.",
       icon: CheckCircle2,
       title: "Vault workspace ready",
       tone: "bg-sage text-sage-foreground",

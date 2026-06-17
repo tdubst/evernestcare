@@ -11,9 +11,11 @@ import {
   type HydratedCareBoundary,
 } from "@/lib/permissions/care-boundary-repository";
 import { isAuthRequiredForRoutes } from "@/lib/supabase/config";
+import { BETA_DEMO_BOUNDARY } from "@/lib/beta-demo-workspace";
 
 export function PermissionProvider({ children }: { children: React.ReactNode }) {
   const { client, status, user } = useAuth();
+  const authRequired = isAuthRequiredForRoutes();
   const [boundary, setBoundary] = useState<HydratedCareBoundary | null>(null);
   const [hydrateStatus, setHydrateStatus] = useState<"error" | "idle" | "loading" | "ready">(
     "idle",
@@ -56,6 +58,22 @@ export function PermissionProvider({ children }: { children: React.ReactNode }) 
   }, [client, status, user]);
 
   const value = useMemo<PermissionContextValue>(() => {
+    if (!authRequired && (status === "unconfigured" || status === "unauthenticated")) {
+      return {
+        activeCareTeamId: BETA_DEMO_BOUNDARY.activeCareTeamId,
+        activeCareRecipientId: BETA_DEMO_BOUNDARY.activeCareRecipientId,
+        appUserId: BETA_DEMO_BOUNDARY.appUserId,
+        careNoteAccess: BETA_DEMO_BOUNDARY.careNoteAccess,
+        grants: BETA_DEMO_BOUNDARY.grants,
+        isBetaPreviewWorkspace: true,
+        membershipId: BETA_DEMO_BOUNDARY.membershipId,
+        membershipStatus: BETA_DEMO_BOUNDARY.membershipStatus,
+        permissionVersion: BETA_DEMO_BOUNDARY.permissionVersion,
+        roleKey: BETA_DEMO_BOUNDARY.roleKey,
+        status: "ready",
+      };
+    }
+
     if (status === "unconfigured") {
       return {
         activeCareTeamId: null,
@@ -63,6 +81,7 @@ export function PermissionProvider({ children }: { children: React.ReactNode }) 
         appUserId: null,
         careNoteAccess: EMPTY_CARE_NOTE_ACCESS,
         grants: [],
+        isBetaPreviewWorkspace: false,
         membershipId: null,
         membershipStatus: null,
         permissionVersion: null,
@@ -82,6 +101,7 @@ export function PermissionProvider({ children }: { children: React.ReactNode }) 
         appUserId: null,
         careNoteAccess: EMPTY_CARE_NOTE_ACCESS,
         grants: [],
+        isBetaPreviewWorkspace: false,
         membershipId: null,
         membershipStatus: null,
         permissionVersion: null,
@@ -90,13 +110,14 @@ export function PermissionProvider({ children }: { children: React.ReactNode }) 
       };
     }
 
-    if (!user && isAuthRequiredForRoutes()) {
+    if (!user && authRequired) {
       return {
         activeCareTeamId: null,
         activeCareRecipientId: null,
         appUserId: null,
         careNoteAccess: EMPTY_CARE_NOTE_ACCESS,
         grants: [],
+        isBetaPreviewWorkspace: false,
         membershipId: null,
         membershipStatus: null,
         permissionVersion: null,
@@ -112,6 +133,7 @@ export function PermissionProvider({ children }: { children: React.ReactNode }) 
         appUserId: null,
         careNoteAccess: EMPTY_CARE_NOTE_ACCESS,
         grants: [],
+        isBetaPreviewWorkspace: false,
         membershipId: null,
         membershipStatus: null,
         permissionVersion: null,
@@ -126,13 +148,14 @@ export function PermissionProvider({ children }: { children: React.ReactNode }) 
       appUserId: boundary?.appUserId ?? null,
       careNoteAccess: boundary?.careNoteAccess ?? EMPTY_CARE_NOTE_ACCESS,
       grants: boundary?.grants ?? [],
+      isBetaPreviewWorkspace: false,
       membershipId: boundary?.membershipId ?? null,
       membershipStatus: boundary?.membershipStatus ?? null,
       permissionVersion: boundary?.permissionVersion ?? null,
       roleKey: boundary?.roleKey ?? null,
       status: "ready",
     };
-  }, [boundary, hydrateStatus, status, user]);
+  }, [authRequired, boundary, hydrateStatus, status, user]);
 
   return <PermissionContext.Provider value={value}>{children}</PermissionContext.Provider>;
 }

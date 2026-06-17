@@ -146,7 +146,8 @@ function Today() {
   );
   const { client } = useAuth();
   const permissions = usePermissions();
-  const canUsePrototypeCareNotes = permissions.status === "unconfigured";
+  const canUsePrototypeCareNotes =
+    permissions.status === "unconfigured" || permissions.isBetaPreviewWorkspace;
   const canRenderCareNotes =
     permissions.status === "ready" ? permissions.careNoteAccess.canView : canUsePrototypeCareNotes;
   const visibleHealthEventState = canRenderCareNotes
@@ -245,6 +246,14 @@ function Today() {
         status: "saving",
       });
 
+      if (permissions.isBetaPreviewWorkspace) {
+        setPersistenceProof({
+          detail: "Saved to this beta workspace preview.",
+          status: "read-back",
+        });
+        return;
+      }
+
       void persistHealthEvent({ boundary, client, event })
         .then(async (result) => {
           if (result.status === "skipped") {
@@ -299,6 +308,7 @@ function Today() {
       permissions.activeCareRecipientId,
       permissions.activeCareTeamId,
       permissions.appUserId,
+      permissions.isBetaPreviewWorkspace,
     ],
   );
   const timelineQuery = { filter: timelineFilter, timeframe };
@@ -367,11 +377,13 @@ function Today() {
       noteType: careNoteType,
     });
 
-    if (permissions.status === "unconfigured") {
+    if (permissions.status === "unconfigured" || permissions.isBetaPreviewWorkspace) {
       dispatchHealthEvent(event);
       setCareNoteDraft("");
       setCareNoteComposerOpen(false);
-      setCareNoteSaveState({ status: "unavailable" });
+      setCareNoteSaveState({
+        status: permissions.isBetaPreviewWorkspace ? "read-back" : "unavailable",
+      });
       return;
     }
 
@@ -948,6 +960,7 @@ function getWorkspaceAccessDisplay(permissions: {
   activeCareRecipientId: string | null;
   activeCareTeamId: string | null;
   appUserId: string | null;
+  isBetaPreviewWorkspace: boolean;
   status: PermissionRuntimeStatus;
 }): WorkspaceAccessDisplay {
   if (permissions.status === "loading") {
@@ -970,7 +983,7 @@ function getWorkspaceAccessDisplay(permissions: {
 
   if (permissions.status === "unconfigured" || permissions.status === "error") {
     return {
-      detail: "Local beta preview is available without a signed-in workspace.",
+      detail: "Local beta preview is available without a connected workspace.",
       label: "Preview",
       title: "Workspace check unavailable",
       tone: "warn",
@@ -983,10 +996,19 @@ function getWorkspaceAccessDisplay(permissions: {
 
   if (!boundaryReady) {
     return {
-      detail: "Local beta preview is available without a signed-in workspace.",
+      detail: "Local beta preview is available without a connected workspace.",
       label: "Preview",
       title: "Workspace preview",
       tone: "warn",
+    };
+  }
+
+  if (permissions.isBetaPreviewWorkspace) {
+    return {
+      detail: "Authorized beta workspace preview is ready.",
+      label: "Checked",
+      title: "Beta workspace ready",
+      tone: "success",
     };
   }
 
