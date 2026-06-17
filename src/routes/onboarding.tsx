@@ -22,7 +22,7 @@ const STEPS = [
   "Welcome",
   "Care recipient",
   "Relationship",
-  "Invite family",
+  "Beta setup",
   "Permissions",
   "Medications",
   "Continuity",
@@ -84,6 +84,9 @@ function Onboarding() {
               </h2>
               <p className="mt-3 text-[16px] text-muted-foreground leading-relaxed max-w-[34ch]">
                 Start with one person, one care team, and the key details for the next handoff.
+              </p>
+              <p className="mt-3 text-[13px] text-muted-foreground leading-relaxed max-w-[36ch]">
+                This beta setup keeps details summarized until the reviewed workspace is connected.
               </p>
             </div>
           )}

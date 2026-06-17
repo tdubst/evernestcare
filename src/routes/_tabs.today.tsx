@@ -483,8 +483,8 @@ function Today() {
           <HomeStatusCard
             icon={Pill}
             label="Care status"
-            value="Review"
-            detail="Details hidden"
+            value="Preview"
+            detail="Details hidden in beta"
             tone="bg-blush text-blush-foreground"
           />
           <HomeStatusCard
@@ -497,8 +497,8 @@ function Today() {
           <HomeStatusCard
             icon={Activity}
             label="Check-in"
-            value="Ready"
-            detail="Details hidden"
+            value="Preview"
+            detail="Details hidden in beta"
             tone="bg-sage text-sage-foreground"
           />
         </div>
@@ -510,7 +510,7 @@ function Today() {
           {
             i: Pill,
             l: "Care status",
-            s: "Review",
+            s: "Preview",
             v: "med",
             c: "bg-blush text-blush-foreground",
             onClick: () => openWorkflow("med"),
@@ -518,7 +518,7 @@ function Today() {
           {
             i: Activity,
             l: "Check-in",
-            s: "Ready",
+            s: "Preview",
             v: "vitals",
             c: "bg-sage text-sage-foreground",
             onClick: () => openWorkflow("vitals"),
@@ -526,7 +526,7 @@ function Today() {
           {
             i: ClipboardCheck,
             l: "Care prep",
-            s: "Ready",
+            s: "Preview",
             v: "visit",
             c: "bg-sky text-sky-foreground",
             onClick: () => openWorkflow("visit"),
@@ -606,9 +606,9 @@ function Today() {
             <Alert
               tone="warn"
               icon={AlertCircle}
-              title="Care status needs review"
+              title="Care status preview"
               subtitle="Yesterday evening · details hidden"
-              action="Review status"
+              action="View preview"
               onAction={() => openWorkflow("med")}
             />
             <Alert
@@ -616,7 +616,7 @@ function Today() {
               icon={ScanLine}
               title="Care prep available"
               subtitle="Internal overview is ready inside the workspace"
-              action="Open prep"
+              action="Open preview"
               onAction={() => openWorkflow("visit")}
             />
           </Section>
@@ -1355,7 +1355,7 @@ function OperationalTimelineCard({
               onClick={onOpenCareNoteComposer}
               className="w-full rounded-full bg-secondary py-2.5 text-[13px] font-medium text-primary"
             >
-              Add caregiver note
+              Preview caregiver note
             </button>
             {careNoteStatus && <CareNoteStatusCard state={careNoteStatus} />}
           </>

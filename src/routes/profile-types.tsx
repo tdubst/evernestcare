@@ -53,7 +53,7 @@ function ProfileTypes() {
     <div className="phone-shell">
       <header className="px-6 pt-14 pb-3">
         <Link to="/today" className="inline-flex items-center gap-1 text-[14px] text-primary mb-3">
-          <ChevronLeft className="h-4 w-4" /> Today
+          <ChevronLeft className="h-4 w-4" /> Back to workspace
         </Link>
         <h1 className="text-[28px] font-semibold tracking-tight">Care profiles</h1>
         <p className="text-[14px] text-muted-foreground mt-1 max-w-[36ch]">

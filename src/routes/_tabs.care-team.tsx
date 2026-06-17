@@ -50,12 +50,12 @@ type ConfirmAction = { invitation: CareCircleInvitationSummary; kind: "expire" |
 const INVITE_ROLE_OPTIONS = [
   {
     description: "Can help coordinate family updates.",
-    label: "Invite family",
+    label: "Family coordinator",
     value: "family_member",
   },
   {
     description: "Can view updates with limited coordination.",
-    label: "Invite caregiver",
+    label: "Care viewer",
     value: "viewer",
   },
 ] satisfies { description: string; label: string; value: InviteRoleKey }[];
@@ -308,8 +308,8 @@ function CareTeam() {
           <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
             <UserPlus className="h-4 w-4" />
           </span>
-          <p className="mt-2.5 text-[14px] font-medium">Invite family</p>
-          <p className="text-[11px] text-muted-foreground">Expires in 7 days</p>
+          <p className="mt-2.5 text-[14px] font-medium">Invite preview</p>
+          <p className="text-[11px] text-muted-foreground">Preview only</p>
         </button>
         <button
           onClick={() => setSheet("review")}
@@ -318,7 +318,7 @@ function CareTeam() {
           <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-sage text-sage-foreground">
             <Shield className="h-4 w-4" />
           </span>
-          <p className="mt-2.5 text-[14px] font-medium">Review access</p>
+          <p className="mt-2.5 text-[14px] font-medium">Access preview</p>
           <p className="text-[11px] text-muted-foreground">Advisory categories only</p>
         </button>
       </div>
@@ -628,7 +628,7 @@ function InviteSheet({
   onSend: () => void;
 }) {
   return (
-    <SheetFrame title="Invite family" eyebrow="Care Circle" onClose={onClose}>
+    <SheetFrame title="Invite preview" eyebrow="Care Circle" onClose={onClose}>
       <div className="space-y-4">
         <div>
           <label htmlFor="invite-address" className="text-[13px] font-semibold">
@@ -687,7 +687,7 @@ function InviteSheet({
             disabled={!canManage}
             className="rounded-full bg-card py-3 text-[14px] font-medium text-primary disabled:text-muted-foreground"
           >
-            Review access
+            Review preview
           </button>
         </div>
         <button
@@ -740,7 +740,7 @@ function ReviewSheet({
   permissions: CareCirclePermissionSummary[];
 }) {
   return (
-    <SheetFrame title="Review access" eyebrow="Advisory permissions" onClose={onClose}>
+    <SheetFrame title="Access preview" eyebrow="Advisory permissions" onClose={onClose}>
       <p className="text-[13px] leading-relaxed text-muted-foreground">
         These categories explain what the signed-in workspace reported. Server rules remain the
         authority.

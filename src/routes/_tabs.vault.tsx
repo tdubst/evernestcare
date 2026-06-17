@@ -242,7 +242,7 @@ function Vault() {
           <div>
             <h1 className="text-[28px] font-semibold tracking-tight">Vault</h1>
             <p className="mt-1 text-[13px] text-muted-foreground">
-              Continuity memory for care documents and photos.
+              Continuity memory for document placeholders.
             </p>
           </div>
           <button
