@@ -220,7 +220,7 @@ function CareTeam() {
     }
 
     setActionState({
-      detail: "Creating an invite through the signed-in care workspace.",
+      detail: "Creating an invite through the authorized care workspace.",
       status: "loading",
       title: "Sending invite",
     });

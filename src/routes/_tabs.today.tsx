@@ -965,9 +965,9 @@ function getWorkspaceAccessDisplay(permissions: {
 }): WorkspaceAccessDisplay {
   if (permissions.status === "loading") {
     return {
-      detail: "Opening your signed-in workspace.",
+      detail: "Opening your authorized workspace.",
       label: "Checking",
-      title: "Signed-in workspace checking",
+      title: "Authorized workspace checking",
       tone: "muted",
     };
   }
@@ -1013,7 +1013,7 @@ function getWorkspaceAccessDisplay(permissions: {
   }
 
   return {
-    detail: "Last checked through your signed-in workspace.",
+    detail: "Last checked through your authorized workspace.",
     label: "Checked",
     title: "Care workspace ready",
     tone: "success",
