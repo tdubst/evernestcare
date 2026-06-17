@@ -18,6 +18,7 @@ import {
 
 import { HEALTH_DEVICE_INTEGRATIONS } from "@/lib/integrations/health-devices";
 import { useAuth } from "@/lib/auth/auth-context";
+import { releaseScope } from "@/lib/release";
 import {
   createCareNoteAddedEvent,
   createInitialHealthEventState,
@@ -1068,6 +1069,9 @@ function WorkspaceAccessCard({ state }: { state: WorkspaceAccessDisplay }) {
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-[13px] font-semibold">{state.title}</p>
+              <p className="mt-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                {releaseScope}
+              </p>
               <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">
                 {state.detail}
               </p>

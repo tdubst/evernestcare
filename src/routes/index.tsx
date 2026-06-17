@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Heart, ShieldCheck, Users } from "lucide-react";
 
+import { releaseShortLabel } from "@/lib/release";
+
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
@@ -24,6 +26,7 @@ function Welcome() {
           </span>
           Evernest Care
         </div>
+        <p className="mt-2 text-[12px] font-medium text-muted-foreground">{releaseShortLabel}</p>
 
         <div className="mt-16">
           <h1 className="text-[40px] leading-[1.05] font-semibold tracking-tight text-foreground">

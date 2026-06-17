@@ -6,6 +6,13 @@ Acceptance date: June 5, 2026
 
 Product Planning owner: EFC - Product Planning
 
+## Release Label
+
+- Human label: Beta.
+- Technical version: `0.1.0`.
+- Combined label: Evernest Care Beta · v0.1.0.
+- This label records the accepted controlled beta readiness package only; it is not a production launch, TestFlight upload, or scope expansion.
+
 ## Accepted Scope
 
 Sprint 10 accepts beta hardening and release-readiness review for the existing controlled caregiver beta surface.

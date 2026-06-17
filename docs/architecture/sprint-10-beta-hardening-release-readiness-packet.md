@@ -3,6 +3,13 @@
 Status: Accepted
 Date: June 4, 2026
 
+## Release Label
+
+- Human label: Beta.
+- Technical version: `0.1.0`.
+- Combined label: Evernest Care Beta · v0.1.0.
+- This label identifies the controlled beta readiness package only; it does not authorize production launch, TestFlight upload, real document upload/storage, share/export, provider delivery, native live data, or monitoring expansion.
+
 ## Scope
 
 Sprint 10 prepares the existing controlled caregiver beta surface for release review. It does not add feature breadth.
