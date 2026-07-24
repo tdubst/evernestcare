@@ -83,7 +83,6 @@ function CalendarPage() {
   const [selected, setSelected] = useState(26);
   const [filter, setFilter] = useState<CalendarFilter>("All");
   const [open, setOpen] = useState<{ day: number; event: CalendarEvent } | null>(null);
-  const [addOpen, setAddOpen] = useState(false);
 
   const week = [
     { d: "Sun", n: 25 },
@@ -102,20 +101,22 @@ function CalendarPage() {
 
   return (
     <div>
-      <header className="px-6 pt-14 pb-2">
+      <header id="calendar-top" className="px-6 pt-14 pb-2">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[13px] font-medium text-muted-foreground">May 2026</p>
             <h1 className="mt-0.5 text-[28px] font-semibold tracking-tight">Calendar</h1>
           </div>
-          <button
-            onClick={() => setAddOpen(true)}
+          <a
+            href="#calendar-add-preview-title"
             className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-card"
             aria-label="Add appointment"
           >
             <CalendarPlus className="h-4 w-4" />
-          </button>
+          </a>
         </div>
+
+        <AddAppointmentPreview />
 
         <div className="mt-4 inline-flex rounded-full bg-secondary p-1">
           {(["Day", "Week", "Month"] as View[]).map((item) => (
@@ -259,7 +260,6 @@ function CalendarPage() {
       {open && (
         <VisitDetailSheet event={open.event} selected={open.day} onClose={() => setOpen(null)} />
       )}
-      {addOpen && <AddAppointmentSheet onClose={() => setAddOpen(false)} />}
     </div>
   );
 }
@@ -452,34 +452,40 @@ function CalendarNotice({
   );
 }
 
-function AddAppointmentSheet({ onClose }: { onClose: () => void }) {
+function AddAppointmentPreview() {
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30" onClick={onClose}>
-      <div
-        className="w-full max-w-[440px] rounded-t-3xl bg-card p-6 pb-10"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-muted" />
-        <p className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
-          New appointment
-        </p>
-        <h3 className="mt-1 text-[22px] font-semibold tracking-tight">Prepare care time</h3>
-        <div className="mt-4 space-y-2.5">
-          <Field label="Appointment" value="Care follow-up" />
-          <Field label="Date and time" value="Schedule hidden for beta preview" />
-          <Field label="Visibility" value="Family visible" />
+    <section className="mt-4 card-soft p-4" aria-labelledby="calendar-add-preview-title">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Calendar preview
+          </p>
+          <h2 id="calendar-add-preview-title" className="mt-1 text-[17px] font-semibold">
+            Appointment preview
+          </h2>
         </div>
-        <p className="mt-3 text-[12px] leading-relaxed text-muted-foreground">
-          Appointment details stay inside the family workspace for beta coordination.
-        </p>
-        <button
-          onClick={onClose}
-          className="mt-5 w-full rounded-full bg-primary py-3 text-[14px] font-medium text-primary-foreground"
+        <a
+          href="/calendar"
+          className="rounded-full bg-secondary px-3 py-1.5 text-[12px] font-medium text-muted-foreground"
         >
-          Save appointment
-        </button>
+          Close
+        </a>
       </div>
-    </div>
+      <div className="mt-4 space-y-2.5">
+        <Field label="Category" value="Care follow-up" />
+        <Field label="Schedule" value="Hidden for beta preview" />
+        <Field label="Visibility" value="Family workspace preview" />
+      </div>
+      <p className="mt-3 text-[12px] leading-relaxed text-muted-foreground">
+        This is a local preview. No appointment is saved or sent.
+      </p>
+      <a
+        href="/calendar"
+        className="mt-4 w-full rounded-full bg-primary py-3 text-[14px] font-medium text-primary-foreground"
+      >
+        Done
+      </a>
+    </section>
   );
 }
 
