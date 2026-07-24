@@ -486,6 +486,7 @@ function CareTeam() {
           actionState={actionState}
           address={inviteAddress}
           canManage={canManageInvitations}
+          isBetaPreview={permissions.isBetaPreviewWorkspace}
           preview={preview}
           role={inviteRole}
           onAddressChange={setInviteAddress}
@@ -682,6 +683,7 @@ function InviteSheet({
   actionState,
   address,
   canManage,
+  isBetaPreview,
   preview,
   role,
   onAddressChange,
@@ -693,6 +695,7 @@ function InviteSheet({
   actionState: ActionState;
   address: string;
   canManage: boolean;
+  isBetaPreview: boolean;
   preview: CareCirclePreviewResult;
   role: InviteRoleKey;
   onAddressChange: (value: string) => void;
@@ -712,10 +715,18 @@ function InviteSheet({
             id="invite-address"
             value={address}
             type="email"
+            inputMode="email"
+            autoFocus
             autoComplete="off"
+            placeholder="name@example.com"
             onChange={(event) => onAddressChange(event.target.value)}
             className="mt-2 w-full rounded-2xl border border-border bg-secondary px-3.5 py-3 text-[14px] outline-none focus:ring-2 focus:ring-primary"
           />
+          <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">
+            {isBetaPreview
+              ? "Use a test address. This creates a local preview only."
+              : "Invite details stay inside the authorized workspace."}
+          </p>
         </div>
 
         <div>
@@ -761,7 +772,7 @@ function InviteSheet({
             disabled={!canManage}
             className="rounded-full bg-card py-3 text-[14px] font-medium text-primary disabled:text-muted-foreground"
           >
-            Review preview
+            {isBetaPreview ? "Review local preview" : "Review preview"}
           </button>
         </div>
         <button
@@ -770,7 +781,7 @@ function InviteSheet({
           disabled={!canManage}
           className="w-full rounded-full bg-primary py-3 text-[14px] font-medium text-primary-foreground disabled:bg-secondary disabled:text-muted-foreground"
         >
-          Send invite
+          {isBetaPreview ? "Save local preview" : "Send invite"}
         </button>
       </div>
     </SheetFrame>

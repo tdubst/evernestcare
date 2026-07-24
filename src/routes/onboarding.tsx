@@ -1,5 +1,5 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import {
   Accessibility,
   ArrowRight,
@@ -38,8 +38,17 @@ function Onboarding() {
   const [setupNotice, setSetupNotice] = useState<string | null>(null);
   const [textSize, setTextSize] = useState(1);
 
+  useEffect(() => {
+    window.scrollTo({ behavior: "smooth", top: 0 });
+  }, [step]);
+
+  const enterWorkspace = () => {
+    window.sessionStorage.setItem("evernest_beta_onboarding_complete", "true");
+    void navigate({ to: "/today" });
+  };
+
   const next = () => {
-    if (step === STEPS.length - 1) navigate({ to: "/today" });
+    if (step === STEPS.length - 1) enterWorkspace();
     else setStep((s) => s + 1);
   };
   const back = () => setStep((s) => Math.max(0, s - 1));
@@ -50,6 +59,7 @@ function Onboarding() {
         {/* Top bar */}
         <div className="flex items-center justify-between">
           <button
+            type="button"
             onClick={back}
             disabled={step === 0}
             className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-card hairline border disabled:opacity-30"
@@ -66,7 +76,8 @@ function Onboarding() {
             ))}
           </div>
           <button
-            onClick={() => navigate({ to: "/today" })}
+            type="button"
+            onClick={enterWorkspace}
             className="text-[13px] font-medium text-muted-foreground"
           >
             Skip
@@ -117,6 +128,7 @@ function Onboarding() {
                   { label: "Long-term", desc: "Beta later" },
                 ].map((t) => (
                   <button
+                    type="button"
                     key={t.label}
                     onClick={() => setProfileType(t.label)}
                     className={`text-left card-soft p-4 border ${profileType === t.label ? "ring-2 ring-primary border-transparent" : "hairline"}`}
@@ -144,6 +156,7 @@ function Onboarding() {
                   "Supporter",
                 ].map((r) => (
                   <button
+                    type="button"
                     key={r}
                     onClick={() => setRelation(r)}
                     className={`w-full flex items-center justify-between card-soft px-5 py-4 border ${relation === r ? "ring-2 ring-primary border-transparent" : "hairline"}`}
@@ -185,6 +198,7 @@ function Onboarding() {
                 ))}
               </div>
               <button
+                type="button"
                 onClick={() =>
                   setSetupNotice("Invite setup will activate once beta accounts are connected.")
                 }
@@ -257,6 +271,7 @@ function Onboarding() {
                 ))}
               </div>
               <button
+                type="button"
                 onClick={next}
                 className="mt-3 w-full rounded-2xl border hairline bg-card py-3.5 text-[14px] font-medium text-muted-foreground"
               >
@@ -352,12 +367,25 @@ function Onboarding() {
         </div>
 
         <button
+          type="button"
           onClick={next}
+          data-testid="onboarding-continue"
           className="mt-8 w-full flex items-center justify-center gap-2 rounded-full bg-primary py-4 text-[17px] font-medium text-primary-foreground shadow-card active:scale-[0.99] transition"
         >
           {step === STEPS.length - 1 ? "Enter Evernest Care" : "Continue"}
           <ArrowRight className="h-4 w-4" />
         </button>
+        {step < STEPS.length - 1 && (
+          <Link
+            to="/today"
+            onClick={() =>
+              window.sessionStorage.setItem("evernest_beta_onboarding_complete", "true")
+            }
+            className="mt-3 block w-full rounded-full bg-card py-3.5 text-center text-[14px] font-medium text-foreground hairline border"
+          >
+            Enter beta workspace
+          </Link>
+        )}
       </div>
     </div>
   );
@@ -378,6 +406,7 @@ function Toggle() {
   const [on, setOn] = useState(false);
   return (
     <button
+      type="button"
       onClick={() => setOn(!on)}
       className={`relative h-7 w-12 rounded-full transition ${on ? "bg-primary" : "bg-muted"}`}
       aria-pressed={on}
