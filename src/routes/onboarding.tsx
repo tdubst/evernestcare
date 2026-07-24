@@ -1,4 +1,4 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
   Accessibility,
@@ -30,8 +30,8 @@ const STEPS = [
 ] as const;
 
 function Onboarding() {
-  const [step, setStep] = useState(getInitialStep);
-  const [name, setName] = useState("Care recipient");
+  const [step] = useState(getInitialStep);
+  const name = "Care recipient";
   const [relation, setRelation] = useState("Family caregiver");
   const [profileType, setProfileType] = useState("Family care");
   const [setupNotice, setSetupNotice] = useState<string | null>(null);
@@ -40,23 +40,6 @@ function Onboarding() {
   useEffect(() => {
     window.scrollTo({ behavior: "smooth", top: 0 });
   }, [step]);
-
-  const enterWorkspace = () => {
-    window.sessionStorage.setItem("evernest_beta_onboarding_complete", "true");
-    window.location.assign("/today");
-  };
-
-  const goToStep = (nextStep: number) => {
-    const boundedStep = Math.max(0, Math.min(STEPS.length - 1, nextStep));
-    setStep(boundedStep);
-    window.history.pushState(null, "", getStepHref(boundedStep));
-  };
-
-  const next = () => {
-    if (step === STEPS.length - 1) enterWorkspace();
-    else goToStep(step + 1);
-  };
-  const back = () => goToStep(step - 1);
 
   return (
     <div className="phone-shell grad-hero">
@@ -75,10 +58,6 @@ function Onboarding() {
           ) : (
             <a
               href={getStepHref(step - 1)}
-              onClick={(event) => {
-                event.preventDefault();
-                back();
-              }}
               className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-card hairline border"
               aria-label="Back"
             >
@@ -93,14 +72,7 @@ function Onboarding() {
               />
             ))}
           </div>
-          <a
-            href="/today"
-            onClick={(event) => {
-              event.preventDefault();
-              enterWorkspace();
-            }}
-            className="text-[13px] font-medium text-muted-foreground"
-          >
+          <a href="/today" className="text-[13px] font-medium text-muted-foreground">
             Skip
           </a>
         </div>
@@ -129,17 +101,16 @@ function Onboarding() {
                 Who are you caring for?
               </h2>
               <p className="mt-2 text-[15px] text-muted-foreground">
-                Their first name is enough for now.
+                This beta preview uses a demo recipient so setup can continue without storing data.
               </p>
               <div className="mt-8 card-soft p-5">
-                <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wide">
-                  Name
-                </label>
-                <input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="mt-1 w-full bg-transparent text-[22px] font-medium outline-none"
-                />
+                <p className="text-[12px] font-medium text-muted-foreground uppercase tracking-wide">
+                  Demo recipient
+                </p>
+                <p className="mt-1 text-[22px] font-medium">{name}</p>
+                <p className="mt-2 text-[13px] text-muted-foreground">
+                  Details stay summarized for this beta test.
+                </p>
               </div>
               <div className="mt-4 grid grid-cols-2 gap-3">
                 {[
@@ -293,11 +264,7 @@ function Onboarding() {
               </div>
               <a
                 href={getStepHref(step + 1)}
-                onClick={(event) => {
-                  event.preventDefault();
-                  next();
-                }}
-                className="mt-3 w-full rounded-2xl border hairline bg-card py-3.5 text-[14px] font-medium text-muted-foreground"
+                className="mt-3 block w-full rounded-2xl border hairline bg-card py-3.5 text-center text-[14px] font-medium text-muted-foreground"
               >
                 Skip for now
               </a>
@@ -392,10 +359,6 @@ function Onboarding() {
 
         <a
           href={step === STEPS.length - 1 ? "/today" : getStepHref(step + 1)}
-          onClick={(event) => {
-            event.preventDefault();
-            next();
-          }}
           data-testid="onboarding-continue"
           className="mt-8 w-full flex items-center justify-center gap-2 rounded-full bg-primary py-4 text-[17px] font-medium text-primary-foreground shadow-card active:scale-[0.99] transition"
         >
@@ -403,15 +366,12 @@ function Onboarding() {
           <ArrowRight className="h-4 w-4" />
         </a>
         {step < STEPS.length - 1 && (
-          <Link
-            to="/today"
-            onClick={() =>
-              window.sessionStorage.setItem("evernest_beta_onboarding_complete", "true")
-            }
+          <a
+            href="/today"
             className="mt-3 block w-full rounded-full bg-card py-3.5 text-center text-[14px] font-medium text-foreground hairline border"
           >
             Enter beta workspace
-          </Link>
+          </a>
         )}
       </div>
     </div>
