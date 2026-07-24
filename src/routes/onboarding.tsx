@@ -1,4 +1,4 @@
-import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
   Accessibility,
@@ -30,8 +30,7 @@ const STEPS = [
 ] as const;
 
 function Onboarding() {
-  const navigate = useNavigate();
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(getInitialStep);
   const [name, setName] = useState("Care recipient");
   const [relation, setRelation] = useState("Family caregiver");
   const [profileType, setProfileType] = useState("Family care");
@@ -44,29 +43,48 @@ function Onboarding() {
 
   const enterWorkspace = () => {
     window.sessionStorage.setItem("evernest_beta_onboarding_complete", "true");
-    void navigate({ to: "/today" });
+    window.location.assign("/today");
+  };
+
+  const goToStep = (nextStep: number) => {
+    const boundedStep = Math.max(0, Math.min(STEPS.length - 1, nextStep));
+    setStep(boundedStep);
+    window.history.pushState(null, "", getStepHref(boundedStep));
   };
 
   const next = () => {
     if (step === STEPS.length - 1) enterWorkspace();
-    else setStep((s) => s + 1);
+    else goToStep(step + 1);
   };
-  const back = () => setStep((s) => Math.max(0, s - 1));
+  const back = () => goToStep(step - 1);
 
   return (
     <div className="phone-shell grad-hero">
       <div className="flex min-h-dvh flex-col px-6 pt-6 pb-8">
         {/* Top bar */}
         <div className="flex items-center justify-between">
-          <button
-            type="button"
-            onClick={back}
-            disabled={step === 0}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-card hairline border disabled:opacity-30"
-            aria-label="Back"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
+          {step === 0 ? (
+            <button
+              type="button"
+              disabled
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-card hairline border opacity-30"
+              aria-label="Back"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+          ) : (
+            <a
+              href={getStepHref(step - 1)}
+              onClick={(event) => {
+                event.preventDefault();
+                back();
+              }}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-card hairline border"
+              aria-label="Back"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </a>
+          )}
           <div className="flex gap-1.5">
             {STEPS.map((_, i) => (
               <span
@@ -75,13 +93,16 @@ function Onboarding() {
               />
             ))}
           </div>
-          <button
-            type="button"
-            onClick={enterWorkspace}
+          <a
+            href="/today"
+            onClick={(event) => {
+              event.preventDefault();
+              enterWorkspace();
+            }}
             className="text-[13px] font-medium text-muted-foreground"
           >
             Skip
-          </button>
+          </a>
         </div>
 
         <div className="mt-10 flex-1">
@@ -270,13 +291,16 @@ function Onboarding() {
                   </label>
                 ))}
               </div>
-              <button
-                type="button"
-                onClick={next}
+              <a
+                href={getStepHref(step + 1)}
+                onClick={(event) => {
+                  event.preventDefault();
+                  next();
+                }}
                 className="mt-3 w-full rounded-2xl border hairline bg-card py-3.5 text-[14px] font-medium text-muted-foreground"
               >
                 Skip for now
-              </button>
+              </a>
             </div>
           )}
 
@@ -366,15 +390,18 @@ function Onboarding() {
           )}
         </div>
 
-        <button
-          type="button"
-          onClick={next}
+        <a
+          href={step === STEPS.length - 1 ? "/today" : getStepHref(step + 1)}
+          onClick={(event) => {
+            event.preventDefault();
+            next();
+          }}
           data-testid="onboarding-continue"
           className="mt-8 w-full flex items-center justify-center gap-2 rounded-full bg-primary py-4 text-[17px] font-medium text-primary-foreground shadow-card active:scale-[0.99] transition"
         >
           {step === STEPS.length - 1 ? "Enter Evernest Care" : "Continue"}
           <ArrowRight className="h-4 w-4" />
-        </button>
+        </a>
         {step < STEPS.length - 1 && (
           <Link
             to="/today"
@@ -389,6 +416,23 @@ function Onboarding() {
       </div>
     </div>
   );
+}
+
+function getInitialStep() {
+  if (typeof window === "undefined") return 0;
+
+  return parseStep(window.location.search);
+}
+
+function getStepHref(step: number) {
+  return `/onboarding?step=${Math.max(0, Math.min(STEPS.length - 1, step))}`;
+}
+
+function parseStep(search: string) {
+  const rawStep = Number(new URLSearchParams(search).get("step") ?? "0");
+  if (!Number.isFinite(rawStep)) return 0;
+
+  return Math.max(0, Math.min(STEPS.length - 1, Math.trunc(rawStep)));
 }
 
 function SetupNotice({ onClose, text }: { onClose: () => void; text: string }) {
