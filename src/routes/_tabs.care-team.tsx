@@ -67,6 +67,7 @@ const INVITE_ROLE_OPTIONS = [
 ] satisfies { description: string; label: string; value: InviteRoleKey }[];
 
 const DEFAULT_EXPIRES_IN_DAYS = 7;
+const BETA_INVITE_ADDRESS = "test-caregiver@example.com";
 
 function CareTeam() {
   const { client } = useAuth();
@@ -76,7 +77,7 @@ function CareTeam() {
   const [inboundInvitations, setInboundInvitations] = useState<CareCircleInvitationSummary[]>([]);
   const [sheet, setSheet] = useState<SheetState>(null);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
-  const [inviteAddress, setInviteAddress] = useState("");
+  const [inviteAddress, setInviteAddress] = useState(BETA_INVITE_ADDRESS);
   const [inviteRole, setInviteRole] = useState<InviteRoleKey>("family_member");
   const [preview, setPreview] = useState<CareCirclePreviewResult>({ status: "unavailable" });
   const [actionState, setActionState] = useState<ActionState>({ status: "idle" });
@@ -201,7 +202,7 @@ function CareTeam() {
         status: "ready",
         title: "Invite preview ready",
       });
-      setInviteAddress("");
+      setInviteAddress(BETA_INVITE_ADDRESS);
       setSheet(null);
       setSummary({
         ...BETA_DEMO_CARE_CIRCLE_SUMMARY,
@@ -376,6 +377,7 @@ function CareTeam() {
             setSheet("invite");
             setActionState({ status: "idle" });
             setPreview({ status: "unavailable" });
+            setInviteAddress(BETA_INVITE_ADDRESS);
           }}
           className="card-soft p-4 text-left active:scale-[0.98] transition"
         >
@@ -396,6 +398,21 @@ function CareTeam() {
           <p className="text-[11px] text-muted-foreground">Advisory categories only</p>
         </button>
       </div>
+
+      {sheet === "invite" && (
+        <InviteSheet
+          actionState={actionState}
+          address={inviteAddress}
+          canManage={canManageInvitations}
+          isBetaPreview={permissions.isBetaPreviewWorkspace}
+          preview={preview}
+          role={inviteRole}
+          onClose={() => setSheet(null)}
+          onPreview={previewInvite}
+          onRoleChange={setInviteRole}
+          onSend={sendInvite}
+        />
+      )}
 
       <Section title="Care Circle">
         {signedInReady ? (
@@ -479,22 +496,6 @@ function CareTeam() {
         <div className="px-6 mt-4">
           <ActionStatusCard state={actionState} />
         </div>
-      )}
-
-      {sheet === "invite" && (
-        <InviteSheet
-          actionState={actionState}
-          address={inviteAddress}
-          canManage={canManageInvitations}
-          isBetaPreview={permissions.isBetaPreviewWorkspace}
-          preview={preview}
-          role={inviteRole}
-          onAddressChange={setInviteAddress}
-          onClose={() => setSheet(null)}
-          onPreview={previewInvite}
-          onRoleChange={setInviteRole}
-          onSend={sendInvite}
-        />
       )}
 
       {sheet === "review" && (
@@ -686,7 +687,6 @@ function InviteSheet({
   isBetaPreview,
   preview,
   role,
-  onAddressChange,
   onClose,
   onPreview,
   onRoleChange,
@@ -698,93 +698,106 @@ function InviteSheet({
   isBetaPreview: boolean;
   preview: CareCirclePreviewResult;
   role: InviteRoleKey;
-  onAddressChange: (value: string) => void;
   onClose: () => void;
   onPreview: () => void;
   onRoleChange: (value: InviteRoleKey) => void;
   onSend: () => void;
 }) {
   return (
-    <SheetFrame title="Invite preview" eyebrow="Care Circle" onClose={onClose}>
-      <div className="space-y-4">
-        <div>
-          <label htmlFor="invite-address" className="text-[13px] font-semibold">
-            Invite address
-          </label>
-          <input
-            id="invite-address"
-            value={address}
-            type="email"
-            inputMode="email"
-            autoFocus
-            autoComplete="off"
-            placeholder="name@example.com"
-            onChange={(event) => onAddressChange(event.target.value)}
-            className="mt-2 w-full rounded-2xl border border-border bg-secondary px-3.5 py-3 text-[14px] outline-none focus:ring-2 focus:ring-primary"
-          />
-          <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">
-            {isBetaPreview
-              ? "Use a test address. This creates a local preview only."
-              : "Invite details stay inside the authorized workspace."}
-          </p>
-        </div>
-
-        <div>
-          <p className="text-[13px] font-semibold">Role preview</p>
-          <div className="mt-2 grid gap-2">
-            {INVITE_ROLE_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                aria-pressed={role === option.value}
-                onClick={() => onRoleChange(option.value)}
-                className={`rounded-2xl px-3.5 py-3 text-left ${
-                  role === option.value ? "bg-primary text-primary-foreground" : "bg-secondary"
-                }`}
-              >
-                <p className="text-[13px] font-semibold">{option.label}</p>
-                <p
-                  className={`mt-1 text-[12px] ${
-                    role === option.value ? "text-primary-foreground/80" : "text-muted-foreground"
-                  }`}
-                >
-                  {option.description}
-                </p>
-              </button>
-            ))}
+    <section className="px-6 mt-4" aria-labelledby="care-circle-invite-preview-title">
+      <div className="card-soft p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Care Circle
+            </p>
+            <h2
+              id="care-circle-invite-preview-title"
+              className="mt-1 text-[17px] font-semibold tracking-tight"
+            >
+              Invite preview
+            </h2>
           </div>
-        </div>
-
-        <PreviewPanel preview={preview} />
-        {actionState.status !== "idle" && <ActionStatusCard state={actionState} />}
-
-        <div className="grid grid-cols-2 gap-2.5">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full bg-secondary py-3 text-[14px] font-medium text-muted-foreground"
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary text-muted-foreground"
+            aria-label="Close invite preview"
           >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={onPreview}
-            disabled={!canManage}
-            className="rounded-full bg-card py-3 text-[14px] font-medium text-primary disabled:text-muted-foreground"
-          >
-            {isBetaPreview ? "Review local preview" : "Review preview"}
+            <X className="h-4 w-4" />
           </button>
         </div>
-        <button
-          type="button"
-          onClick={onSend}
-          disabled={!canManage}
-          className="w-full rounded-full bg-primary py-3 text-[14px] font-medium text-primary-foreground disabled:bg-secondary disabled:text-muted-foreground"
-        >
-          {isBetaPreview ? "Save local preview" : "Send invite"}
-        </button>
+
+        <div className="mt-4 space-y-4">
+          <div>
+            <p className="text-[13px] font-semibold">Test invite address</p>
+            <div className="mt-2 rounded-2xl bg-secondary px-3.5 py-3 text-[14px] font-medium">
+              {address}
+            </div>
+            <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">
+              {isBetaPreview
+                ? "A test address is already filled for this local preview. No invitation is sent."
+                : "Invite details stay inside the authorized workspace."}
+            </p>
+          </div>
+
+          <div>
+            <p className="text-[13px] font-semibold">Role preview</p>
+            <div className="mt-2 grid gap-2">
+              {INVITE_ROLE_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  aria-pressed={role === option.value}
+                  onClick={() => onRoleChange(option.value)}
+                  className={`rounded-2xl px-3.5 py-3 text-left ${
+                    role === option.value ? "bg-primary text-primary-foreground" : "bg-secondary"
+                  }`}
+                >
+                  <p className="text-[13px] font-semibold">{option.label}</p>
+                  <p
+                    className={`mt-1 text-[12px] ${
+                      role === option.value ? "text-primary-foreground/80" : "text-muted-foreground"
+                    }`}
+                  >
+                    {option.description}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <PreviewPanel preview={preview} />
+          {actionState.status !== "idle" && <ActionStatusCard state={actionState} />}
+
+          <div className="grid grid-cols-2 gap-2.5">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-full bg-secondary py-3 text-[14px] font-medium text-muted-foreground"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={onPreview}
+              disabled={!canManage}
+              className="rounded-full bg-card py-3 text-[14px] font-medium text-primary disabled:text-muted-foreground"
+            >
+              {isBetaPreview ? "Review local preview" : "Review preview"}
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={onSend}
+            disabled={!canManage}
+            className="w-full rounded-full bg-primary py-3 text-[14px] font-medium text-primary-foreground disabled:bg-secondary disabled:text-muted-foreground"
+          >
+            {isBetaPreview ? "Save local preview" : "Send invite"}
+          </button>
+        </div>
       </div>
-    </SheetFrame>
+    </section>
   );
 }
 
