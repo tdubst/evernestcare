@@ -1103,6 +1103,9 @@ function getGenericStatusDetail(status: string) {
 
 function formatAlias(value: string) {
   if (value === "current_user") return "You";
+  if (value === "maya_demo") return "Maya (you)";
+  if (value === "jordan_demo") return "Jordan";
+  if (value === "sam_demo") return "Sam";
   if (value.startsWith("member_")) return `Member ${value.replace("member_", "")}`;
   return "Member";
 }

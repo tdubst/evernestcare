@@ -73,7 +73,7 @@ export const BETA_DEMO_CARE_CIRCLE_MEMBERS: CareCircleMemberSummary[] = [
     ],
     membershipStatus: "active",
     roleCategory: "care_lead",
-    subjectAlias: "current_user",
+    subjectAlias: "maya_demo",
   },
   {
     capabilityCategories: [
@@ -82,7 +82,7 @@ export const BETA_DEMO_CARE_CIRCLE_MEMBERS: CareCircleMemberSummary[] = [
     ],
     membershipStatus: "active",
     roleCategory: "family",
-    subjectAlias: "member_1",
+    subjectAlias: "jordan_demo",
   },
   {
     capabilityCategories: [
@@ -91,7 +91,7 @@ export const BETA_DEMO_CARE_CIRCLE_MEMBERS: CareCircleMemberSummary[] = [
     ],
     membershipStatus: "active",
     roleCategory: "viewer",
-    subjectAlias: "member_2",
+    subjectAlias: "sam_demo",
   },
 ];
 

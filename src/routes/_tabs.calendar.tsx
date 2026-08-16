@@ -473,8 +473,8 @@ function AddAppointmentPreview() {
       </div>
       <div className="mt-4 space-y-2.5">
         <Field label="Category" value="Care follow-up" />
-        <Field label="Schedule" value="Hidden for beta preview" />
-        <Field label="Visibility" value="Family workspace preview" />
+        <Field label="Schedule" value="Tomorrow family check-in" />
+        <Field label="Visibility" value="Maya, Jordan, and Sam" />
       </div>
       <p className="mt-3 text-[12px] leading-relaxed text-muted-foreground">
         This is a local preview. No appointment is saved or sent.

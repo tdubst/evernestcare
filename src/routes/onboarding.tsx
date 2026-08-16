@@ -31,7 +31,7 @@ const STEPS = [
 
 function Onboarding() {
   const [step] = useState(getInitialStep);
-  const name = "Care recipient";
+  const name = "Evelyn";
   const [relation, setRelation] = useState("Family caregiver");
   const [profileType, setProfileType] = useState("Family care");
   const [setupNotice, setSetupNotice] = useState<string | null>(null);
@@ -101,7 +101,8 @@ function Onboarding() {
                 Who are you caring for?
               </h2>
               <p className="mt-2 text-[15px] text-muted-foreground">
-                This beta preview uses a demo recipient so setup can continue without storing data.
+                This beta preview uses a fictional care recipient so setup can continue without
+                storing data.
               </p>
               <div className="mt-8 card-soft p-5">
                 <p className="text-[12px] font-medium text-muted-foreground uppercase tracking-wide">
@@ -109,7 +110,7 @@ function Onboarding() {
                 </p>
                 <p className="mt-1 text-[22px] font-medium">{name}</p>
                 <p className="mt-2 text-[13px] text-muted-foreground">
-                  Details stay summarized for this beta test.
+                  Evelyn is a synthetic demo profile for beta testing.
                 </p>
               </div>
               <div className="mt-4 grid grid-cols-2 gap-3">
@@ -171,8 +172,8 @@ function Onboarding() {
               </p>
               <div className="mt-6 card-soft p-2">
                 {[
-                  { n: "Family helper", r: "Care team", e: "Invite pending" },
-                  { n: "Backup helper", r: "Care team", e: "Invite pending" },
+                  { n: "Jordan", r: "Secondary helper", e: "Invite pending" },
+                  { n: "Sam", r: "Weekend support", e: "Invite pending" },
                 ].map((p) => (
                   <div
                     key={p.n}

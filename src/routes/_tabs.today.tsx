@@ -459,8 +459,8 @@ function Today() {
             EC
           </span>
           <div className="flex-1">
-            <p className="text-[15px] font-medium">Active care workspace</p>
-            <p className="text-[12px] text-muted-foreground">Family care · 4 on team</p>
+            <p className="text-[15px] font-medium">Evelyn's care workspace</p>
+            <p className="text-[12px] text-muted-foreground">Family care demo · 3 on team</p>
           </div>
           <button
             onClick={() =>
@@ -667,14 +667,14 @@ function Today() {
                 who="Care team"
                 role="Workspace update"
                 time="2h ago"
-                body="Recent care details are available in the reviewed family workspace."
+                body="Maya prepared today's family check-in and linked the latest Vault placeholder."
                 chip={{ label: "Care update", tone: "sky" }}
               />
               <UpdateCard
-                who="Family member"
+                who="Jordan"
                 role="Care Circle"
                 time="Yesterday"
-                body="Completed a care coordination task."
+                body="Added an evening handoff note for the next family review."
                 chip={{ label: "Family", tone: "sage" }}
               />
             </div>

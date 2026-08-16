@@ -245,26 +245,26 @@ export type ContinuitySignal = {
   tone: "steady" | "watch" | "follow-up";
 };
 
-const DEFAULT_ACTOR = "Primary helper";
-const DEFAULT_CARE_SUBJECT_ID = "active-care-workspace";
+const DEFAULT_ACTOR = "Maya";
+const DEFAULT_CARE_SUBJECT_ID = "evelyn-demo-workspace";
 
 export const DEFAULT_CARE_ACTORS: CareActor[] = [
   {
-    displayName: "Primary helper",
-    id: "actor-primary-helper",
-    relationship: "Care team",
+    displayName: "Maya",
+    id: "actor-maya-demo",
+    relationship: "Primary family organizer",
     role: "primary-caregiver",
   },
   {
-    displayName: "Backup helper",
-    id: "actor-backup-helper",
-    relationship: "Care team",
+    displayName: "Jordan",
+    id: "actor-jordan-demo",
+    relationship: "Secondary family helper",
     role: "family-member",
   },
   {
-    displayName: "Support helper",
-    id: "actor-support-helper",
-    relationship: "Care team",
+    displayName: "Sam",
+    id: "actor-sam-demo",
+    relationship: "Weekend support",
     role: "supporter",
   },
 ];
@@ -272,12 +272,12 @@ export const DEFAULT_CARE_ACTORS: CareActor[] = [
 export const DEFAULT_CARE_CIRCLE: CareCircle = {
   actors: DEFAULT_CARE_ACTORS,
   careSubject: {
-    displayName: "Active care workspace",
+    displayName: "Evelyn",
     id: DEFAULT_CARE_SUBJECT_ID,
-    relationshipContext: "Family care",
+    relationshipContext: "Family care demo",
   },
-  id: "circle-active-care-workspace",
-  name: "Family care team",
+  id: "circle-evelyn-demo-workspace",
+  name: "Evelyn's family care team",
 };
 
 export function createInitialHealthEventState(): HealthEventState {
@@ -328,7 +328,7 @@ export function createInitialHealthEventState(): HealthEventState {
       createCareNoteAddedEvent({
         actor: DEFAULT_CARE_ACTORS[1],
         createdAt: "Yesterday, 6:20 PM",
-        note: "Family care update recorded for the active workspace.",
+        note: "Evening handoff note added for tomorrow's family check-in.",
         noteType: "caregiver-context",
         occurredAt: new Date(Date.now() - 18 * 60 * 60 * 1000).toISOString(),
       }),
