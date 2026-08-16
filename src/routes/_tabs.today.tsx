@@ -497,21 +497,21 @@ function Today() {
             icon={Pill}
             label="Care status"
             value="Preview"
-            detail="Details hidden in beta"
+            detail="Morning routine ready"
             tone="bg-blush text-blush-foreground"
           />
           <HomeStatusCard
             icon={CalendarDays}
             label="Care prep"
             value="Ready"
-            detail="Care team assigned"
+            detail="Tomorrow check-in"
             tone="bg-sky text-sky-foreground"
           />
           <HomeStatusCard
             icon={Activity}
             label="Check-in"
             value="Preview"
-            detail="Details hidden in beta"
+            detail="Comfort update ready"
             tone="bg-sage text-sage-foreground"
           />
         </div>
@@ -523,7 +523,7 @@ function Today() {
           {
             i: Pill,
             l: "Care status",
-            s: "Preview",
+            s: "Morning",
             v: "med",
             c: "bg-blush text-blush-foreground",
             onClick: () => openWorkflow("med"),
@@ -531,7 +531,7 @@ function Today() {
           {
             i: Activity,
             l: "Check-in",
-            s: "Preview",
+            s: "Comfort",
             v: "vitals",
             c: "bg-sage text-sage-foreground",
             onClick: () => openWorkflow("vitals"),
@@ -539,7 +539,7 @@ function Today() {
           {
             i: ClipboardCheck,
             l: "Care prep",
-            s: "Preview",
+            s: "Tomorrow",
             v: "visit",
             c: "bg-sky text-sky-foreground",
             onClick: () => openWorkflow("visit"),
@@ -589,7 +589,7 @@ function Today() {
 
       {activeWorkflow === "visit" && (
         <>
-          <Section title="Visit prep">
+          <Section title="Care prep">
             <VisitPrepCard
               artifacts={visibleHealthEventState.artifacts}
               careTimelineConfidence={showCareTimelineConfidence}
@@ -620,7 +620,7 @@ function Today() {
               tone="warn"
               icon={AlertCircle}
               title="Care status preview"
-              subtitle="Yesterday evening · details hidden"
+              subtitle="Maya has a morning routine update ready"
               action="View preview"
               onAction={() => openWorkflow("med")}
             />
@@ -628,7 +628,7 @@ function Today() {
               tone="info"
               icon={ScanLine}
               title="Care prep available"
-              subtitle="Internal overview is ready inside the workspace"
+              subtitle="Tomorrow's family check-in overview is ready"
               action="Open preview"
               onAction={() => openWorkflow("visit")}
             />
@@ -641,7 +641,7 @@ function Today() {
                 icon={Pill}
                 iconBg="bg-blush text-blush-foreground"
                 title="Care status"
-                sub="Updated in preview"
+                sub="Morning routine reviewed"
                 done
               />
               <Row
@@ -649,14 +649,14 @@ function Today() {
                 icon={CalendarDays}
                 iconBg="bg-sky text-sky-foreground"
                 title="Care prep"
-                sub="Care team member assigned"
+                sub="Maya, Jordan, and Sam included"
               />
               <Row
                 time="Review"
                 icon={Pill}
                 iconBg="bg-blush text-blush-foreground"
                 title="Care status"
-                sub="Details hidden for beta preview"
+                sub="Evening handoff still needs a look"
               />
             </div>
           </Section>
@@ -815,7 +815,7 @@ function VisitPrepCard({
         <div className="mt-3 flex gap-2 rounded-2xl bg-sage px-3.5 py-3 text-sage-foreground">
           <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
           <div>
-            <p className="text-[13px] font-semibold">Available in care prep</p>
+            <p className="text-[13px] font-semibold">Available for tomorrow's care prep</p>
             <p className="mt-0.5 text-[12px] leading-relaxed">
               Internal prep is available for the next appointment. For coordination only.
             </p>
@@ -1689,7 +1689,7 @@ function LogMedicationPanel({
           dose: "Hidden for beta preview",
           frequency: "Schedule hidden",
           id: `medicationCategory-${Date.now()}`,
-          name: "Care status category",
+          name: "Family check-in status",
           reminderTime: "Hidden",
         },
       }),
@@ -1703,7 +1703,7 @@ function LogMedicationPanel({
       <PanelHeader
         icon={Pill}
         title="Care status"
-        subtitle="Category status and reviewed updates."
+        subtitle="Evelyn's family care categories for the day."
         onClose={onClose}
         tone="bg-blush text-blush-foreground"
         action={
@@ -1719,14 +1719,14 @@ function LogMedicationPanel({
       <div className="px-4 pb-4 space-y-4">
         {showAddMedication && (
           <div className="rounded-2xl bg-secondary p-3.5">
-            <p className="text-[13px] font-semibold">Add care status category</p>
+            <p className="text-[13px] font-semibold">Add family care status</p>
             <div className="mt-3 grid grid-cols-2 gap-2.5">
-              <Field label="Category" value="Care status category" />
-              <Field label="Status" value="Hidden for beta preview" />
+              <Field label="Category" value="Family check-in status" />
+              <Field label="Status" value="Ready for review" />
             </div>
             <div className="mt-2.5 grid grid-cols-2 gap-2.5">
-              <Field label="Cadence" value="Hidden for beta preview" />
-              <Field label="Prompt" value="Hidden" />
+              <Field label="Care team" value="Maya and Jordan" />
+              <Field label="Details" value="Hidden in beta" />
             </div>
             <button
               onClick={scheduleMedication}
@@ -1754,9 +1754,9 @@ function LogMedicationPanel({
                     <Clock3 className="h-4 w-4" />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-[14px] font-medium">Care status category</p>
+                    <p className="text-[14px] font-medium">{medication.name}</p>
                     <p className="text-[12px] text-muted-foreground">
-                      Details hidden for beta preview
+                      Details hidden in beta · family review only
                     </p>
                   </div>
                   <button
@@ -1839,14 +1839,20 @@ function VitalsPanel({
   const [selectedVital, setSelectedVital] = useState<VitalsFocus>("bp");
   const selectedVitalLabel =
     selectedVital === "bp"
-      ? "status category"
+      ? "morning comfort"
       : selectedVital === "hr"
-        ? "pulse category"
-        : "trend category";
+        ? "afternoon note"
+        : "evening handoff";
   const addReading = () => {
     onEvent(
       createVitalsRecordedEvent({
-        reading: createVitalsReading("Logged", 0, 0, "Hidden", "Content-free beta preview"),
+        reading: createVitalsReading(
+          "Family check-in",
+          0,
+          0,
+          "Hidden",
+          "Demo family check-in added for Evelyn.",
+        ),
       }),
     );
     onSave();
@@ -1857,7 +1863,7 @@ function VitalsPanel({
       <PanelHeader
         icon={Activity}
         title="Check-in status"
-        subtitle="Category status and readiness setup."
+        subtitle="Comfort and handoff updates for Evelyn."
         onClose={onClose}
         tone="bg-sage text-sage-foreground"
         action={
@@ -1878,26 +1884,26 @@ function VitalsPanel({
           <div className="mt-2 grid grid-cols-3 gap-2.5">
             <VitalSelector
               active={selectedVital === "bp"}
-              label="Status category"
+              label="Morning comfort"
               onClick={() => setSelectedVital("bp")}
-              value="Hidden"
-              trend="Logged"
+              value="Ready"
+              trend="Maya"
               tone="sage"
             />
             <VitalSelector
               active={selectedVital === "hr"}
-              label="Signal category"
+              label="Afternoon note"
               onClick={() => setSelectedVital("hr")}
-              value="Hidden"
-              trend="Logged"
+              value="Ready"
+              trend="Jordan"
               tone="sky"
             />
             <VitalSelector
               active={selectedVital === "weight"}
-              label="Trend category"
+              label="Evening handoff"
               onClick={() => setSelectedVital("weight")}
-              value="Hidden"
-              trend="Logged"
+              value="Ready"
+              trend="Sam"
               tone="sand"
             />
           </div>
@@ -1910,21 +1916,21 @@ function VitalsPanel({
 
         {showAddReading && (
           <div className="rounded-2xl bg-secondary p-3.5">
-            <p className="text-[13px] font-semibold">Add {selectedVitalLabel} reading</p>
+            <p className="text-[13px] font-semibold">Add {selectedVitalLabel} update</p>
             {selectedVital === "bp" && (
               <div className="mt-3 grid grid-cols-2 gap-2.5">
-                <Field label="First status" value="Hidden for beta preview" />
-                <Field label="Second status" value="Hidden for beta preview" />
+                <Field label="Comfort" value="Ready for family review" />
+                <Field label="Details" value="Hidden in beta" />
               </div>
             )}
             {selectedVital === "hr" && (
               <div className="mt-3">
-                <Field label="Signal category" value="Hidden for beta preview" />
+                <Field label="Family note" value="Ready for family review" />
               </div>
             )}
             {selectedVital === "weight" && (
               <div className="mt-3">
-                <Field label="Trend category" value="Hidden for beta preview" />
+                <Field label="Handoff" value="Ready for family review" />
               </div>
             )}
             <label className="mt-2.5 block rounded-2xl bg-card px-3.5 py-3">
@@ -1933,7 +1939,7 @@ function VitalsPanel({
               </span>
               <textarea
                 className="mt-1 min-h-16 w-full resize-none bg-transparent text-[14px] outline-none placeholder:text-muted-foreground"
-                placeholder="Context hidden for beta preview"
+                placeholder="Example: Jordan will check in after dinner."
               />
             </label>
             <button
@@ -2004,10 +2010,10 @@ function VitalsTrendCharts({
 }) {
   const selectedLabel =
     selectedVital === "bp"
-      ? "Status category"
+      ? "Morning comfort"
       : selectedVital === "hr"
-        ? "Signal category"
-        : "Trend category";
+        ? "Afternoon note"
+        : "Evening handoff";
 
   return (
     <div className="rounded-2xl bg-secondary p-3.5">
@@ -2015,7 +2021,7 @@ function VitalsTrendCharts({
         <div>
           <p className="text-[13px] font-semibold">{selectedLabel}</p>
           <p className="text-[12px] text-muted-foreground">
-            Details are summarized for beta preview.
+            Evelyn's check-in details stay summarized for this beta preview.
           </p>
         </div>
         <span className="rounded-full bg-card px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
@@ -2023,9 +2029,9 @@ function VitalsTrendCharts({
         </span>
       </div>
       <div className="mt-3 grid grid-cols-3 gap-2">
-        <VitalsStatusTile label="Recorded" value={String(readings.length)} />
-        <VitalsStatusTile label="Display" value="Hidden" />
-        <VitalsStatusTile label="Evidence" value="Safe" />
+        <VitalsStatusTile label="Updates" value={String(readings.length)} />
+        <VitalsStatusTile label="Details" value="Hidden" />
+        <VitalsStatusTile label="Workspace" value="Ready" />
       </div>
     </div>
   );

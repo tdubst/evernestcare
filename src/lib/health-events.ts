@@ -338,28 +338,40 @@ export function createInitialHealthEventState(): HealthEventState {
         dose: "Hidden in beta preview",
         frequency: "Cadence hidden",
         id: "morningMedication",
-        name: "Care status category",
+        name: "Morning routine status",
         reminderTime: "Hidden",
       },
       {
         dose: "Hidden in beta preview",
         frequency: "Cadence hidden",
         id: "middayMedication",
-        name: "Care status category",
+        name: "Midday comfort status",
         reminderTime: "Hidden",
       },
       {
         dose: "Hidden in beta preview",
         frequency: "Cadence hidden",
         id: "eveningMedication",
-        name: "Care status category",
+        name: "Evening handoff status",
         reminderTime: "Hidden",
       },
     ],
     vitalsReadings: [
-      createVitalsReading("Logged", 0, 0, "Hidden", "Content-free beta preview"),
-      createVitalsReading("Checked", 0, 0, "Hidden", "Content-free beta preview"),
-      createVitalsReading("Ready", 0, 0, "Hidden", "Content-free beta preview"),
+      createVitalsReading("Morning check-in", 0, 0, "Hidden", "Evelyn felt settled this morning."),
+      createVitalsReading(
+        "Afternoon check-in",
+        0,
+        0,
+        "Hidden",
+        "Jordan added a short comfort update.",
+      ),
+      createVitalsReading(
+        "Evening check-in",
+        0,
+        0,
+        "Hidden",
+        "Sam prepared the next handoff note.",
+      ),
     ],
   };
 }
@@ -629,16 +641,18 @@ export function mergeHealthEventsIntoState(
 
 export function describeHealthEvent(event: HealthEvent, medications: Medication[]) {
   if (event.type === "MedicationTakenEvent" || event.type === "MedicationMissedEvent") {
-    const action = event.type === "MedicationTakenEvent" ? "reviewed" : "needs review";
-    return `Care status ${action}`;
+    const medication = medications.find((item) => item.id === event.payload.medicationId);
+    const label = medication?.name ?? "Care status";
+    const action = event.type === "MedicationTakenEvent" ? "reviewed" : "needs family review";
+    return `${label} ${action}`;
   }
 
   if (event.type === "MedicationScheduledEvent") {
-    return "Care status category added";
+    return "Care status category added for Evelyn";
   }
 
   if (event.type === "VitalsRecordedEvent") {
-    return "Check-in status recorded";
+    return "Family check-in added";
   }
 
   if (event.type === "CareNoteAddedEvent") {
@@ -703,8 +717,8 @@ export function createProviderSummary(
     eventCount: timeline.length,
     lines: [
       `${timeline.length} care update${timeline.length === 1 ? "" : "s"} in ${formatTimeframeLabel(query)}.`,
-      `${medicationEventCount} care status update${medicationEventCount === 1 ? "" : "s"}.`,
-      `${vitalsEventCount} check-in status update${vitalsEventCount === 1 ? "" : "s"}.`,
+      `${medicationEventCount} family care status update${medicationEventCount === 1 ? "" : "s"}.`,
+      `${vitalsEventCount} comfort check-in update${vitalsEventCount === 1 ? "" : "s"}.`,
       "Care notes stay in Recent Updates for this beta preview.",
       `${artifactEventCount} Vault placeholder${artifactEventCount === 1 ? "" : "s"} referenced.`,
       `${continuitySignals.length} thing${continuitySignals.length === 1 ? "" : "s"} to review.`,
@@ -749,22 +763,22 @@ export function projectContinuitySignals(
 
   if (medicationsWithoutRecentTaken.length > 0) {
     signals.push({
-      detail: `${medicationsWithoutRecentTaken.length} care status categor${medicationsWithoutRecentTaken.length === 1 ? "y" : "ies"} need review in ${timeframeLabel}.`,
+      detail: `${medicationsWithoutRecentTaken.length} family care categor${medicationsWithoutRecentTaken.length === 1 ? "y" : "ies"} need review in ${timeframeLabel}.`,
       id: `signal-medication-gap-${query.timeframe}`,
       kind: "medication-gap",
       timeframeLabel,
-      title: "Care status review",
+      title: "Family care review",
       tone: "follow-up",
     });
   }
 
   if (vitalsEvents.length === 0) {
     signals.push({
-      detail: `No check-in status has been added in ${timeframeLabel}.`,
+      detail: `No comfort check-in has been added in ${timeframeLabel}.`,
       id: `signal-vitals-gap-${query.timeframe}`,
       kind: "vitals-gap",
       timeframeLabel,
-      title: "Check-in status missing",
+      title: "Comfort check-in missing",
       tone: "watch",
     });
   }
@@ -871,22 +885,22 @@ export function projectCaregiverWorkflows(
   return [
     {
       detail: hasMedicationGap
-        ? "Care status categories need review for this view."
-        : "Care status updates are visible in this view.",
+        ? "Evelyn's care categories need family review for this view."
+        : "Evelyn's care status updates are visible in this view.",
       id: "workflow-medication",
-      nextStep: hasMedicationGap ? "Open care status" : "Review history",
+      nextStep: hasMedicationGap ? "Review family status" : "Review history",
       status: hasMedicationGap ? "review" : "ready",
       title: "Care status",
     },
     {
       detail:
         hasSummaryArtifact && !hasVitalsGap
-          ? "Internal prep view and recent care updates are ready to review."
-          : "Internal prep view is available with a few care items to review.",
+          ? "Evelyn's family check-in prep and recent care updates are ready to review."
+          : "Family check-in prep is available with a few care items to review.",
       id: "workflow-visit-prep",
-      nextStep: "Review visit prep",
+      nextStep: "Review care prep",
       status: hasSummaryArtifact && !hasVitalsGap ? "ready" : "review",
-      title: "Visit prep",
+      title: "Care prep",
     },
     {
       detail: hasVaultPlaceholder
