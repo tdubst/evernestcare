@@ -198,7 +198,9 @@ async function hydrateBoundary() {
     !row.active_care_team_id ||
     !row.active_care_recipient_id ||
     !row.membership_id ||
-    !row.permission_version
+    !row.permission_version ||
+    row.membership_status !== "active" ||
+    row.role_key !== "owner"
   ) {
     return null;
   }
@@ -286,7 +288,9 @@ function sameBoundary(before, after) {
     before.active_care_team_id === after.active_care_team_id &&
     before.active_care_recipient_id === after.active_care_recipient_id &&
     before.membership_id === after.membership_id &&
-    before.permission_version === after.permission_version
+    before.permission_version === after.permission_version &&
+    before.membership_status === after.membership_status &&
+    before.role_key === after.role_key
   );
 }
 
