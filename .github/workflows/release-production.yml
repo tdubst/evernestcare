@@ -1,0 +1,208 @@
+name: Production Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_sha:
+        description: Full SHA of the current main commit to release
+        required: true
+        type: string
+      confirmation:
+        description: Type RELEASE to confirm the production gate
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: evernest-production-release
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    environment: staging
+    outputs:
+      release_sha: ${{ steps.commit.outputs.release_sha }}
+    steps:
+      - name: Validate release confirmation
+        env:
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          test "$CONFIRMATION" = "RELEASE"
+          test "$GITHUB_REF" = "refs/heads/main"
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 1
+          ref: main
+      - id: commit
+        env:
+          REQUESTED_SHA: ${{ inputs.release_sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$REQUESTED_SHA"
+          echo "release_sha=$REQUESTED_SHA" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run verify
+      - run: npm audit --omit=dev --audit-level=high
+      - name: Verify isolated staging database boundary
+        env:
+          STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+          STAGING_OWNER_EMAIL: ${{ secrets.STAGING_OWNER_EMAIL }}
+          STAGING_OWNER_PASSWORD: ${{ secrets.STAGING_OWNER_PASSWORD }}
+          STAGING_SENTINEL_EVENT_ID: ${{ secrets.STAGING_SENTINEL_EVENT_ID }}
+          STAGING_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }}
+          STAGING_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+        run: npm run test:staging
+
+  deploy:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: production
+    outputs:
+      deployment_id: ${{ steps.deploy.outputs.deployment_id }}
+      deployment_url: ${{ steps.deploy.outputs.deployment_url }}
+      previous_production_id: ${{ steps.deploy.outputs.previous_production_id }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 1
+          ref: main
+      - name: Revalidate main after approval
+        env:
+          RELEASE_SHA: ${{ needs.verify.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$RELEASE_SHA"
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$RELEASE_SHA"
+      - id: deploy
+        name: Create staged production deployment
+        env:
+          RELEASE_SHA: ${{ needs.verify.outputs.release_sha }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$VERCEL_ORG_ID"
+          test -n "$VERCEL_PROJECT_ID"
+          test -n "$VERCEL_TOKEN"
+
+          project_url="https://api.vercel.com/v9/projects/$VERCEL_PROJECT_ID?teamId=$VERCEL_ORG_ID"
+          authorization="Authorization: Bearer $VERCEL_TOKEN"
+          printf 'url = "%s"\nheader = "%s"\nsilent\nshow-error\nfail\noutput = "project.json"\n' \
+            "$project_url" "$authorization" | curl --config -
+
+          test "$(jq -r '.autoAssignCustomDomains' project.json)" = "false"
+          previous_production_id="$(jq -er '.targets.production.id' project.json)"
+          repo_id="$(jq -er '.link.repoId' project.json)"
+          jq -n \
+            --arg name "evernestcare" \
+            --arg project "$VERCEL_PROJECT_ID" \
+            --arg ref "main" \
+            --arg sha "$RELEASE_SHA" \
+            --argjson repoId "$repo_id" \
+            '{name: $name, project: $project, target: "production", gitSource: {type: "github", repoId: $repoId, ref: $ref, sha: $sha}}' \
+            > deployment-request.json
+
+          deployment_url="https://api.vercel.com/v13/deployments?teamId=$VERCEL_ORG_ID&forceNew=1"
+          printf 'url = "%s"\nrequest = "POST"\nheader = "%s"\nheader = "Content-Type: application/json"\ndata-binary = "@deployment-request.json"\nsilent\nshow-error\nfail\noutput = "deployment.json"\n' \
+            "$deployment_url" "$authorization" | curl --config -
+          jq -e '.id and .url and (.target == "production") and (.aliasAssigned == false)' deployment.json >/dev/null
+          echo "deployment_id=$(jq -er '.id' deployment.json)" >> "$GITHUB_OUTPUT"
+          echo "deployment_url=https://$(jq -er '.url' deployment.json)" >> "$GITHUB_OUTPUT"
+          echo "previous_production_id=$previous_production_id" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Verify staged production release metadata
+        env:
+          EXPECTED_DEPLOYMENT_ID: ${{ steps.deploy.outputs.deployment_id }}
+          EXPECTED_RELEASE_SHA: ${{ needs.verify.outputs.release_sha }}
+          PRODUCTION_HEALTHCHECK_URL: ${{ steps.deploy.outputs.deployment_url }}
+        run: npm run test:production-deployment
+      - name: Verify staged production release in browser
+        env:
+          PRODUCTION_BROWSER_URL: ${{ steps.deploy.outputs.deployment_url }}
+        run: npm run test:production-browser
+      - id: promote
+        name: Promote verified deployment
+        env:
+          DEPLOYMENT_ID: ${{ steps.deploy.outputs.deployment_id }}
+          PREVIOUS_PRODUCTION_ID: ${{ steps.deploy.outputs.previous_production_id }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          set -euo pipefail
+          project_url="https://api.vercel.com/v9/projects/$VERCEL_PROJECT_ID?teamId=$VERCEL_ORG_ID"
+          promote_url="https://api.vercel.com/v10/projects/$VERCEL_PROJECT_ID/promote/$DEPLOYMENT_ID?teamId=$VERCEL_ORG_ID"
+          authorization="Authorization: Bearer $VERCEL_TOKEN"
+          printf 'url = "%s"\nheader = "%s"\nsilent\nshow-error\nfail\noutput = "pre-promote-project.json"\n' \
+            "$project_url" "$authorization" | curl --config -
+          test "$(jq -er '.targets.production.id' pre-promote-project.json)" = "$PREVIOUS_PRODUCTION_ID"
+          printf 'url = "%s"\nrequest = "POST"\nheader = "%s"\nsilent\nshow-error\nfail\noutput = "/dev/null"\n' \
+            "$promote_url" "$authorization" | curl --config -
+          echo "promoted=true" >> "$GITHUB_OUTPUT"
+      - name: Verify canonical production release metadata
+        env:
+          DEPLOYMENT_VERIFY_ATTEMPTS: 24
+          EXPECTED_DEPLOYMENT_ID: ${{ steps.deploy.outputs.deployment_id }}
+          EXPECTED_RELEASE_SHA: ${{ needs.verify.outputs.release_sha }}
+          PRODUCTION_HEALTHCHECK_URL: ${{ secrets.PRODUCTION_HEALTHCHECK_URL }}
+        run: npm run test:production-deployment
+      - name: Verify canonical production release in browser
+        env:
+          PRODUCTION_BROWSER_URL: ${{ secrets.PRODUCTION_HEALTHCHECK_URL }}
+        run: npm run test:production-browser
+      - name: Restore previous production deployment
+        if: ${{ always() && (failure() || cancelled()) && steps.promote.outputs.promoted == 'true' }}
+        env:
+          PREVIOUS_PRODUCTION_ID: ${{ steps.deploy.outputs.previous_production_id }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$PREVIOUS_PRODUCTION_ID"
+          rollback_url="https://api.vercel.com/v1/projects/$VERCEL_PROJECT_ID/rollback/$PREVIOUS_PRODUCTION_ID?teamId=$VERCEL_ORG_ID"
+          authorization="Authorization: Bearer $VERCEL_TOKEN"
+          printf 'url = "%s"\nrequest = "POST"\nheader = "%s"\nsilent\nshow-error\nfail\noutput = "/dev/null"\n' \
+            "$rollback_url" "$authorization" | curl --config -
+      - name: Verify rollback control plane
+        if: ${{ always() && (failure() || cancelled()) && steps.promote.outputs.promoted == 'true' }}
+        env:
+          PREVIOUS_PRODUCTION_ID: ${{ steps.deploy.outputs.previous_production_id }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          set -euo pipefail
+          project_url="https://api.vercel.com/v9/projects/$VERCEL_PROJECT_ID?teamId=$VERCEL_ORG_ID"
+          authorization="Authorization: Bearer $VERCEL_TOKEN"
+          for attempt in $(seq 1 30); do
+            printf 'url = "%s"\nheader = "%s"\nsilent\nshow-error\nfail\noutput = "rollback-project.json"\n' \
+              "$project_url" "$authorization" | curl --config -
+            if test "$(jq -er '.targets.production.id' rollback-project.json)" = "$PREVIOUS_PRODUCTION_ID"; then
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1
+      - name: Verify restored browser shell
+        if: ${{ always() && (failure() || cancelled()) && steps.promote.outputs.promoted == 'true' }}
+        env:
+          PRODUCTION_BROWSER_EXPECTATION: rollback
+          PRODUCTION_BROWSER_URL: ${{ secrets.PRODUCTION_HEALTHCHECK_URL }}
+        run: npm run test:production-browser

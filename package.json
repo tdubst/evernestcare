@@ -19,6 +19,8 @@
     "test:e2e": "playwright test",
     "test:e2e:production": "E2E_APP_MODE=production playwright test",
     "test:e2e:install": "playwright install chromium",
+    "test:production-browser": "node scripts/verify-production-browser.mjs",
+    "test:production-deployment": "node scripts/verify-production-deployment.mjs",
     "test:runtime-env": "node scripts/test-production-env.mjs",
     "test:sql-posture": "node scripts/check-production-sql-posture.mjs",
     "test:staging": "node scripts/verify-production-staging.mjs",

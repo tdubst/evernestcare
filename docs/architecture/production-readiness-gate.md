@@ -29,6 +29,8 @@ Calendar mutation, realtime messaging, self-service onboarding, real document up
 - Production invitation creation is disabled in both WebApp UI and function grants until delivery/activation is implemented and reviewed.
 - Web quality checks run in CI: lint, typecheck, application build, Vercel build, mobile-viewport golden-flow tests, production-boundary tests, accessibility checks, and high-severity production dependency audit.
 - Vercel route chunks are split and the largest JavaScript asset is held to an explicit raw/gzip budget.
+- Every Vercel build emits a non-sensitive release manifest containing only app mode, commit SHA, Vercel deployment ID, deployment environment, and package version.
+- Production deployment is manual and approval-gated: only the exact current `main` SHA can pass, the full verification suite runs again, and promotion is accepted only after the production URL reports that exact SHA with production security headers.
 - Mobile dependency versions are explicit rather than `latest`.
 - Hosted responses include restrictive browser security headers and disable unused device permissions.
 - Forward migrations remove direct mutation access for `PUBLIC`, `anon`, and `authenticated`, remove public execution of the internal audit helper and bootstrap helper, and close production workspace/invitation provisioning RPCs. They remain unapplied until database review and runtime proof pass.
@@ -77,6 +79,17 @@ cd apps/mobile && npm ci && npm run typecheck
 ```
 
 Production deployments must additionally pass `scripts/validate-production-env.mjs` through the Vercel build command.
+
+The GitHub `production` environment must require reviewer approval, restrict deployments to `main`, disable administrator bypass, and contain only these deployment secrets:
+
+- `VERCEL_TOKEN`, a short-lived Vercel access token with only the required project deployment access.
+- `VERCEL_ORG_ID`, the owning Vercel team identifier.
+- `VERCEL_PROJECT_ID`, the Evernest Care Vercel project identifier.
+- `PRODUCTION_HEALTHCHECK_URL`, the canonical HTTPS production origin.
+
+The GitHub `staging` environment must require reviewer approval, restrict deployments to `main`, disable administrator bypass, and contain the six isolated proof values required by `npm run test:staging`: database URL, Supabase URL, publishable key, owner email/password, and sentinel event ID. These must identify the dedicated staging project, never the accepted beta/synthetic project or production. The external environment rule is authoritative; the workflow's own branch check is defense in depth.
+
+Automatic Git deployment from `main` is disabled in `vercel.json`. Vercel's **Auto-assign Custom Production Domains** project setting must also remain disabled; the release workflow fails closed if the project API reports otherwise. Release operators must invoke the `Production Release` workflow with the full current `main` SHA and the exact confirmation `RELEASE`. The workflow reruns all checks and the isolated staging database proof before approval, creates a non-aliased production deployment from the exact verified GitHub SHA, verifies its release manifest and signed-out browser boundary, confirms the current production target has not changed out of band, promotes that exact deployment, and repeats both checks against the canonical production URL. If a post-promotion check fails or is canceled, recovery restores the prior production deployment, confirms the project target points to the prior deployment ID, and verifies the restored browser shell. Rotate the Vercel token after a release or configure a short expiration.
 
 ## Isolated Staging Verification
 
