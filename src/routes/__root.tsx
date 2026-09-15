@@ -11,6 +11,7 @@ import {
 import appCss from "../styles.css?url";
 import { AuthProvider } from "@/lib/auth/auth-provider";
 import { PermissionProvider } from "@/lib/permissions/permission-provider";
+import { reportSafeError } from "@/lib/safe-error-reporting";
 
 function NotFoundComponent() {
   return (
@@ -29,8 +30,8 @@ function NotFoundComponent() {
   );
 }
 
-function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
-  console.error(error);
+function ErrorComponent({ error, reset }: { error: unknown; reset: () => void }) {
+  reportSafeError("client_render_failed", error);
   const router = useRouter();
   return (
     <div className="flex min-h-dvh items-center justify-center bg-background px-4">

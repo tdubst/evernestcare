@@ -11,6 +11,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { isProductionRuntime } from "@/lib/runtime-mode";
+
 export const Route = createFileRoute("/_tabs/calendar")({
   head: () => ({ meta: [{ title: "Calendar — Evernest Care" }] }),
   component: CalendarPage,
@@ -79,6 +81,10 @@ const EVENTS: Record<number, CalendarEvent[]> = {
 };
 
 function CalendarPage() {
+  return isProductionRuntime() ? <ProductionCalendarUnavailable /> : <BetaCalendarPage />;
+}
+
+function BetaCalendarPage() {
   const [view, setView] = useState<View>("Week");
   const [selected, setSelected] = useState(26);
   const [filter, setFilter] = useState<CalendarFilter>("All");
@@ -260,6 +266,21 @@ function CalendarPage() {
       {open && (
         <VisitDetailSheet event={open.event} selected={open.day} onClose={() => setOpen(null)} />
       )}
+    </div>
+  );
+}
+
+function ProductionCalendarUnavailable() {
+  return (
+    <div className="px-6 pt-14">
+      <p className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
+        Not included in this release
+      </p>
+      <h1 className="mt-2 text-[28px] font-semibold tracking-tight">Calendar unavailable</h1>
+      <p className="mt-3 max-w-[36ch] text-[15px] leading-relaxed text-muted-foreground">
+        Calendar updates will remain unavailable until durable scheduling and access controls pass
+        production review.
+      </p>
     </div>
   );
 }

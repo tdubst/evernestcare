@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 
-import { AuthContext, type AuthContextValue, type AuthStatus } from "@/lib/auth/auth-context";
+import {
+  AuthContext,
+  type AuthContextValue,
+  type AuthStatus,
+  type SignInResult,
+} from "@/lib/auth/auth-context";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -45,6 +50,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setStatus("unauthenticated");
   };
 
+  const signInWithPassword = useCallback(
+    async (email: string, password: string): Promise<SignInResult> => {
+      if (!client) return { status: "unavailable" };
+
+      const { data, error } = await client.auth.signInWithPassword({ email, password });
+      if (error || !data.session) {
+        setSession(null);
+        setStatus("unauthenticated");
+        return { status: error ? "invalid" : "unavailable" };
+      }
+
+      setSession(data.session);
+      setStatus("authenticated");
+      return { status: "ready" };
+    },
+    [client],
+  );
+
   useEffect(() => {
     void refreshSession();
 
@@ -64,6 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     client,
     refreshSession,
     session,
+    signInWithPassword,
     signOut,
     status,
     user: session?.user ?? null,

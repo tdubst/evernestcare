@@ -204,10 +204,7 @@ function CareTeam() {
       });
       setInviteAddress(BETA_INVITE_ADDRESS);
       setSheet(null);
-      setSummary({
-        ...BETA_DEMO_CARE_CIRCLE_SUMMARY,
-        pendingInvitations: BETA_DEMO_CARE_CIRCLE_INVITATIONS,
-      });
+      setSummary(BETA_DEMO_CARE_CIRCLE_SUMMARY);
       return;
     }
 

@@ -35,8 +35,8 @@ export function ProtectedShell({ children }: { children: React.ReactNode }) {
         title="Sign in required"
         body="Evernest Care protects care coordination spaces before showing family information."
         action={
-          <Link to="/onboarding" className="text-[14px] font-medium text-primary">
-            Start onboarding
+          <Link to="/sign-in" className="text-[14px] font-medium text-primary">
+            Sign in
           </Link>
         }
       />

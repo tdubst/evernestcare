@@ -1,3 +1,5 @@
+import { isProductionRuntime } from "@/lib/runtime-mode";
+
 export type SupabaseRuntimeConfig = {
   anonKey: string;
   authRequired: boolean;
@@ -18,5 +20,5 @@ export function getSupabaseRuntimeConfig(): SupabaseRuntimeConfig | null {
 }
 
 export function isAuthRequiredForRoutes() {
-  return import.meta.env.VITE_REQUIRE_AUTH === "true";
+  return isProductionRuntime() || import.meta.env.VITE_REQUIRE_AUTH === "true";
 }

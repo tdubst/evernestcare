@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Heart, ShieldCheck, Users } from "lucide-react";
 
 import { releaseShortLabel } from "@/lib/release";
+import { isProductionRuntime } from "@/lib/runtime-mode";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -17,6 +18,8 @@ export const Route = createFileRoute("/")({
 });
 
 function Welcome() {
+  const production = isProductionRuntime();
+
   return (
     <div className="phone-shell grad-hero overflow-hidden">
       <div className="relative flex min-h-dvh flex-col px-6 pt-16 pb-10">
@@ -26,7 +29,9 @@ function Welcome() {
           </span>
           Evernest Care
         </div>
-        <p className="mt-2 text-[12px] font-medium text-muted-foreground">{releaseShortLabel}</p>
+        <p className="mt-2 text-[12px] font-medium text-muted-foreground">
+          {production ? "Private care workspace · v0.1.0" : releaseShortLabel}
+        </p>
 
         <div className="mt-16">
           <h1 className="text-[40px] leading-[1.05] font-semibold tracking-tight text-foreground">
@@ -37,7 +42,9 @@ function Welcome() {
             <span className="text-primary">together.</span>
           </h1>
           <p className="mt-5 text-[17px] leading-relaxed text-muted-foreground max-w-[34ch]">
-            A calm shared beta workspace for family coordination, status checks, and safe setup.
+            {production
+              ? "A private family workspace for reviewed care coordination."
+              : "A calm shared beta workspace for family coordination, status checks, and safe setup."}
           </p>
         </div>
 
@@ -65,20 +72,24 @@ function Welcome() {
 
         <div className="mt-auto pt-10 space-y-3">
           <Link
-            to="/onboarding"
+            to={production ? "/sign-in" : "/onboarding"}
             className="block w-full rounded-full bg-primary py-4 text-center text-[17px] font-medium text-primary-foreground shadow-card active:scale-[0.99] transition"
           >
-            Get started
+            {production ? "Sign in" : "Get started"}
           </Link>
-          <Link
-            to="/today"
-            className="block w-full rounded-full bg-card py-4 text-center text-[15px] font-medium text-foreground hairline border"
-          >
-            Open beta workspace
-          </Link>
-          <p className="text-center text-[12px] text-muted-foreground pt-1">
-            Beta preview keeps sensitive details out of proof surfaces.
-          </p>
+          {!production && (
+            <>
+              <Link
+                to="/today"
+                className="block w-full rounded-full bg-card py-4 text-center text-[15px] font-medium text-foreground hairline border"
+              >
+                Open beta workspace
+              </Link>
+              <p className="pt-1 text-center text-[12px] text-muted-foreground">
+                Beta preview keeps sensitive details out of proof surfaces.
+              </p>
+            </>
+          )}
         </div>
       </div>
     </div>

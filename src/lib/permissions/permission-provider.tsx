@@ -12,10 +12,12 @@ import {
 } from "@/lib/permissions/care-boundary-repository";
 import { isAuthRequiredForRoutes } from "@/lib/supabase/config";
 import { BETA_DEMO_BOUNDARY } from "@/lib/beta-demo-workspace";
+import { isDemoWorkspaceEnabled } from "@/lib/runtime-mode";
 
 export function PermissionProvider({ children }: { children: React.ReactNode }) {
   const { client, status, user } = useAuth();
   const authRequired = isAuthRequiredForRoutes();
+  const demoWorkspaceEnabled = isDemoWorkspaceEnabled();
   const [boundary, setBoundary] = useState<HydratedCareBoundary | null>(null);
   const [hydrateStatus, setHydrateStatus] = useState<"error" | "idle" | "loading" | "ready">(
     "idle",
@@ -58,7 +60,11 @@ export function PermissionProvider({ children }: { children: React.ReactNode }) 
   }, [client, status, user]);
 
   const value = useMemo<PermissionContextValue>(() => {
-    if (!authRequired && (status === "unconfigured" || status === "unauthenticated")) {
+    if (
+      demoWorkspaceEnabled &&
+      !authRequired &&
+      (status === "unconfigured" || status === "unauthenticated")
+    ) {
       return {
         activeCareTeamId: BETA_DEMO_BOUNDARY.activeCareTeamId,
         activeCareRecipientId: BETA_DEMO_BOUNDARY.activeCareRecipientId,
@@ -155,7 +161,7 @@ export function PermissionProvider({ children }: { children: React.ReactNode }) 
       roleKey: boundary?.roleKey ?? null,
       status: "ready",
     };
-  }, [authRequired, boundary, hydrateStatus, status, user]);
+  }, [authRequired, boundary, demoWorkspaceEnabled, hydrateStatus, status, user]);
 
   return <PermissionContext.Provider value={value}>{children}</PermissionContext.Provider>;
 }

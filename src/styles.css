@@ -56,7 +56,7 @@
   --popover-foreground: oklch(0.22 0.02 250);
 
   /* Soft trustworthy blue */
-  --primary: oklch(0.62 0.11 235);
+  --primary: oklch(0.52 0.11 235);
   --primary-foreground: oklch(0.99 0 0);
 
   --secondary: oklch(0.96 0.012 240);
@@ -73,7 +73,7 @@
 
   --border: oklch(0.92 0.008 240);
   --input: oklch(0.92 0.008 240);
-  --ring: oklch(0.62 0.11 235);
+  --ring: oklch(0.52 0.11 235);
 
   /* Calming accents */
   --sage: oklch(0.86 0.055 155);

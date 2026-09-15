@@ -9,19 +9,24 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as ProfileTypesRouteImport } from './routes/profile-types'
-import { Route as OnboardingRouteImport } from './routes/onboarding'
-import { Route as TabsRouteImport } from './routes/_tabs'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as TabsVaultRouteImport } from './routes/_tabs.vault'
-import { Route as TabsTodayRouteImport } from './routes/_tabs.today'
-import { Route as TabsMessagesRouteImport } from './routes/_tabs.messages'
-import { Route as TabsCareTeamRouteImport } from './routes/_tabs.care-team'
+import { Route as TabsRouteImport } from './routes/_tabs'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as ProfileTypesRouteImport } from './routes/profile-types'
+import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as TabsCalendarRouteImport } from './routes/_tabs.calendar'
+import { Route as TabsCareTeamRouteImport } from './routes/_tabs.care-team'
+import { Route as TabsMessagesRouteImport } from './routes/_tabs.messages'
+import { Route as TabsTodayRouteImport } from './routes/_tabs.today'
+import { Route as TabsVaultRouteImport } from './routes/_tabs.vault'
 
-const ProfileTypesRoute = ProfileTypesRouteImport.update({
-  id: '/profile-types',
-  path: '/profile-types',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TabsRoute = TabsRouteImport.update({
+  id: '/_tabs',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OnboardingRoute = OnboardingRouteImport.update({
@@ -29,28 +34,19 @@ const OnboardingRoute = OnboardingRouteImport.update({
   path: '/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TabsRoute = TabsRouteImport.update({
-  id: '/_tabs',
+const ProfileTypesRoute = ProfileTypesRouteImport.update({
+  id: '/profile-types',
+  path: '/profile-types',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const SignInRoute = SignInRouteImport.update({
+  id: '/sign-in',
+  path: '/sign-in',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TabsVaultRoute = TabsVaultRouteImport.update({
-  id: '/vault',
-  path: '/vault',
-  getParentRoute: () => TabsRoute,
-} as any)
-const TabsTodayRoute = TabsTodayRouteImport.update({
-  id: '/today',
-  path: '/today',
-  getParentRoute: () => TabsRoute,
-} as any)
-const TabsMessagesRoute = TabsMessagesRouteImport.update({
-  id: '/messages',
-  path: '/messages',
+const TabsCalendarRoute = TabsCalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
   getParentRoute: () => TabsRoute,
 } as any)
 const TabsCareTeamRoute = TabsCareTeamRouteImport.update({
@@ -58,9 +54,19 @@ const TabsCareTeamRoute = TabsCareTeamRouteImport.update({
   path: '/care-team',
   getParentRoute: () => TabsRoute,
 } as any)
-const TabsCalendarRoute = TabsCalendarRouteImport.update({
-  id: '/calendar',
-  path: '/calendar',
+const TabsMessagesRoute = TabsMessagesRouteImport.update({
+  id: '/messages',
+  path: '/messages',
+  getParentRoute: () => TabsRoute,
+} as any)
+const TabsTodayRoute = TabsTodayRouteImport.update({
+  id: '/today',
+  path: '/today',
+  getParentRoute: () => TabsRoute,
+} as any)
+const TabsVaultRoute = TabsVaultRouteImport.update({
+  id: '/vault',
+  path: '/vault',
   getParentRoute: () => TabsRoute,
 } as any)
 
@@ -68,6 +74,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/onboarding': typeof OnboardingRoute
   '/profile-types': typeof ProfileTypesRoute
+  '/sign-in': typeof SignInRoute
   '/calendar': typeof TabsCalendarRoute
   '/care-team': typeof TabsCareTeamRoute
   '/messages': typeof TabsMessagesRoute
@@ -78,6 +85,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/onboarding': typeof OnboardingRoute
   '/profile-types': typeof ProfileTypesRoute
+  '/sign-in': typeof SignInRoute
   '/calendar': typeof TabsCalendarRoute
   '/care-team': typeof TabsCareTeamRoute
   '/messages': typeof TabsMessagesRoute
@@ -90,6 +98,7 @@ export interface FileRoutesById {
   '/_tabs': typeof TabsRouteWithChildren
   '/onboarding': typeof OnboardingRoute
   '/profile-types': typeof ProfileTypesRoute
+  '/sign-in': typeof SignInRoute
   '/_tabs/calendar': typeof TabsCalendarRoute
   '/_tabs/care-team': typeof TabsCareTeamRoute
   '/_tabs/messages': typeof TabsMessagesRoute
@@ -102,6 +111,7 @@ export interface FileRouteTypes {
     | '/'
     | '/onboarding'
     | '/profile-types'
+    | '/sign-in'
     | '/calendar'
     | '/care-team'
     | '/messages'
@@ -112,6 +122,7 @@ export interface FileRouteTypes {
     | '/'
     | '/onboarding'
     | '/profile-types'
+    | '/sign-in'
     | '/calendar'
     | '/care-team'
     | '/messages'
@@ -123,6 +134,7 @@ export interface FileRouteTypes {
     | '/_tabs'
     | '/onboarding'
     | '/profile-types'
+    | '/sign-in'
     | '/_tabs/calendar'
     | '/_tabs/care-team'
     | '/_tabs/messages'
@@ -135,22 +147,16 @@ export interface RootRouteChildren {
   TabsRoute: typeof TabsRouteWithChildren
   OnboardingRoute: typeof OnboardingRoute
   ProfileTypesRoute: typeof ProfileTypesRoute
+  SignInRoute: typeof SignInRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/profile-types': {
-      id: '/profile-types'
-      path: '/profile-types'
-      fullPath: '/profile-types'
-      preLoaderRoute: typeof ProfileTypesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/onboarding': {
-      id: '/onboarding'
-      path: '/onboarding'
-      fullPath: '/onboarding'
-      preLoaderRoute: typeof OnboardingRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_tabs': {
@@ -160,32 +166,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TabsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_tabs/vault': {
-      id: '/_tabs/vault'
-      path: '/vault'
-      fullPath: '/vault'
-      preLoaderRoute: typeof TabsVaultRouteImport
-      parentRoute: typeof TabsRoute
+    '/profile-types': {
+      id: '/profile-types'
+      path: '/profile-types'
+      fullPath: '/profile-types'
+      preLoaderRoute: typeof ProfileTypesRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_tabs/today': {
-      id: '/_tabs/today'
-      path: '/today'
-      fullPath: '/today'
-      preLoaderRoute: typeof TabsTodayRouteImport
-      parentRoute: typeof TabsRoute
+    '/sign-in': {
+      id: '/sign-in'
+      path: '/sign-in'
+      fullPath: '/sign-in'
+      preLoaderRoute: typeof SignInRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_tabs/messages': {
-      id: '/_tabs/messages'
-      path: '/messages'
-      fullPath: '/messages'
-      preLoaderRoute: typeof TabsMessagesRouteImport
+    '/_tabs/calendar': {
+      id: '/_tabs/calendar'
+      path: '/calendar'
+      fullPath: '/calendar'
+      preLoaderRoute: typeof TabsCalendarRouteImport
       parentRoute: typeof TabsRoute
     }
     '/_tabs/care-team': {
@@ -195,11 +201,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TabsCareTeamRouteImport
       parentRoute: typeof TabsRoute
     }
-    '/_tabs/calendar': {
-      id: '/_tabs/calendar'
-      path: '/calendar'
-      fullPath: '/calendar'
-      preLoaderRoute: typeof TabsCalendarRouteImport
+    '/_tabs/messages': {
+      id: '/_tabs/messages'
+      path: '/messages'
+      fullPath: '/messages'
+      preLoaderRoute: typeof TabsMessagesRouteImport
+      parentRoute: typeof TabsRoute
+    }
+    '/_tabs/today': {
+      id: '/_tabs/today'
+      path: '/today'
+      fullPath: '/today'
+      preLoaderRoute: typeof TabsTodayRouteImport
+      parentRoute: typeof TabsRoute
+    }
+    '/_tabs/vault': {
+      id: '/_tabs/vault'
+      path: '/vault'
+      fullPath: '/vault'
+      preLoaderRoute: typeof TabsVaultRouteImport
       parentRoute: typeof TabsRoute
     }
   }
@@ -228,6 +248,7 @@ const rootRouteChildren: RootRouteChildren = {
   TabsRoute: TabsRouteWithChildren,
   OnboardingRoute: OnboardingRoute,
   ProfileTypesRoute: ProfileTypesRoute,
+  SignInRoute: SignInRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

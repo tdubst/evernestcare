@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
   Accessibility,
@@ -13,8 +13,14 @@ import {
   Users,
 } from "lucide-react";
 
+import { isProductionRuntime } from "@/lib/runtime-mode";
+
 export const Route = createFileRoute("/onboarding")({
   head: () => ({ meta: [{ title: "Welcome — Evernest Care" }] }),
+  validateSearch: (search): { step?: number } => {
+    const step = parseStep(search.step);
+    return step === 0 ? {} : { step };
+  },
   component: Onboarding,
 });
 
@@ -30,7 +36,11 @@ const STEPS = [
 ] as const;
 
 function Onboarding() {
-  const [step] = useState(getInitialStep);
+  return isProductionRuntime() ? <ProductionOnboarding /> : <BetaOnboarding />;
+}
+
+function BetaOnboarding() {
+  const { step = 0 } = Route.useSearch();
   const name = "Evelyn";
   const [relation, setRelation] = useState("Family caregiver");
   const [profileType, setProfileType] = useState("Family care");
@@ -379,18 +389,44 @@ function Onboarding() {
   );
 }
 
-function getInitialStep() {
-  if (typeof window === "undefined") return 0;
-
-  return parseStep(window.location.search);
+function ProductionOnboarding() {
+  return (
+    <div className="phone-shell grad-hero">
+      <div className="flex min-h-dvh flex-col px-6 pb-10 pt-16">
+        <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-card">
+          <ShieldCheck className="h-6 w-6" />
+        </div>
+        <h1 className="mt-6 text-[32px] font-semibold leading-tight tracking-tight">
+          Access your care workspace
+        </h1>
+        <p className="mt-3 max-w-[36ch] text-[16px] leading-relaxed text-muted-foreground">
+          Production access is invite-only while workspace setup and permissions are reviewed.
+        </p>
+        <div className="mt-auto space-y-3 pt-10">
+          <Link
+            to="/sign-in"
+            className="block w-full rounded-full bg-primary py-4 text-center text-[17px] font-medium text-primary-foreground shadow-card"
+          >
+            Sign in
+          </Link>
+          <Link
+            to="/"
+            className="block w-full rounded-full border border-border bg-card py-4 text-center text-[15px] font-medium"
+          >
+            Back
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function getStepHref(step: number) {
   return `/onboarding?step=${Math.max(0, Math.min(STEPS.length - 1, step))}`;
 }
 
-function parseStep(search: string) {
-  const rawStep = Number(new URLSearchParams(search).get("step") ?? "0");
+function parseStep(value: unknown) {
+  const rawStep = Number(value ?? 0);
   if (!Number.isFinite(rawStep)) return 0;
 
   return Math.max(0, Math.min(STEPS.length - 1, Math.trunc(rawStep)));

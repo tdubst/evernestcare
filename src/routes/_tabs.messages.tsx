@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { BellOff, Lock, MessageCircle, ShieldCheck } from "lucide-react";
 
+import { isProductionRuntime } from "@/lib/runtime-mode";
+
 export const Route = createFileRoute("/_tabs/messages")({
   head: () => ({ meta: [{ title: "Messages — Evernest Care" }] }),
   component: Messages,
@@ -28,13 +30,16 @@ const readinessRows = [
 ] as const;
 
 function Messages() {
+  const production = isProductionRuntime();
+
   return (
     <div>
       <header className="px-6 pb-3 pt-14">
         <h1 className="text-[28px] font-semibold tracking-tight">Messages</h1>
         <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
-          Family messaging is paused for beta hardening while access and notification rules are
-          reviewed.
+          {production
+            ? "Family messaging is not included in this release."
+            : "Family messaging is paused for beta hardening while access and notification rules are reviewed."}
         </p>
       </header>
 
@@ -43,10 +48,12 @@ function Messages() {
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sage text-sage-foreground">
             <MessageCircle className="h-5 w-5" />
           </div>
-          <p className="mt-4 text-[18px] font-semibold">Messaging unavailable in this beta</p>
+          <p className="mt-4 text-[18px] font-semibold">
+            {production ? "Messaging unavailable" : "Messaging unavailable in this beta"}
+          </p>
           <p className="mt-2 text-[14px] leading-relaxed text-muted-foreground">
             Use care notes and approved Care Circle workflows for this release. Message delivery,
-            media, voice, and push previews need a separate privacy review before use.
+            media, voice, and notifications require a separate privacy and security review.
           </p>
         </div>
       </section>

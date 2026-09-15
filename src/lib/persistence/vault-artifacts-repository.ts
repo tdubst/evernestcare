@@ -1,12 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type VaultArtifactCategory =
-  | "care_document"
-  | "insurance_card"
-  | "instructions"
-  | "medication_photo"
-  | "other"
-  | "referral";
+  "care_document" | "insurance_card" | "instructions" | "medication_photo" | "other" | "referral";
 export type VaultArtifactVisibility = "family_visible" | "private";
 export type VaultArtifactAttachmentStatus = "attached" | "revoked" | "unattached";
 export type VaultArtifactStatus =

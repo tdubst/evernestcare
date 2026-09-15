@@ -1,11 +1,7 @@
 import { createContext, useContext } from "react";
 
 export type PermissionRuntimeStatus =
-  | "auth-required"
-  | "error"
-  | "loading"
-  | "ready"
-  | "unconfigured";
+  "auth-required" | "error" | "loading" | "ready" | "unconfigured";
 
 export type CareNoteAccess = {
   canAppend: boolean;

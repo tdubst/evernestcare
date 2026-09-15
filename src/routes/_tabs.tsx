@@ -2,6 +2,7 @@ import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-rout
 import { CalendarDays, Home, MessageCircle, FolderLock, Users } from "lucide-react";
 
 import { ProtectedShell } from "@/components/app/protected-shell";
+import { isProductionRuntime } from "@/lib/runtime-mode";
 
 export const Route = createFileRoute("/_tabs")({
   component: TabsLayout,
@@ -17,13 +18,16 @@ const TABS = [
 
 function TabsLayout() {
   const { pathname } = useLocation();
+  const tabs = isProductionRuntime()
+    ? TABS.filter(({ to }) => to !== "/calendar" && to !== "/messages")
+    : TABS;
   return (
     <ProtectedShell>
       <div className="phone-shell pb-[calc(9rem+env(safe-area-inset-bottom))]">
         <Outlet />
         <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[440px] px-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2 pointer-events-none">
           <div className="pointer-events-auto mx-auto flex items-center justify-between rounded-full bg-card/85 backdrop-blur-xl border hairline shadow-card px-2 py-1.5">
-            {TABS.map(({ to, label, icon: Icon }) => {
+            {tabs.map(({ to, label, icon: Icon }) => {
               const active = pathname.startsWith(to);
               return (
                 <Link

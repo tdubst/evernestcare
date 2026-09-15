@@ -21,6 +21,7 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { releaseScope } from "@/lib/release";
 import {
   createCareNoteAddedEvent,
+  createEmptyHealthEventState,
   createInitialHealthEventState,
   createMedicationScheduledEvent,
   createMedicationTakenEvent,
@@ -86,8 +87,7 @@ type CareNoteSaveState =
   | { status: "unavailable" }
   | { status: "denied" };
 type TodayHealthEventAction =
-  | HealthEvent
-  | { events: HealthEvent[]; type: "hydrate-persisted-events" };
+  HealthEvent | { events: HealthEvent[]; type: "hydrate-persisted-events" };
 
 const CARE_NOTE_MAX_LENGTH = 2000;
 const CARE_NOTE_TYPE_OPTIONS = [
@@ -139,13 +139,16 @@ function Today() {
   } | null>(null);
   const [timelineFilter, setTimelineFilter] = useState<TimelineFilter>("all");
   const [timeframe, setTimeframe] = useState<TimeframePreset>("7d");
+  const { client } = useAuth();
+  const permissions = usePermissions();
   const [healthEventState, dispatchHealthEvent] = useReducer(
     todayHealthEventReducer,
     undefined,
-    createInitialHealthEventState,
+    () =>
+      permissions.isBetaPreviewWorkspace
+        ? createInitialHealthEventState()
+        : createEmptyHealthEventState(),
   );
-  const { client } = useAuth();
-  const permissions = usePermissions();
   const canUsePrototypeCareNotes =
     permissions.status === "unconfigured" || permissions.isBetaPreviewWorkspace;
   const canRenderCareNotes =
@@ -372,7 +375,12 @@ function Today() {
           }
         : null;
     const event = createCareNoteAddedEvent({
-      actor: careCircle.actors[1],
+      actor: careCircle.actors[1] ?? {
+        displayName: "You",
+        id: "current-caregiver",
+        relationship: "Care team member",
+        role: "family-member",
+      },
       note: trimmedNote,
       noteType: careNoteType,
     });

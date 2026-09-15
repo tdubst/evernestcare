@@ -72,7 +72,8 @@ export type CareArtifactKind =
   | "discharge-summary"
   | "insurance-card"
   | "appointment-paperwork"
-  | "referral-document";
+  | "referral-document"
+  | "other-care-record";
 
 export type CareArtifact = {
   fileLabel: string;
@@ -116,10 +117,7 @@ export type CareNoteAddedEvent = HealthEventBase<
   {
     note: string;
     noteType:
-      | "symptom-observation"
-      | "caregiver-context"
-      | "recovery-observation"
-      | "operational-concern";
+      "symptom-observation" | "caregiver-context" | "recovery-observation" | "operational-concern";
   }
 >;
 
@@ -373,6 +371,26 @@ export function createInitialHealthEventState(): HealthEventState {
         "Sam prepared the next handoff note.",
       ),
     ],
+  };
+}
+
+export function createEmptyHealthEventState(): HealthEventState {
+  return {
+    adherence: {},
+    artifacts: [],
+    careCircle: {
+      actors: [],
+      careSubject: {
+        displayName: "Care recipient",
+        id: "active-care-recipient",
+        relationshipContext: "Family care workspace",
+      },
+      id: "active-care-circle",
+      name: "Family care team",
+    },
+    events: [],
+    medications: [],
+    vitalsReadings: [],
   };
 }
 

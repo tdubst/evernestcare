@@ -163,7 +163,7 @@ export async function getCareCircleSummary({
     .maybeSingle<CareCircleSummaryRow>();
 
   if (error || !data) return { status: "unavailable" };
-  if (data.status !== "ready") return { status: toCareCircleStatus(data.status) };
+  if (data.status !== "ready") return { status: toNonReadyStatus(data.status) };
 
   return {
     advisoryPermissions: parsePermissionSummaries(data.advisory_permissions),
@@ -193,7 +193,7 @@ export async function getPermissionsAdvisorySummary({
     .maybeSingle<PermissionsAdvisoryRow>();
 
   if (error || !data) return { status: "unavailable" };
-  if (data.status !== "ready") return { status: toCareCircleStatus(data.status) };
+  if (data.status !== "ready") return { status: toNonReadyStatus(data.status) };
 
   return {
     advisoryPermissions: parsePermissionSummaries(data.advisory_permissions),
@@ -217,7 +217,7 @@ export async function listCareCircleInvitations({
     .maybeSingle<InvitationListRow>();
 
   if (error || !data) return { status: "unavailable" };
-  if (data.status !== "ready") return { status: toCareCircleStatus(data.status) };
+  if (data.status !== "ready") return { status: toNonReadyStatus(data.status) };
 
   return {
     invitations: parseInvitationSummaries(data.invitations),
@@ -250,7 +250,7 @@ export async function previewCareCircleInvitation({
 
   if (error || !data) return { status: "unavailable" };
   if (data.status !== "ready" || !data.role_category || !data.audience_category) {
-    return { status: toCareCircleStatus(data.status) };
+    return { status: toNonReadyStatus(data.status) };
   }
 
   return {
@@ -296,7 +296,7 @@ export async function createCareCircleInvitation({
     !data.role_category ||
     !data.audience_category
   ) {
-    return { status: toCareCircleStatus(data.status) };
+    return { status: toCreateFailureStatus(data.status) };
   }
 
   return {
@@ -418,7 +418,7 @@ async function resolveCareCircleInvitation({
     !data.role_category ||
     !data.audience_category
   ) {
-    return { status: toCareCircleStatus(data.status) };
+    return { status: toResolveFailureStatus(data.status) };
   }
 
   return {
@@ -454,7 +454,7 @@ async function updateCareCircleInvitation({
 
   if (error || !data) return { status: "unavailable" };
   if (data.status !== "ready" && data.status !== "revoked" && data.status !== "expired") {
-    return { status: toCareCircleStatus(data.status) };
+    return { status: toUpdateFailureStatus(data.status) };
   }
 
   return {
@@ -586,4 +586,34 @@ function toCareCircleStatus(status: string | null | undefined): CareCircleRpcSta
     default:
       return "unavailable";
   }
+}
+
+function toNonReadyStatus(
+  status: string | null | undefined,
+): Exclude<CareCircleRpcStatus, "ready"> {
+  const parsed = toCareCircleStatus(status);
+  return parsed === "ready" ? "unavailable" : parsed;
+}
+
+function toCreateFailureStatus(
+  status: string | null | undefined,
+): Exclude<CareCircleRpcStatus, "created" | "duplicate_request"> {
+  const parsed = toCareCircleStatus(status);
+  return parsed === "created" || parsed === "duplicate_request" ? "unavailable" : parsed;
+}
+
+function toResolveFailureStatus(
+  status: string | null | undefined,
+): Exclude<CareCircleRpcStatus, "accepted" | "denied"> {
+  const parsed = toCareCircleStatus(status);
+  return parsed === "accepted" || parsed === "denied" ? "unavailable" : parsed;
+}
+
+function toUpdateFailureStatus(
+  status: string | null | undefined,
+): Exclude<CareCircleRpcStatus, "expired" | "ready" | "revoked"> {
+  const parsed = toCareCircleStatus(status);
+  return parsed === "expired" || parsed === "ready" || parsed === "revoked"
+    ? "unavailable"
+    : parsed;
 }

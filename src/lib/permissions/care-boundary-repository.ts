@@ -145,7 +145,7 @@ function isResourceAccessRow(value: unknown): value is {
   resource_type: string;
 } {
   return (
-    Boolean(value) &&
+    value !== null &&
     typeof value === "object" &&
     "access" in value &&
     "capability" in value &&

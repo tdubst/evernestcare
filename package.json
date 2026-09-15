@@ -2,15 +2,24 @@
   "name": "evernestcare",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=22.12.0 <25"
+  },
   "sideEffects": false,
   "type": "module",
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
-    "build:vercel": "vite --config vite.vercel.config.ts build --outDir dist-vercel && node scripts/write-vercel-static-config.mjs",
+    "build:vercel": "node scripts/validate-production-env.mjs && vite --config vite.vercel.config.ts build --outDir dist-vercel && node scripts/write-vercel-static-config.mjs",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test:e2e": "playwright test",
+    "test:e2e:production": "E2E_APP_MODE=production playwright test",
+    "test:e2e:install": "playwright install chromium",
+    "test:runtime-env": "node scripts/test-production-env.mjs",
+    "verify": "npm run lint -- --quiet && npm run typecheck && npm run test:runtime-env && npm run build && npm run build:vercel && npm run test:e2e && npm run test:e2e:production",
     "format": "prettier --write ."
   },
   "dependencies": {
@@ -56,7 +65,7 @@
     "embla-carousel-react": "^8.6.0",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.575.0",
-    "nitro": "^3.0.260522-beta",
+    "nitro": "3.0.260903-beta",
     "react": "^19.2.0",
     "react-day-picker": "^9.14.0",
     "react-dom": "^19.2.0",
@@ -72,8 +81,10 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
     "@eslint/js": "^9.32.0",
     "@lovable.dev/vite-tanstack-config": "^1.7.0",
+    "@playwright/test": "1.63.0",
     "@types/node": "^22.16.5",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
