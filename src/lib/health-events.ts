@@ -666,7 +666,7 @@ export function describeHealthEvent(event: HealthEvent, medications: Medication[
   }
 
   if (event.type === "MedicationScheduledEvent") {
-    return "Care status category added for Evelyn";
+    return "Care status category added";
   }
 
   if (event.type === "VitalsRecordedEvent") {
@@ -737,7 +737,7 @@ export function createProviderSummary(
       `${timeline.length} care update${timeline.length === 1 ? "" : "s"} in ${formatTimeframeLabel(query)}.`,
       `${medicationEventCount} family care status update${medicationEventCount === 1 ? "" : "s"}.`,
       `${vitalsEventCount} comfort check-in update${vitalsEventCount === 1 ? "" : "s"}.`,
-      "Care notes stay in Recent Updates for this beta preview.",
+      "Care notes stay in Recent Updates.",
       `${artifactEventCount} Vault placeholder${artifactEventCount === 1 ? "" : "s"} referenced.`,
       `${continuitySignals.length} thing${continuitySignals.length === 1 ? "" : "s"} to review.`,
       continuitySignals.length > 0
@@ -810,7 +810,7 @@ export function projectContinuitySignals(
       (item) => item.event.type === "CareArtifactAttachedEvent",
     );
     signals.push({
-      detail: "A Vault placeholder is linked; content stays hidden in beta.",
+      detail: "A Vault placeholder is linked; content is not shown in this view.",
       id: `signal-artifact-follow-up-${query.timeframe}`,
       kind: "artifact-follow-up",
       sourceEventId: artifactEvent?.event.id,
@@ -899,12 +899,13 @@ export function projectCaregiverWorkflows(
   const hasVaultPlaceholder = state.artifacts.length > 0;
   const hasSummaryArtifact = state.artifacts.some((artifact) => artifact.summaryVisible);
   const activeActorCount = new Set(timeline.map((item) => item.event.actorId)).size;
+  const subjectName = state.careCircle.careSubject.displayName;
 
   return [
     {
       detail: hasMedicationGap
-        ? "Evelyn's care categories need family review for this view."
-        : "Evelyn's care status updates are visible in this view.",
+        ? `${subjectName}'s care categories need family review for this view.`
+        : `${subjectName}'s care status updates are visible in this view.`,
       id: "workflow-medication",
       nextStep: hasMedicationGap ? "Review family status" : "Review history",
       status: hasMedicationGap ? "review" : "ready",
@@ -913,7 +914,7 @@ export function projectCaregiverWorkflows(
     {
       detail:
         hasSummaryArtifact && !hasVitalsGap
-          ? "Evelyn's family check-in prep and recent care updates are ready to review."
+          ? `${subjectName}'s family check-in prep and recent care updates are ready to review.`
           : "Family check-in prep is available with a few care items to review.",
       id: "workflow-visit-prep",
       nextStep: "Review care prep",

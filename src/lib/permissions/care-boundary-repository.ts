@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { EMPTY_CARE_NOTE_ACCESS, type CareNoteAccess } from "@/lib/permissions/permission-context";
+import { isProductionRuntime } from "@/lib/runtime-mode";
 
 export type HydratedCareBoundary = {
   activeCareRecipientId: string;
@@ -161,6 +162,31 @@ export async function hydrateCareBoundary({
 }: {
   client: SupabaseClient;
 }): Promise<HydrateCareBoundaryResult> {
+  if (isProductionRuntime()) {
+    const permissionContext = await hydratePermissionContext({ client });
+
+    if (!permissionContext) {
+      return { reason: "hydrate-failed", status: "error" };
+    }
+
+    const careNoteAccess = await hydrateCareNoteAccess({ client, permissionContext });
+
+    return {
+      boundary: {
+        activeCareRecipientId: permissionContext.active_care_recipient_id!,
+        activeCareTeamId: permissionContext.active_care_team_id!,
+        appUserId: permissionContext.app_user_id!,
+        careNoteAccess,
+        grants: permissionContext.advisory_capabilities!,
+        membershipId: permissionContext.membership_id!,
+        membershipStatus: permissionContext.membership_status!,
+        permissionVersion: permissionContext.permission_version!,
+        roleKey: permissionContext.role_key!,
+      },
+      status: "ready",
+    };
+  }
+
   const { data, error } = await client
     .rpc("ensure_care_boundary", {
       p_recipient_display_name: "Family member",

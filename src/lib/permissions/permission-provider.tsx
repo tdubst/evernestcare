@@ -96,6 +96,22 @@ export function PermissionProvider({ children }: { children: React.ReactNode }) 
       };
     }
 
+    if (status === "unavailable") {
+      return {
+        activeCareTeamId: null,
+        activeCareRecipientId: null,
+        appUserId: null,
+        careNoteAccess: EMPTY_CARE_NOTE_ACCESS,
+        grants: [],
+        isBetaPreviewWorkspace: false,
+        membershipId: null,
+        membershipStatus: null,
+        permissionVersion: null,
+        roleKey: null,
+        status: "error",
+      };
+    }
+
     if (
       status === "loading" ||
       hydrateStatus === "loading" ||

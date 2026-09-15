@@ -5,26 +5,53 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth/auth-context";
 import { usePermissions } from "@/lib/permissions/permission-context";
 import { isAuthRequiredForRoutes } from "@/lib/supabase/config";
+import { isProductionRuntime } from "@/lib/runtime-mode";
 
 export function ProtectedShell({ children }: { children: React.ReactNode }) {
   const [hydrated, setHydrated] = useState(false);
-  const { status } = useAuth();
+  const { refreshSession, status } = useAuth();
   const permissions = usePermissions();
   const authRequired = isAuthRequiredForRoutes();
+  const productionRuntime = isProductionRuntime();
 
   useEffect(() => {
     setHydrated(true);
   }, []);
 
   if (!hydrated || status === "loading" || permissions.status === "loading") {
-    return <ShellNotice title="Preparing beta preview" body="Loading workspace preview." />;
+    return (
+      <ShellNotice
+        title={productionRuntime ? "Preparing workspace" : "Preparing beta preview"}
+        body={
+          productionRuntime ? "Loading your authorized workspace." : "Loading workspace preview."
+        }
+      />
+    );
   }
 
   if (status === "unconfigured" && authRequired) {
     return (
       <ShellNotice
         title="Connect Supabase to continue"
-        body="Protected alpha routes are ready, but this environment needs Supabase URL and anon key settings."
+        body="This protected environment needs its Supabase connection settings."
+      />
+    );
+  }
+
+  if (status === "unavailable") {
+    return (
+      <ShellNotice
+        title="Session check unavailable"
+        body="We could not confirm your session. Your workspace remains closed until the check succeeds."
+        action={
+          <button
+            type="button"
+            onClick={() => void refreshSession()}
+            className="text-[14px] font-medium text-primary"
+          >
+            Try again
+          </button>
+        }
       />
     );
   }

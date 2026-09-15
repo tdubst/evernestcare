@@ -51,6 +51,7 @@ import {
   projectOperationalTimeline,
 } from "@/lib/health-events";
 import { type PermissionRuntimeStatus, usePermissions } from "@/lib/permissions/permission-context";
+import { isProductionRuntime } from "@/lib/runtime-mode";
 import {
   isPersistableMedicationVitalsEvent,
   persistHealthEvent,
@@ -116,6 +117,7 @@ function filterCareNotesFromHealthEventState(state: HealthEventState): HealthEve
 }
 
 function Today() {
+  const productionRuntime = isProductionRuntime();
   const [activeWorkflow, setActiveWorkflow] = useState<HomeWorkflow>("home");
   const [savedPanel, setSavedPanel] = useState<"med" | "vitals" | null>(null);
   const [persistenceProof, setPersistenceProof] = useState<PersistenceProofState>({
@@ -228,11 +230,17 @@ function Today() {
   }, [canRenderCareNotes, careNoteSaveState.status]);
 
   const recordHealthEvent = useCallback(
-    (event: HealthEvent) => {
-      dispatchHealthEvent(event);
+    async (event: HealthEvent): Promise<boolean> => {
+      if (productionRuntime) {
+        setPersistenceProof({
+          detail: "This update type is not available in production yet.",
+          status: "unavailable",
+        });
+        return false;
+      }
 
       if (!isPersistableMedicationVitalsEvent(event)) {
-        return;
+        return false;
       }
 
       const boundary =
@@ -250,61 +258,57 @@ function Today() {
       });
 
       if (permissions.isBetaPreviewWorkspace) {
+        dispatchHealthEvent(event);
         setPersistenceProof({
           detail: "Saved to this beta workspace preview.",
           status: "read-back",
         });
-        return;
+        return true;
       }
 
-      void persistHealthEvent({ boundary, client, event })
-        .then(async (result) => {
-          if (result.status === "skipped") {
-            setPersistenceProof({
-              detail: "Local beta preview remains available on this device.",
-              status: "unavailable",
-            });
-            return;
-          }
+      try {
+        const result = await persistHealthEvent({ boundary, client, event });
 
-          if (result.status === "error") {
-            setPersistenceProof({
-              detail: "The local update was kept, but persistence was unavailable.",
-              status: "unavailable",
-            });
-            return;
-          }
-
+        if (result.status !== "persisted") {
           setPersistenceProof({
-            detail: "Saved without showing care details.",
-            status: "saved",
-          });
-
-          const readBack = await readPersistedHealthEvent({
-            boundary,
-            client,
-            clientEventId: event.id,
-          });
-
-          if (readBack.status === "read") {
-            setPersistenceProof({
-              detail: "Saved to this workspace.",
-              status: "read-back",
-            });
-            return;
-          }
-
-          setPersistenceProof({
-            detail: "Save status is not available yet.",
-            status: "saved",
-          });
-        })
-        .catch(() => {
-          setPersistenceProof({
-            detail: "The local update was kept, but persistence was unavailable.",
+            detail: "This update was not saved.",
             status: "unavailable",
           });
+          return false;
+        }
+
+        setPersistenceProof({
+          detail: "Confirming the saved update.",
+          status: "saved",
         });
+
+        const readBack = await readPersistedHealthEvent({
+          boundary,
+          client,
+          clientEventId: event.id,
+        });
+
+        if (readBack.status !== "read") {
+          setPersistenceProof({
+            detail: "Save confirmation is not available yet.",
+            status: "unavailable",
+          });
+          return false;
+        }
+
+        dispatchHealthEvent(event);
+        setPersistenceProof({
+          detail: "Saved to this workspace.",
+          status: "read-back",
+        });
+        return true;
+      } catch {
+        setPersistenceProof({
+          detail: "This update was not saved.",
+          status: "unavailable",
+        });
+        return false;
+      }
     },
     [
       client,
@@ -312,6 +316,7 @@ function Today() {
       permissions.activeCareTeamId,
       permissions.appUserId,
       permissions.isBetaPreviewWorkspace,
+      productionRuntime,
     ],
   );
   const timelineQuery = { filter: timelineFilter, timeframe };
@@ -327,7 +332,7 @@ function Today() {
   const providerSummary = createProviderSummary(visibleHealthEventState, timelineQuery);
   const persistenceProofDisplay = getPersistenceProofDisplay(permissions.status, persistenceProof);
   const workspaceAccessDisplay = getWorkspaceAccessDisplay(permissions);
-  const careProfile = createDefaultCareProfile();
+  const careProfile = productionRuntime ? null : createDefaultCareProfile();
   const careCircle = healthEventState.careCircle;
   const careNoteStatusDisplay = getCareNoteStatusDisplay(careNoteSaveState);
   const handleCareNoteDraftChange = (value: string) => {
@@ -453,10 +458,20 @@ function Today() {
     <div>
       {/* Header */}
       <header className="px-6 pt-14 pb-4">
-        <p className="text-[13px] font-medium text-muted-foreground">Tuesday, May 26</p>
+        <p className="text-[13px] font-medium text-muted-foreground">
+          {productionRuntime
+            ? new Intl.DateTimeFormat("en-US", {
+                weekday: "long",
+                month: "long",
+                day: "numeric",
+              }).format(new Date())
+            : "Tuesday, May 26"}
+        </p>
         <h1 className="mt-1 text-[30px] font-semibold tracking-tight">Home</h1>
         <p className="mt-1 text-[15px] text-muted-foreground">
-          Here is the beta care workspace status for today.
+          {productionRuntime
+            ? "Here is the care workspace status for today."
+            : "Here is the beta care workspace status for today."}
         </p>
       </header>
 
@@ -467,15 +482,20 @@ function Today() {
             EC
           </span>
           <div className="flex-1">
-            <p className="text-[15px] font-medium">Evelyn's care workspace</p>
-            <p className="text-[12px] text-muted-foreground">Family care demo · 3 on team</p>
+            <p className="text-[15px] font-medium">
+              {productionRuntime ? "Care workspace" : "Evelyn's care workspace"}
+            </p>
+            <p className="text-[12px] text-muted-foreground">
+              {productionRuntime ? "Authorized family care" : "Family care demo · 3 on team"}
+            </p>
           </div>
           <button
             onClick={() =>
               setHomeNotice({
                 action: "Got it",
-                description:
-                  "Multiple care profiles are supported in the app structure. Switching profiles is planned for closed beta once persistence is connected.",
+                description: productionRuntime
+                  ? "Profile switching is unavailable for this workspace."
+                  : "Multiple care profiles are supported in the app structure. Switching profiles is planned for closed beta once persistence is connected.",
                 title: "Profile switching",
               })
             }
@@ -504,22 +524,22 @@ function Today() {
           <HomeStatusCard
             icon={Pill}
             label="Care status"
-            value="Preview"
-            detail="Morning routine ready"
+            value={productionRuntime ? "Available" : "Preview"}
+            detail={productionRuntime ? "Workspace status" : "Morning routine ready"}
             tone="bg-blush text-blush-foreground"
           />
           <HomeStatusCard
             icon={CalendarDays}
             label="Care prep"
-            value="Ready"
-            detail="Tomorrow check-in"
+            value={productionRuntime ? "Available" : "Ready"}
+            detail={productionRuntime ? "Internal overview" : "Tomorrow check-in"}
             tone="bg-sky text-sky-foreground"
           />
           <HomeStatusCard
             icon={Activity}
             label="Check-in"
-            value="Preview"
-            detail="Comfort update ready"
+            value={productionRuntime ? "Available" : "Preview"}
+            detail={productionRuntime ? "Workspace update" : "Comfort update ready"}
             tone="bg-sage text-sage-foreground"
           />
         </div>
@@ -531,7 +551,7 @@ function Today() {
           {
             i: Pill,
             l: "Care status",
-            s: "Morning",
+            s: productionRuntime ? "Workspace" : "Morning",
             v: "med",
             c: "bg-blush text-blush-foreground",
             onClick: () => openWorkflow("med"),
@@ -539,7 +559,7 @@ function Today() {
           {
             i: Activity,
             l: "Check-in",
-            s: "Comfort",
+            s: productionRuntime ? "Workspace" : "Comfort",
             v: "vitals",
             c: "bg-sage text-sage-foreground",
             onClick: () => openWorkflow("vitals"),
@@ -547,7 +567,7 @@ function Today() {
           {
             i: ClipboardCheck,
             l: "Care prep",
-            s: "Tomorrow",
+            s: productionRuntime ? "Internal" : "Tomorrow",
             v: "visit",
             c: "bg-sky text-sky-foreground",
             onClick: () => openWorkflow("visit"),
@@ -575,6 +595,7 @@ function Today() {
         <div className="px-6 mt-4">
           <LogMedicationPanel
             healthEventState={visibleHealthEventState}
+            productionRuntime={productionRuntime}
             saved={savedPanel === "med"}
             onEvent={recordHealthEvent}
             onClose={closeWorkflow}
@@ -587,6 +608,7 @@ function Today() {
         <div className="px-6 mt-4">
           <VitalsPanel
             healthEventState={visibleHealthEventState}
+            productionRuntime={productionRuntime}
             saved={savedPanel === "vitals"}
             onEvent={recordHealthEvent}
             onClose={closeWorkflow}
@@ -601,19 +623,22 @@ function Today() {
             <VisitPrepCard
               artifacts={visibleHealthEventState.artifacts}
               careTimelineConfidence={showCareTimelineConfidence}
+              productionRuntime={productionRuntime}
               providerSummary={providerSummary}
               signals={continuitySignals}
               timeline={timeline}
             />
           </Section>
-          <Section title="Care prep overview">
-            <ProviderSummaryCard
-              careProfile={careProfile}
-              signals={continuitySignals}
-              summary={providerSummary}
-              timeframe={timeframe}
-            />
-          </Section>
+          {careProfile && (
+            <Section title="Care prep overview">
+              <ProviderSummaryCard
+                careProfile={careProfile}
+                signals={continuitySignals}
+                summary={providerSummary}
+                timeframe={timeframe}
+              />
+            </Section>
+          )}
         </>
       )}
 
@@ -623,70 +648,76 @@ function Today() {
             <ContinuitySignalsCard signals={continuitySignals} timeframe={timeframe} />
           </Section>
 
-          <Section title="Needs attention">
-            <Alert
-              tone="warn"
-              icon={AlertCircle}
-              title="Care status preview"
-              subtitle="Maya has a morning routine update ready"
-              action="View preview"
-              onAction={() => openWorkflow("med")}
-            />
-            <Alert
-              tone="info"
-              icon={ScanLine}
-              title="Care prep available"
-              subtitle="Tomorrow's family check-in overview is ready"
-              action="Open preview"
-              onAction={() => openWorkflow("visit")}
-            />
-          </Section>
+          {!productionRuntime && (
+            <Section title="Needs attention">
+              <Alert
+                tone="warn"
+                icon={AlertCircle}
+                title="Care status preview"
+                subtitle="Maya has a morning routine update ready"
+                action="View preview"
+                onAction={() => openWorkflow("med")}
+              />
+              <Alert
+                tone="info"
+                icon={ScanLine}
+                title="Care prep available"
+                subtitle="Tomorrow's family check-in overview is ready"
+                action="Open preview"
+                onAction={() => openWorkflow("visit")}
+              />
+            </Section>
+          )}
 
-          <Section title="Today's schedule">
-            <div className="card-soft divide-y hairline overflow-hidden">
-              <Row
-                time="Logged"
-                icon={Pill}
-                iconBg="bg-blush text-blush-foreground"
-                title="Care status"
-                sub="Morning routine reviewed"
-                done
-              />
-              <Row
-                time="Ready"
-                icon={CalendarDays}
-                iconBg="bg-sky text-sky-foreground"
-                title="Care prep"
-                sub="Maya, Jordan, and Sam included"
-              />
-              <Row
-                time="Review"
-                icon={Pill}
-                iconBg="bg-blush text-blush-foreground"
-                title="Care status"
-                sub="Evening handoff still needs a look"
-              />
-            </div>
-          </Section>
+          {!productionRuntime && (
+            <Section title="Today's schedule">
+              <div className="card-soft divide-y hairline overflow-hidden">
+                <Row
+                  time="Logged"
+                  icon={Pill}
+                  iconBg="bg-blush text-blush-foreground"
+                  title="Care status"
+                  sub="Morning routine reviewed"
+                  done
+                />
+                <Row
+                  time="Ready"
+                  icon={CalendarDays}
+                  iconBg="bg-sky text-sky-foreground"
+                  title="Care prep"
+                  sub="Maya, Jordan, and Sam included"
+                />
+                <Row
+                  time="Review"
+                  icon={Pill}
+                  iconBg="bg-blush text-blush-foreground"
+                  title="Care status"
+                  sub="Evening handoff still needs a look"
+                />
+              </div>
+            </Section>
+          )}
 
-          <Section title="Recent changes">
-            <div className="space-y-3">
-              <UpdateCard
-                who="Care team"
-                role="Workspace update"
-                time="2h ago"
-                body="Maya prepared today's family check-in and linked the latest Vault placeholder."
-                chip={{ label: "Care update", tone: "sky" }}
-              />
-              <UpdateCard
-                who="Jordan"
-                role="Care Circle"
-                time="Yesterday"
-                body="Added an evening handoff note for the next family review."
-                chip={{ label: "Family", tone: "sage" }}
-              />
-            </div>
-          </Section>
+          {!productionRuntime && (
+            <Section title="Recent changes">
+              <div className="space-y-3">
+                <UpdateCard
+                  who="Care team"
+                  role="Workspace update"
+                  time="2h ago"
+                  body="Maya prepared today's family check-in and linked the latest Vault placeholder."
+                  chip={{ label: "Care update", tone: "sky" }}
+                />
+                <UpdateCard
+                  who="Jordan"
+                  role="Care Circle"
+                  time="Yesterday"
+                  body="Added an evening handoff note for the next family review."
+                  chip={{ label: "Family", tone: "sage" }}
+                />
+              </div>
+            </Section>
+          )}
 
           <Section title="Recent updates">
             <OperationalTimelineCard
@@ -708,6 +739,7 @@ function Today() {
               onFilterChange={setTimelineFilter}
               onOpenCareNoteComposer={openCareNoteComposer}
               onTimeframeChange={setTimeframe}
+              productionRuntime={productionRuntime}
               signals={continuitySignals}
               summary={providerSummary}
               timeframe={timeframe}
@@ -729,6 +761,7 @@ function Today() {
             <VisitPrepCard
               artifacts={visibleHealthEventState.artifacts}
               careTimelineConfidence={showCareTimelineConfidence}
+              productionRuntime={productionRuntime}
               providerSummary={providerSummary}
               signals={continuitySignals}
               timeline={timeline}
@@ -741,7 +774,7 @@ function Today() {
           title={homeNotice.title}
           description={homeNotice.description}
           audience="Family visible"
-          expires="Available during beta testing"
+          expires={productionRuntime ? "Authorized workspace" : "Available during beta testing"}
           primaryAction={homeNotice.action}
           onClose={() => setHomeNotice(null)}
         />
@@ -753,12 +786,14 @@ function Today() {
 function VisitPrepCard({
   artifacts,
   careTimelineConfidence,
+  productionRuntime,
   providerSummary,
   signals,
   timeline,
 }: {
   artifacts: CareArtifact[];
   careTimelineConfidence: boolean;
+  productionRuntime: boolean;
   providerSummary: ProviderSummary;
   signals: ContinuitySignal[];
   timeline: TimelineItem[];
@@ -796,14 +831,20 @@ function VisitPrepCard({
         <VisitPrepItem
           label="Care notes"
           value="Not included"
-          detail="Saved notes stay in Recent Updates for this beta"
+          detail={
+            productionRuntime
+              ? "Saved notes stay in Recent Updates"
+              : "Saved notes stay in Recent Updates for this beta"
+          }
         />
         <VisitPrepItem
           label="Attached"
           value={recentArtifact ? "Vault placeholder" : "No Vault placeholder"}
           detail={
             recentArtifact
-              ? "Content hidden for beta preview"
+              ? productionRuntime
+                ? "Content is not shown in this view"
+                : "Content hidden for beta preview"
               : "Vault placeholders can be linked when available"
           }
         />
@@ -831,7 +872,9 @@ function VisitPrepCard({
         </div>
       )}
       <div className="mt-3 flex flex-wrap gap-2">
-        <PrivacyPill label="Internal preview only" />
+        <PrivacyPill
+          label={productionRuntime ? "Internal workspace only" : "Internal preview only"}
+        />
         <PrivacyPill label="No external delivery" />
         <PrivacyPill label="For coordination only" />
       </div>
@@ -885,7 +928,7 @@ type PersistenceProofDisplay = {
 };
 type WorkspaceAccessDisplay = {
   detail: string;
-  label: "Checked" | "Checking" | "Preview" | "Sign in";
+  label: "Checked" | "Checking" | "Preview" | "Sign in" | "Unavailable";
   title: string;
   tone: "muted" | "ready" | "success" | "warn";
 };
@@ -906,6 +949,7 @@ function getPersistenceProofDisplay(
   permissionStatus: PermissionRuntimeStatus,
   proof: PersistenceProofState,
 ): PersistenceProofDisplay {
+  const productionRuntime = isProductionRuntime();
   if (permissionStatus === "loading") {
     return {
       detail: "Opening the care workspace.",
@@ -924,7 +968,9 @@ function getPersistenceProofDisplay(
 
   if (permissionStatus === "unconfigured" || permissionStatus === "error") {
     return {
-      detail: "Local beta preview is available without saved updates.",
+      detail: productionRuntime
+        ? "Saved updates are unavailable."
+        : "Local beta preview is available without saved updates.",
       label: "Save unavailable",
       tone: "warn",
     };
@@ -971,6 +1017,7 @@ function getWorkspaceAccessDisplay(permissions: {
   isBetaPreviewWorkspace: boolean;
   status: PermissionRuntimeStatus;
 }): WorkspaceAccessDisplay {
+  const productionRuntime = isProductionRuntime();
   if (permissions.status === "loading") {
     return {
       detail: "Opening your authorized workspace.",
@@ -991,8 +1038,10 @@ function getWorkspaceAccessDisplay(permissions: {
 
   if (permissions.status === "unconfigured" || permissions.status === "error") {
     return {
-      detail: "Local beta preview is available without a connected workspace.",
-      label: "Preview",
+      detail: productionRuntime
+        ? "An authorized workspace is unavailable."
+        : "Local beta preview is available without a connected workspace.",
+      label: productionRuntime ? "Unavailable" : "Preview",
       title: "Workspace check unavailable",
       tone: "warn",
     };
@@ -1004,9 +1053,11 @@ function getWorkspaceAccessDisplay(permissions: {
 
   if (!boundaryReady) {
     return {
-      detail: "Local beta preview is available without a connected workspace.",
-      label: "Preview",
-      title: "Workspace preview",
+      detail: productionRuntime
+        ? "An authorized workspace is unavailable."
+        : "Local beta preview is available without a connected workspace.",
+      label: productionRuntime ? "Unavailable" : "Preview",
+      title: productionRuntime ? "Workspace unavailable" : "Workspace preview",
       tone: "warn",
     };
   }
@@ -1100,7 +1151,7 @@ function WorkspaceAccessCard({ state }: { state: WorkspaceAccessDisplay }) {
             <div>
               <p className="text-[13px] font-semibold">{state.title}</p>
               <p className="mt-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                {releaseScope}
+                {isProductionRuntime() ? "Production workspace" : releaseScope}
               </p>
               <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">
                 {state.detail}
@@ -1284,6 +1335,7 @@ function OperationalTimelineCard({
   onFilterChange,
   onOpenCareNoteComposer,
   onTimeframeChange,
+  productionRuntime,
   signals,
   summary,
   timeframe,
@@ -1303,6 +1355,7 @@ function OperationalTimelineCard({
   onFilterChange: (filter: TimelineFilter) => void;
   onOpenCareNoteComposer: () => void;
   onTimeframeChange: (timeframe: TimeframePreset) => void;
+  productionRuntime: boolean;
   signals: ContinuitySignal[];
   summary: ProviderSummary;
   timeframe: TimeframePreset;
@@ -1389,7 +1442,7 @@ function OperationalTimelineCard({
               onClick={onOpenCareNoteComposer}
               className="w-full rounded-full bg-secondary py-2.5 text-[13px] font-medium text-primary"
             >
-              Preview caregiver note
+              {productionRuntime ? "Add caregiver note" : "Preview caregiver note"}
             </button>
             {careNoteStatus && <CareNoteStatusCard state={careNoteStatus} />}
           </>
@@ -1516,6 +1569,7 @@ function ProviderSummaryCard({
   summary: ProviderSummary;
   timeframe: TimeframePreset;
 }) {
+  const productionRuntime = isProductionRuntime();
   return (
     <div className="card-soft p-4">
       <div className="flex items-start justify-between gap-3">
@@ -1581,12 +1635,16 @@ function ProviderSummaryCard({
               Boundary
             </p>
             <p className="mt-1 text-[12px] leading-relaxed">
-              This preview stays inside Evernest during beta.
+              {productionRuntime
+                ? "This view stays inside the authorized Evernest workspace."
+                : "This preview stays inside Evernest during beta."}
             </p>
           </div>
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
-          <PrivacyPill label="Internal preview only" />
+          <PrivacyPill
+            label={productionRuntime ? "Internal workspace only" : "Internal preview only"}
+          />
           <PrivacyPill label="No external delivery" />
         </div>
       </div>
@@ -1678,23 +1736,33 @@ function PrivacyRow({ label, value }: { label: string; value: string }) {
 
 function LogMedicationPanel({
   healthEventState,
+  productionRuntime,
   saved,
   onEvent,
   onClose,
   onSave,
 }: {
   healthEventState: HealthEventState;
+  productionRuntime: boolean;
   saved: boolean;
-  onEvent: (event: HealthEvent) => void;
+  onEvent: (event: HealthEvent) => Promise<boolean>;
   onClose: () => void;
   onSave: () => void;
 }) {
   const [showAddMedication, setShowAddMedication] = useState(false);
-  const scheduleMedication = () => {
-    onEvent(
+  const scheduleMedication = async () => {
+    const didSave = await onEvent(
       createMedicationScheduledEvent({
+        actor: productionRuntime
+          ? {
+              displayName: "You",
+              id: "current-caregiver",
+              relationship: "Care team member",
+              role: "family-member",
+            }
+          : undefined,
         medication: {
-          dose: "Hidden for beta preview",
+          dose: productionRuntime ? "Not provided" : "Hidden for beta preview",
           frequency: "Schedule hidden",
           id: `medicationCategory-${Date.now()}`,
           name: "Family check-in status",
@@ -1702,8 +1770,10 @@ function LogMedicationPanel({
         },
       }),
     );
-    onSave();
-    setShowAddMedication(false);
+    if (didSave) {
+      onSave();
+      setShowAddMedication(false);
+    }
   };
 
   return (
@@ -1711,17 +1781,23 @@ function LogMedicationPanel({
       <PanelHeader
         icon={Pill}
         title="Care status"
-        subtitle="Evelyn's family care categories for the day."
+        subtitle={
+          productionRuntime
+            ? "Family care categories for this workspace."
+            : "Evelyn's family care categories for the day."
+        }
         onClose={onClose}
         tone="bg-blush text-blush-foreground"
         action={
-          <button
-            onClick={() => setShowAddMedication((current) => !current)}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground"
-            aria-label="Add care status"
-          >
-            <Plus className="h-4 w-4" />
-          </button>
+          productionRuntime ? null : (
+            <button
+              onClick={() => setShowAddMedication((current) => !current)}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground"
+              aria-label="Add care status"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+          )
         }
       />
       <div className="px-4 pb-4 space-y-4">
@@ -1733,8 +1809,11 @@ function LogMedicationPanel({
               <Field label="Status" value="Ready for review" />
             </div>
             <div className="mt-2.5 grid grid-cols-2 gap-2.5">
-              <Field label="Care team" value="Maya and Jordan" />
-              <Field label="Details" value="Hidden in beta" />
+              <Field
+                label="Care team"
+                value={productionRuntime ? "Authorized members" : "Maya and Jordan"}
+              />
+              <Field label="Details" value={productionRuntime ? "Not shown" : "Hidden in beta"} />
             </div>
             <button
               onClick={scheduleMedication}
@@ -1764,20 +1843,31 @@ function LogMedicationPanel({
                   <div className="min-w-0 flex-1">
                     <p className="text-[14px] font-medium">{medication.name}</p>
                     <p className="text-[12px] text-muted-foreground">
-                      Details hidden in beta · family review only
+                      {productionRuntime
+                        ? "Details available to authorized members"
+                        : "Details hidden in beta · family review only"}
                     </p>
                   </div>
-                  <button
-                    onClick={() => {
-                      onEvent(createMedicationTakenEvent({ medicationId: medication.id }));
-                      onSave();
-                    }}
-                    className={`rounded-full px-3 py-1.5 text-[12px] font-medium ${
-                      isTaken ? "bg-sage text-sage-foreground" : "bg-card text-primary"
-                    }`}
-                  >
-                    {isTaken ? "Reviewed" : "Review"}
-                  </button>
+                  {productionRuntime ? (
+                    <span className="rounded-full bg-card px-3 py-1.5 text-[12px] font-medium text-muted-foreground">
+                      {isTaken ? "Recorded" : "Needs review"}
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        void onEvent(
+                          createMedicationTakenEvent({ medicationId: medication.id }),
+                        ).then((didSave) => {
+                          if (didSave) onSave();
+                        });
+                      }}
+                      className={`rounded-full px-3 py-1.5 text-[12px] font-medium ${
+                        isTaken ? "bg-sage text-sage-foreground" : "bg-card text-primary"
+                      }`}
+                    >
+                      {isTaken ? "Reviewed" : "Review"}
+                    </button>
+                  )}
                 </div>
               );
             })}
@@ -1832,14 +1922,16 @@ function LogMedicationPanel({
 
 function VitalsPanel({
   healthEventState,
+  productionRuntime,
   saved,
   onEvent,
   onClose,
   onSave,
 }: {
   healthEventState: HealthEventState;
+  productionRuntime: boolean;
   saved: boolean;
-  onEvent: (event: HealthEvent) => void;
+  onEvent: (event: HealthEvent) => Promise<boolean>;
   onClose: () => void;
   onSave: () => void;
 }) {
@@ -1851,37 +1943,53 @@ function VitalsPanel({
       : selectedVital === "hr"
         ? "afternoon note"
         : "evening handoff";
-  const addReading = () => {
-    onEvent(
+  const addReading = async () => {
+    const didSave = await onEvent(
       createVitalsRecordedEvent({
+        actor: productionRuntime
+          ? {
+              displayName: "You",
+              id: "current-caregiver",
+              relationship: "Care team member",
+              role: "family-member",
+            }
+          : undefined,
         reading: createVitalsReading(
           "Family check-in",
           0,
           0,
           "Hidden",
-          "Demo family check-in added for Evelyn.",
+          productionRuntime ? "Family check-in added." : "Demo family check-in added for Evelyn.",
         ),
       }),
     );
-    onSave();
-    setShowAddReading(false);
+    if (didSave) {
+      onSave();
+      setShowAddReading(false);
+    }
   };
   return (
     <div className="card-soft border hairline overflow-hidden">
       <PanelHeader
         icon={Activity}
         title="Check-in status"
-        subtitle="Comfort and handoff updates for Evelyn."
+        subtitle={
+          productionRuntime
+            ? "Comfort and handoff updates for this workspace."
+            : "Comfort and handoff updates for Evelyn."
+        }
         onClose={onClose}
         tone="bg-sage text-sage-foreground"
         action={
-          <button
-            onClick={() => setShowAddReading((current) => !current)}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground"
-            aria-label="Add check-in status"
-          >
-            <Plus className="h-4 w-4" />
-          </button>
+          productionRuntime ? null : (
+            <button
+              onClick={() => setShowAddReading((current) => !current)}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground"
+              aria-label="Add check-in status"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+          )
         }
       />
       <div className="px-4 pb-4 space-y-4">
@@ -1895,7 +2003,7 @@ function VitalsPanel({
               label="Morning comfort"
               onClick={() => setSelectedVital("bp")}
               value="Ready"
-              trend="Maya"
+              trend={productionRuntime ? "Workspace" : "Maya"}
               tone="sage"
             />
             <VitalSelector
@@ -1903,7 +2011,7 @@ function VitalsPanel({
               label="Afternoon note"
               onClick={() => setSelectedVital("hr")}
               value="Ready"
-              trend="Jordan"
+              trend={productionRuntime ? "Workspace" : "Jordan"}
               tone="sky"
             />
             <VitalSelector
@@ -1911,13 +2019,14 @@ function VitalsPanel({
               label="Evening handoff"
               onClick={() => setSelectedVital("weight")}
               value="Ready"
-              trend="Sam"
+              trend={productionRuntime ? "Workspace" : "Sam"}
               tone="sand"
             />
           </div>
         </div>
 
         <VitalsTrendCharts
+          productionRuntime={productionRuntime}
           readings={healthEventState.vitalsReadings}
           selectedVital={selectedVital}
         />
@@ -1928,7 +2037,7 @@ function VitalsPanel({
             {selectedVital === "bp" && (
               <div className="mt-3 grid grid-cols-2 gap-2.5">
                 <Field label="Comfort" value="Ready for family review" />
-                <Field label="Details" value="Hidden in beta" />
+                <Field label="Details" value={productionRuntime ? "Not shown" : "Hidden in beta"} />
               </div>
             )}
             {selectedVital === "hr" && (
@@ -1947,7 +2056,11 @@ function VitalsPanel({
               </span>
               <textarea
                 className="mt-1 min-h-16 w-full resize-none bg-transparent text-[14px] outline-none placeholder:text-muted-foreground"
-                placeholder="Example: Jordan will check in after dinner."
+                placeholder={
+                  productionRuntime
+                    ? "Add context for authorized care team members."
+                    : "Example: Jordan will check in after dinner."
+                }
               />
             </label>
             <button
@@ -2010,9 +2123,11 @@ function VitalsPanel({
 }
 
 function VitalsTrendCharts({
+  productionRuntime,
   readings,
   selectedVital,
 }: {
+  productionRuntime: boolean;
   readings: VitalsReading[];
   selectedVital: VitalsFocus;
 }) {
@@ -2029,7 +2144,9 @@ function VitalsTrendCharts({
         <div>
           <p className="text-[13px] font-semibold">{selectedLabel}</p>
           <p className="text-[12px] text-muted-foreground">
-            Evelyn's check-in details stay summarized for this beta preview.
+            {productionRuntime
+              ? "Check-in details are available to authorized workspace members."
+              : "Evelyn's check-in details stay summarized for this beta preview."}
           </p>
         </div>
         <span className="rounded-full bg-card px-2.5 py-1 text-[11px] font-medium text-muted-foreground">

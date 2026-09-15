@@ -11,11 +11,16 @@ export const Route = createFileRoute("/sign-in")({
 
 function SignIn() {
   const navigate = useNavigate();
-  const { client, signInWithPassword, status } = useAuth();
+  const { signInWithPassword, status } = useAuth();
   const [email, setEmail] = useState("");
+  const [hydrated, setHydrated] = useState(false);
   const [password, setPassword] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
 
   useEffect(() => {
     if (status === "authenticated") {
@@ -68,6 +73,7 @@ function SignIn() {
           <input
             type="email"
             autoComplete="email"
+            disabled={!hydrated || submitting}
             required
             value={email}
             onChange={(event) => setEmail(event.target.value)}
@@ -79,6 +85,7 @@ function SignIn() {
           <input
             type="password"
             autoComplete="current-password"
+            disabled={!hydrated || submitting}
             required
             minLength={8}
             value={password}
@@ -98,18 +105,19 @@ function SignIn() {
 
         <button
           type="submit"
-          disabled={!client || submitting}
+          disabled={!hydrated || submitting}
           className="flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3.5 text-[15px] font-medium text-primary-foreground disabled:cursor-not-allowed disabled:bg-secondary disabled:text-muted-foreground"
         >
           <LockKeyhole className="h-4 w-4" />
           {submitting ? "Signing in..." : "Sign in"}
         </button>
 
-        {!client && (
-          <p className="text-center text-[12px] leading-relaxed text-muted-foreground">
-            Sign-in is not connected in this environment.
-          </p>
-        )}
+        <Link
+          to="/forgot-password"
+          className="block text-center text-[13px] font-medium text-primary"
+        >
+          Forgot password?
+        </Link>
       </form>
 
       <p className="mt-auto pt-10 text-center text-[12px] leading-relaxed text-muted-foreground">

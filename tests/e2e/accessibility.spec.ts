@@ -11,6 +11,8 @@ for (const route of [
   "/care-team",
   "/profile-types",
   "/sign-in",
+  "/forgot-password",
+  "/reset-password",
 ]) {
   test(`${route} has no serious accessibility violations`, async ({ page }) => {
     await page.goto(route);

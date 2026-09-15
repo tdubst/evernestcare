@@ -22,8 +22,9 @@ jobs:
       - run: npm run lint -- --quiet
       - run: npm run typecheck
       - run: npm run test:runtime-env
+      - run: npm run test:sql-posture
       - run: npm run build
-      - run: npm run build:vercel
+      - run: npm run build:production
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
       - run: npm run test:e2e:production

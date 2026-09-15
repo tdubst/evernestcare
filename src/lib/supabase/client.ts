@@ -25,7 +25,18 @@ export function getSupabaseBrowserClient(): SupabaseClient | null {
       detectSessionInUrl: true,
       persistSession: true,
     },
+    global: {
+      fetch: safeSupabaseFetch,
+    },
   });
 
   return browserClient;
+}
+
+async function safeSupabaseFetch(input: RequestInfo | URL, init?: RequestInit) {
+  try {
+    return await fetch(input, init);
+  } catch {
+    throw new Error("Supabase request unavailable");
+  }
 }

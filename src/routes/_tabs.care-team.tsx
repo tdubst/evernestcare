@@ -38,6 +38,7 @@ import {
   type CareCircleSummaryResult,
 } from "@/lib/permissions/care-circle-repository";
 import { usePermissions } from "@/lib/permissions/permission-context";
+import { isProductionRuntime } from "@/lib/runtime-mode";
 
 export const Route = createFileRoute("/_tabs/care-team")({
   head: () => ({ meta: [{ title: "Care Circle - Evernest Care" }] }),
@@ -70,6 +71,7 @@ const DEFAULT_EXPIRES_IN_DAYS = 7;
 const BETA_INVITE_ADDRESS = "test-caregiver@example.com";
 
 function CareTeam() {
+  const productionRuntime = isProductionRuntime();
   const { client } = useAuth();
   const permissions = usePermissions();
   const [summary, setSummary] = useState<CareCircleSummaryResult>({ status: "unavailable" });
@@ -93,9 +95,11 @@ function CareTeam() {
       : summary.status === "ready"
         ? summary.advisoryPermissions
         : [];
-  const canManageInvitations = advisoryPermissions.some(
-    (item) => item.capabilityKey === "invitation.manage" && item.accessState === "allowed",
-  );
+  const canManageInvitations =
+    !productionRuntime &&
+    advisoryPermissions.some(
+      (item) => item.capabilityKey === "invitation.manage" && item.accessState === "allowed",
+    );
   const signedInReady =
     permissions.status === "ready" && (Boolean(client) || permissions.isBetaPreviewWorkspace);
 
@@ -370,19 +374,24 @@ function CareTeam() {
 
       <div className="px-6 mt-3 grid grid-cols-2 gap-2.5">
         <button
+          disabled={productionRuntime}
           onClick={() => {
             setSheet("invite");
             setActionState({ status: "idle" });
             setPreview({ status: "unavailable" });
             setInviteAddress(BETA_INVITE_ADDRESS);
           }}
-          className="card-soft p-4 text-left active:scale-[0.98] transition"
+          className="card-soft p-4 text-left active:scale-[0.98] transition disabled:opacity-60"
         >
           <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
             <UserPlus className="h-4 w-4" />
           </span>
-          <p className="mt-2.5 text-[14px] font-medium">Invite preview</p>
-          <p className="text-[11px] text-muted-foreground">Preview only</p>
+          <p className="mt-2.5 text-[14px] font-medium">
+            {productionRuntime ? "Invitations unavailable" : "Invite preview"}
+          </p>
+          <p className="text-[11px] text-muted-foreground">
+            {productionRuntime ? "Delivery is not configured" : "Preview only"}
+          </p>
         </button>
         <button
           onClick={() => setSheet("review")}
@@ -463,6 +472,7 @@ function CareTeam() {
           inboundInvitations.map((invitation, index) => (
             <InboundInvitationRow
               key={`${invitation.inviteStatus}-${index}`}
+              actionsEnabled={!productionRuntime}
               invitation={invitation}
               onAccept={() => resolveInvitation({ invitation, kind: "accept" })}
               onDeny={() => resolveInvitation({ invitation, kind: "deny" })}
@@ -604,15 +614,17 @@ function InvitationRow({
 }
 
 function InboundInvitationRow({
+  actionsEnabled,
   invitation,
   onAccept,
   onDeny,
 }: {
+  actionsEnabled: boolean;
   invitation: CareCircleInvitationSummary;
   onAccept: () => void;
   onDeny: () => void;
 }) {
-  const actionable = invitation.inviteStatus === "pending";
+  const actionable = actionsEnabled && invitation.inviteStatus === "pending";
   return (
     <div className="rounded-2xl bg-secondary px-3.5 py-3">
       <div className="flex items-start justify-between gap-3">

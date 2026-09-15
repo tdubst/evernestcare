@@ -10,7 +10,8 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
-    "build:vercel": "node scripts/validate-production-env.mjs && vite --config vite.vercel.config.ts build --outDir dist-vercel && node scripts/write-vercel-static-config.mjs",
+    "build:production": "VERCEL_ENV=production VITE_APP_MODE=production VITE_REQUIRE_AUTH=true VITE_ENABLE_DEMO_WORKSPACE=false VITE_SUPABASE_URL=https://example.supabase.co VITE_SUPABASE_PUBLISHABLE_KEY=production-public-test-key npm run build:vercel",
+    "build:vercel": "node scripts/validate-production-env.mjs && vite --config vite.vercel.config.ts build --outDir dist-vercel && node scripts/write-vercel-static-config.mjs && node scripts/check-web-bundle-budget.mjs",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
@@ -19,7 +20,8 @@
     "test:e2e:production": "E2E_APP_MODE=production playwright test",
     "test:e2e:install": "playwright install chromium",
     "test:runtime-env": "node scripts/test-production-env.mjs",
-    "verify": "npm run lint -- --quiet && npm run typecheck && npm run test:runtime-env && npm run build && npm run build:vercel && npm run test:e2e && npm run test:e2e:production",
+    "test:sql-posture": "node scripts/check-production-sql-posture.mjs",
+    "verify": "npm run lint -- --quiet && npm run typecheck && npm run test:runtime-env && npm run test:sql-posture && npm run build && npm run build:production && npm run test:e2e && npm run test:e2e:production",
     "format": "prettier --write ."
   },
   "dependencies": {
