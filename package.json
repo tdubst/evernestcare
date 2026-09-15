@@ -21,6 +21,7 @@
     "test:e2e:install": "playwright install chromium",
     "test:runtime-env": "node scripts/test-production-env.mjs",
     "test:sql-posture": "node scripts/check-production-sql-posture.mjs",
+    "test:staging": "node scripts/verify-production-staging.mjs",
     "verify": "npm run lint -- --quiet && npm run typecheck && npm run test:runtime-env && npm run test:sql-posture && npm run build && npm run build:production && npm run test:e2e && npm run test:e2e:production",
     "format": "prettier --write ."
   },
@@ -97,6 +98,7 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^15.15.0",
+    "postgres": "3.4.9",
     "prettier": "^3.7.3",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",

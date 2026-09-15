@@ -77,3 +77,28 @@ cd apps/mobile && npm ci && npm run typecheck
 ```
 
 Production deployments must additionally pass `scripts/validate-production-env.mjs` through the Vercel build command.
+
+## Isolated Staging Verification
+
+Run the authenticated database boundary proof only against a dedicated, non-production Supabase project after all migrations are applied and an owner fixture is administratively provisioned. The verifier emits pass/fail labels only; it does not print credentials, identifiers, RPC bodies, or care content.
+
+Required local environment variables:
+
+- `STAGING_DATABASE_URL`
+- `STAGING_SENTINEL_EVENT_ID`
+- `STAGING_SUPABASE_URL`
+- `STAGING_SUPABASE_PUBLISHABLE_KEY`
+- `STAGING_OWNER_EMAIL`
+- `STAGING_OWNER_PASSWORD`
+
+```text
+npm run test:staging
+```
+
+Before running the proof, set the staging database sentinel once through the Supabase SQL editor or another reviewed administrator connection, then reconnect:
+
+```sql
+alter database postgres set app.environment = 'staging';
+```
+
+The API URL and database URL must identify the same project. The proof refuses to continue unless the database itself reports the `staging` sentinel, the closed RPC/table privileges are revoked for both API roles, and the content-free sentinel care event exists. It then requires successful password authentication, server-side user validation, read-only hydration of one pre-provisioned workspace, Care Circle/Vault/sentinel-event reads, API-level denial of every closed RPC and direct table mutation, unchanged workspace records, and an intact sentinel event. Do not run it against production or the accepted Beta project.
