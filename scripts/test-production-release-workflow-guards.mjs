@@ -8,6 +8,7 @@ const release = readFileSync(
   new URL("../.github/workflows/release-production.yml", import.meta.url),
   "utf8",
 );
+const quality = readFileSync(new URL("../.github/workflows/quality.yml", import.meta.url), "utf8");
 
 for (const [name, workflow] of [
   ["bootstrap", bootstrap],
@@ -45,6 +46,16 @@ assertIncludes(
   release,
   "DEPLOYMENT_VERIFY_INTERVAL_MS: 2000",
   "rollback identity verification must use a valid retry interval",
+);
+assertIncludes(
+  quality,
+  "npm run verify",
+  "pull-request CI must run the consolidated verification gate",
+);
+assertIncludes(
+  quality,
+  "npm audit --omit=dev --audit-level=high",
+  "pull-request CI must enforce the production dependency threshold",
 );
 
 console.log("Production release workflow guard tests passed.");

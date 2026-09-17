@@ -144,6 +144,8 @@ Route alerts to a monitored on-call destination with one primary and one backup 
 
 ## Launch Evidence
 
+Record launch evidence and owner decisions in [production-launch-packet.md](./production-launch-packet.md). Keep restricted evidence in the approved access-controlled system and link to it; do not copy secrets, raw identifiers, or care content into the repository.
+
 The go/no-go packet must contain only:
 
 - Release SHA and reviewed migration range.

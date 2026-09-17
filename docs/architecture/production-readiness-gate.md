@@ -74,6 +74,8 @@ Calendar mutation, realtime messaging, self-service onboarding, real document up
 
 Follow the [production operations runbook](./production-operations-runbook.md) for backup/restore, retention/deletion, incident response, monitoring, support, and launch evidence. The runbook is not accepted until its drills and owner decisions are recorded.
 
+Record every required result and owner decision in the [production launch packet](./production-launch-packet.md). The packet must remain `Not approved` until every P0 gate has authoritative evidence.
+
 Before the first production-mode promotion, the one-time `bootstrap-production-baseline.yml` workflow must verify and record the existing rollback baseline. The normal production release workflow remains fail-closed until that baseline exposes a matching release manifest.
 
 ```text
