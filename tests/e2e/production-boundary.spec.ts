@@ -44,13 +44,28 @@ test("production protected routes fail closed without a session", async ({ page 
   }
 });
 
-test("authentication network failures return safe recoverable states", async ({ page }) => {
+test("authentication service failures return safe recoverable states", async ({ page }) => {
   const consoleMessages: string[] = [];
   page.on("console", (message) => consoleMessages.push(message.text()));
-  await page.route("https://example.supabase.co/**", (route) => route.abort());
+  const fulfillUnavailable = (route: import("@playwright/test").Route) =>
+    route.fulfill({
+      contentType: "application/json",
+      json: { message: "Temporarily unavailable" },
+      status: 503,
+    });
+  await page.route(
+    /^https:\/\/example\.supabase\.co\/auth\/v1\/token\?grant_type=password$/,
+    fulfillUnavailable,
+  );
+  await page.route(
+    /^https:\/\/example\.supabase\.co\/auth\/v1\/recover(?:\?.*)?$/,
+    fulfillUnavailable,
+  );
   await page.goto("/sign-in");
   await page.getByLabel("Email").fill("invited@example.com");
   await page.getByLabel("Password").fill("not-a-real-password");
+  await expect(page.getByLabel("Email")).toHaveValue("invited@example.com");
+  await expect(page.getByLabel("Password")).toHaveValue("not-a-real-password");
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page.getByRole("alert")).toHaveText(
     "Sign-in is unavailable right now. Please try again later.",

@@ -49,7 +49,7 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install --with-deps chromium firefox webkit
       - run: npm run verify
       - run: npm audit --omit=dev --audit-level=high
       - name: Verify production launch approval

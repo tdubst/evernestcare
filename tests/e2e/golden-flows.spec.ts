@@ -1,6 +1,16 @@
 import { expect, test } from "@playwright/test";
 
 test("onboarding advances through every step into the beta workspace", async ({ page }) => {
+  const stepHeadings = [
+    "Who are you caring for?",
+    "What's your relationship to Evelyn?",
+    "Invite your care team",
+    "A note on privacy",
+    "Bring in medications",
+    "Start a continuity trail",
+    "Make it comfortable",
+  ];
+
   await page.goto("/");
   await page.getByRole("link", { name: "Get started" }).click();
   await expect(
@@ -8,11 +18,16 @@ test("onboarding advances through every step into the beta workspace", async ({ 
   ).toBeVisible();
 
   for (let step = 1; step <= 7; step += 1) {
-    await page.getByTestId("onboarding-continue").click();
+    const continueLink = page.getByTestId("onboarding-continue");
+    await expect(continueLink).toHaveAttribute("href", `/onboarding?step=${step}`);
+    await continueLink.click();
     await expect(page).toHaveURL(new RegExp(`/onboarding\\?step=${step}$`));
+    await expect(page.getByRole("heading", { name: stepHeadings[step - 1] })).toBeVisible();
   }
 
-  await page.getByTestId("onboarding-continue").click();
+  const enterWorkspaceLink = page.getByTestId("onboarding-continue");
+  await expect(enterWorkspaceLink).toHaveAttribute("href", "/today");
+  await enterWorkspaceLink.click();
   await expect(page).toHaveURL(/\/today$/);
   await expect(page.getByText("Beta workspace ready")).toBeVisible();
 });

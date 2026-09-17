@@ -2,12 +2,8 @@ import { defineConfig } from "@playwright/test";
 
 const productionMode = process.env.E2E_APP_MODE === "production";
 const port = productionMode ? 4174 : 4173;
-const productionEnvironment =
-  "VITE_APP_MODE=production VITE_REQUIRE_AUTH=true VITE_ENABLE_DEMO_WORKSPACE=false " +
-  "VITE_SUPABASE_URL=https://example.supabase.co VITE_SUPABASE_PUBLISHABLE_KEY=test-public-key " +
-  "VITE_PRIVACY_POLICY_URL=https://evernestcare.com/privacy " +
-  "VITE_TERMS_URL=https://evernestcare.com/terms " +
-  "VITE_SUPPORT_URL=https://support.evernestcare.com/help";
+const buildCommand = productionMode ? "npm run build:production" : "npm run build:vercel";
+const webServerCommand = `${buildCommand} && node ./node_modules/vite/bin/vite.js preview --config vite.vercel.config.ts --outDir dist-vercel --host 127.0.0.1 --port ${port} --strictPort`;
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -25,7 +21,7 @@ export default defineConfig({
     trace: process.env.CI ? "retain-on-failure" : "off",
   },
   webServer: {
-    command: `${productionMode ? `${productionEnvironment} ` : ""}node ./node_modules/vite/bin/vite.js --host 127.0.0.1 --port ${port}`,
+    command: webServerCommand,
     reuseExistingServer: process.env.PLAYWRIGHT_REUSE_SERVER === "true",
     timeout: 120_000,
     url: `http://127.0.0.1:${port}`,
@@ -38,6 +34,22 @@ export default defineConfig({
         viewport: { width: 390, height: 844 },
         isMobile: true,
         hasTouch: true,
+      },
+    },
+    {
+      name: "mobile-webkit",
+      use: {
+        browserName: "webkit",
+        viewport: { width: 390, height: 844 },
+        isMobile: true,
+        hasTouch: true,
+      },
+    },
+    {
+      name: "desktop-firefox",
+      use: {
+        browserName: "firefox",
+        viewport: { width: 1440, height: 900 },
       },
     },
   ],

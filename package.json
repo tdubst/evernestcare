@@ -18,7 +18,7 @@
     "typecheck": "tsc --noEmit",
     "test:e2e": "playwright test",
     "test:e2e:production": "E2E_APP_MODE=production playwright test",
-    "test:e2e:install": "playwright install chromium",
+    "test:e2e:install": "playwright install chromium firefox webkit",
     "test:account-closure-guards": "node scripts/account-closure/test-close-synthetic-staging-account-guards.mjs",
     "test:production-browser": "node scripts/verify-production-browser.mjs",
     "test:production-deployment-guards": "node scripts/test-production-deployment-guards.mjs",

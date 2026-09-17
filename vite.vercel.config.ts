@@ -5,6 +5,9 @@ import { defineConfig } from "vite";
 import tsConfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
+  define: {
+    "import.meta.env.VITE_STATIC_CLIENT": JSON.stringify("true"),
+  },
   plugins: [
     {
       name: "evernest-vercel-static-entry",
