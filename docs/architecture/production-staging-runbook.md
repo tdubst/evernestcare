@@ -35,6 +35,7 @@ The fixture and verifier fail closed unless the server reports this exact value.
    - `20260915165351_production_audit_helper_lockdown.sql`
    - `20260915172849_production_public_dml_lockdown.sql`
    - `20260915190000_production_public_schema_usage_lockdown.sql`
+   - `20260917193454_production_account_closure_boundary.sql`
 3. Do not edit an applied migration. Add a forward repair if review finds a defect.
 4. Run database lint and Supabase security/performance advisors.
 5. Stop if any migration, lint check, or security advisor reports an unresolved error.

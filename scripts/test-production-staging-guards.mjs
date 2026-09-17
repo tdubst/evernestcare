@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import {
   hasExactProjectConfirmation,
@@ -13,8 +14,25 @@ const provisionScript = fileURLToPath(
   new URL("./provision-production-staging.mjs", import.meta.url),
 );
 const verifyScript = fileURLToPath(new URL("./verify-production-staging.mjs", import.meta.url));
+const stagingRunbook = readFileSync(
+  new URL("../docs/architecture/production-staging-runbook.md", import.meta.url),
+  "utf8",
+);
+const latestMigration = readdirSync(new URL("../supabase/migrations/", import.meta.url), {
+  encoding: "utf8",
+})
+  .filter((name) => name.endsWith(".sql"))
+  .sort()
+  .at(-1);
+const documentedMigrationRange = stagingRunbook.match(
+  /2\. Apply every committed migration in filename order through:\n(?<range>[\s\S]*?)\n3\./,
+)?.groups?.range;
 const acceptedBetaRef = "ncbzkjwwvfguivrkgvus";
 const isolatedRef = "abcdefghijklmnopqrst";
+
+if (!latestMigration || !documentedMigrationRange?.includes(`\`${latestMigration}\``)) {
+  throw new Error("Production staging runbook must name the latest committed migration.");
+}
 
 assertBlocked(provisionScript, {}, "missing required environment");
 
