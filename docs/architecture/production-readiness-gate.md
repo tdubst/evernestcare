@@ -39,7 +39,7 @@ Calendar mutation, realtime messaging, self-service onboarding, real document up
 ## Local Verification Status
 
 - `npm run verify`: PASS.
-- Browser suites: 14 Beta/accessibility/golden-flow checks and 5 production-boundary/auth-recovery/read-only-hydration checks PASS.
+- Browser suites: 14 Beta/accessibility/golden-flow checks and 6 production-boundary/auth-recovery/public-resource/read-only-hydration checks PASS.
 - Production SQL posture and Vercel bundle-budget checks: PASS.
 - Production-mode Vercel environment guard and build: PASS with synthetic public configuration.
 - Mobile typecheck and iOS export: PASS.
