@@ -4,6 +4,18 @@ import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import tsConfigPaths from "vite-tsconfig-paths";
 
+const startRouteTreeFooter = [
+  `import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}`,
+];
+
 export default defineConfig({
   define: {
     "import.meta.env.VITE_STATIC_CLIENT": JSON.stringify("true"),
@@ -19,7 +31,11 @@ export default defineConfig({
         },
       },
     },
-    tanstackRouter({ autoCodeSplitting: true, target: "react" }),
+    tanstackRouter({
+      autoCodeSplitting: true,
+      routeTreeFileFooter: startRouteTreeFooter,
+      target: "react",
+    }),
     tailwindcss(),
     tsConfigPaths({ projects: ["./tsconfig.json"] }),
     react(),
