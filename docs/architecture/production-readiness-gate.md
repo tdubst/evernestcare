@@ -33,6 +33,7 @@ Calendar mutation, realtime messaging, self-service onboarding, real document up
 - Production deployment is manual and approval-gated: only the exact current `main` SHA can pass, the full verification suite runs again, and promotion is accepted only after the production URL reports that exact SHA with production security headers.
 - Mobile dependency versions are explicit rather than `latest`.
 - Hosted responses include restrictive browser security headers and disable unused device permissions.
+- Pre-promotion and post-promotion browser verification requires each configured Privacy Policy, Terms, and Support page to return public HTML directly, without redirects or authentication, on an approved first-party host with an accessible page heading.
 - Forward migrations remove direct mutation access for `PUBLIC`, `anon`, and `authenticated`, remove public execution of the internal audit helper and bootstrap helper, and close production workspace/invitation provisioning RPCs. They remain unapplied until database review and runtime proof pass.
 - A forward migration removes PostgreSQL's default `PUBLIC` access to the API schema while preserving explicit access for `anon`, `authenticated`, and `service_role`.
 

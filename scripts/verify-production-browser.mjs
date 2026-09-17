@@ -1,5 +1,7 @@
 import { chromium } from "@playwright/test";
 
+import { parsePublicResourceUrl } from "../src/lib/public-resource-url.mjs";
+
 const productionUrl = parseProductionUrl(process.env.PRODUCTION_BROWSER_URL?.trim());
 const expectation = process.env.PRODUCTION_BROWSER_EXPECTATION?.trim() || "production";
 
@@ -42,14 +44,30 @@ try {
     timeout: 30_000,
   });
   expectSecurityHeaders(entryResponse?.headers(), "production entry headers");
-  await expectVisible(page.getByText("Evernest Care").first(), "application shell");
+  if (!(await expectVisible(page.getByText("Evernest Care").first(), "application shell"))) {
+    throw new Error("application shell unavailable");
+  }
   await expectNoOverflow(page, "production entry layout");
 
   if (expectation === "production") {
-    await expectVisible(page.getByRole("link", { name: "Sign in" }), "production sign-in entry");
-    await expectVisible(page.getByRole("link", { name: "Privacy Policy" }), "privacy policy link");
-    await expectVisible(page.getByRole("link", { name: "Terms" }), "terms link");
-    await expectVisible(page.getByRole("link", { name: "Support" }), "support link");
+    if (
+      !(await expectVisible(
+        page.getByRole("link", { name: "Sign in" }),
+        "production sign-in entry",
+      ))
+    ) {
+      throw new Error("production sign-in entry unavailable");
+    }
+    for (const resource of [
+      { heading: /privacy policy/i, label: "Privacy Policy" },
+      { heading: /terms/i, label: "Terms" },
+      { heading: /support/i, label: "Support" },
+    ]) {
+      const link = page.getByRole("link", { name: resource.label });
+      if (await expectVisible(link, `${resource.label} link`)) {
+        await expectPublicResource(context, link, resource.heading, resource.label);
+      }
+    }
 
     const signInResponse = await page.goto(new URL("/sign-in", productionUrl).href, {
       waitUntil: "networkidle",
@@ -99,6 +117,7 @@ async function expectVisible(locator, label) {
   if (!visible) {
     failures.push(`${label} unavailable`);
   }
+  return visible;
 }
 
 async function expectNoOverflow(pageInstance, label) {
@@ -106,6 +125,53 @@ async function expectNoOverflow(pageInstance, label) {
     .evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)
     .catch(() => true);
   if (hasOverflow) failures.push(`${label} overflow`);
+}
+
+async function expectPublicResource(contextInstance, link, heading, label) {
+  const href = await link.getAttribute("href").catch(() => null);
+  const approvedHref = parsePublicResourceUrl(href);
+  if (!approvedHref) {
+    failures.push(`${label} resource unavailable`);
+    return;
+  }
+
+  const response = await contextInstance.request
+    .get(approvedHref, {
+      failOnStatusCode: false,
+      maxRedirects: 0,
+      timeout: 15_000,
+    })
+    .catch(() => null);
+  const contentType = response?.headers()["content-type"] ?? "";
+  if (
+    !response?.ok() ||
+    !contentType.toLowerCase().startsWith("text/html") ||
+    response.headers()["www-authenticate"]
+  ) {
+    failures.push(`${label} resource unavailable`);
+    return;
+  }
+
+  const resourcePage = await contextInstance.newPage();
+  try {
+    const navigation = await resourcePage.goto(approvedHref, {
+      waitUntil: "domcontentloaded",
+      timeout: 15_000,
+    });
+    if (!navigation?.ok() || navigation.request().redirectedFrom()) {
+      failures.push(`${label} resource unavailable`);
+      return;
+    }
+    await expectVisible(
+      resourcePage.getByRole("heading", { name: heading }).first(),
+      `${label} resource page heading`,
+    );
+    await expectNoOverflow(resourcePage, `${label} resource page layout`);
+  } catch {
+    failures.push(`${label} resource unavailable`);
+  } finally {
+    await resourcePage.close();
+  }
 }
 
 function expectSecurityHeaders(headers, label) {

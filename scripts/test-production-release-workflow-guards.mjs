@@ -9,6 +9,10 @@ const release = readFileSync(
   "utf8",
 );
 const quality = readFileSync(new URL("../.github/workflows/quality.yml", import.meta.url), "utf8");
+const browserVerifier = readFileSync(
+  new URL("./verify-production-browser.mjs", import.meta.url),
+  "utf8",
+);
 
 for (const [name, workflow] of [
   ["bootstrap", bootstrap],
@@ -67,6 +71,21 @@ assertBefore(
   "npm run verify:launch-approval",
   "Verify isolated staging database boundary",
   "launch approval must be verified before the isolated staging proof",
+);
+assertIncludes(
+  browserVerifier,
+  "parsePublicResourceUrl",
+  "production browser verification must enforce the public-resource allowlist",
+);
+assertIncludes(
+  browserVerifier,
+  "maxRedirects: 0",
+  "production browser verification must reject public-resource redirects",
+);
+assertIncludes(
+  browserVerifier,
+  "resource page heading",
+  "production browser verification must inspect public-resource page content",
 );
 
 console.log("Production release workflow guard tests passed.");
