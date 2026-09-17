@@ -155,7 +155,7 @@ function BetaCalendarPage() {
                 >
                   <span
                     className={`text-[10px] font-semibold uppercase tracking-wider ${
-                      active ? "text-primary-foreground/80" : "text-muted-foreground"
+                      active ? "text-primary-foreground" : "text-muted-foreground"
                     }`}
                   >
                     {day.d}

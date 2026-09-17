@@ -16,6 +16,7 @@ for (const route of [
 ]) {
   test(`${route} has no serious accessibility violations`, async ({ page }) => {
     await page.goto(route);
+    await page.waitForLoadState("networkidle");
     await expect(page.locator("body")).toBeVisible();
 
     const results = await new AxeBuilder({ page })

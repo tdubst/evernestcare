@@ -14,6 +14,13 @@ const publicLockdownMigration = await readFile(
   ),
   "utf8",
 );
+const schemaUsageLockdownMigration = await readFile(
+  new URL(
+    "../supabase/migrations/20260915190000_production_public_schema_usage_lockdown.sql",
+    import.meta.url,
+  ),
+  "utf8",
+);
 
 const requiredAuditPosture = [
   "write_audit_event",
@@ -27,6 +34,12 @@ const requiredProductionPosture = [
   "from public, anon, authenticated",
   "public.care_events",
 ];
+const requiredSchemaUsagePosture = [
+  "revoke usage on schema public from public",
+  "grant usage on schema public to anon",
+  "grant usage on schema public to authenticated",
+  "grant usage on schema public to service_role",
+];
 
 for (const expected of requiredAuditPosture) {
   if (!auditMigration.includes(expected)) {
@@ -37,6 +50,12 @@ for (const expected of requiredAuditPosture) {
 for (const expected of requiredProductionPosture) {
   if (!publicLockdownMigration.includes(expected)) {
     throw new Error(`Production SQL posture is missing: ${expected}`);
+  }
+}
+
+for (const expected of requiredSchemaUsagePosture) {
+  if (!schemaUsageLockdownMigration.includes(expected)) {
+    throw new Error(`Production schema usage posture is missing: ${expected}`);
   }
 }
 

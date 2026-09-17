@@ -1,13 +1,25 @@
 import { createClient } from "@supabase/supabase-js";
 import postgres from "postgres";
+import {
+  hasExactProjectConfirmation,
+  loadProductionProjectRegistry,
+  validateStagingProjectTarget,
+} from "./production-project-registry.mjs";
+import { isFullGitSha, releaseProofIdForSha } from "./production-release-proof.mjs";
 
 const requiredEnvironment = [
-  "STAGING_DATABASE_URL",
+  "STAGING_EXPECTED_PROJECT_REF",
+  "STAGING_PROTECTED_PROJECT_REFS",
+  "STAGING_RELEASE_SHA",
+  "STAGING_VERIFIER_DATABASE_URL",
   "STAGING_SENTINEL_EVENT_ID",
   "STAGING_SUPABASE_URL",
   "STAGING_SUPABASE_PUBLISHABLE_KEY",
   "STAGING_OWNER_EMAIL",
   "STAGING_OWNER_PASSWORD",
+  "STAGING_REVOKED_EMAIL",
+  "STAGING_REVOKED_PASSWORD",
+  "STAGING_VERIFY_CONFIRMATION",
 ];
 const missingEnvironment = requiredEnvironment.filter((name) => !process.env[name]?.trim());
 
@@ -16,22 +28,60 @@ if (missingEnvironment.length > 0) {
 }
 
 const stagingUrl = process.env.STAGING_SUPABASE_URL.trim();
-const stagingDatabaseUrl = process.env.STAGING_DATABASE_URL.trim();
+const stagingDatabaseUrl = process.env.STAGING_VERIFIER_DATABASE_URL.trim();
 const parsedStagingUrl = parseUrl(stagingUrl, ["https:"]);
 const projectRef = parsedStagingUrl?.hostname.split(".")[0];
+const verifierRole = "evernest_staging_verifier";
+const expectedProjectRef = process.env.STAGING_EXPECTED_PROJECT_REF.trim();
+const projectRegistry = loadProductionProjectRegistry();
+const protectedProjectRefs = new Set(
+  process.env.STAGING_PROTECTED_PROJECT_REFS.split(",")
+    .map((value) => value.trim())
+    .filter(Boolean),
+);
 
 if (!parsedStagingUrl || !/^[a-z0-9-]+\.supabase\.co$/i.test(parsedStagingUrl.hostname)) {
   fail("STAGING_SUPABASE_URL must be an HTTPS Supabase project URL");
 }
 
 const parsedDatabaseUrl = parseDatabaseUrl(stagingDatabaseUrl);
+if (parsedDatabaseUrl?.searchParams.get("sslmode") !== "verify-full") {
+  fail("STAGING_VERIFIER_DATABASE_URL must require verify-full TLS");
+}
 const directDatabaseMatch = parsedDatabaseUrl?.hostname === `db.${projectRef}.supabase.co`;
 const poolerDatabaseMatch =
   parsedDatabaseUrl?.hostname.endsWith(".pooler.supabase.com") === true &&
-  decodeURIComponent(parsedDatabaseUrl.username) === `postgres.${projectRef}`;
+  decodeURIComponent(parsedDatabaseUrl.username) === `${verifierRole}.${projectRef}`;
+const verifierRoleMatch = directDatabaseMatch
+  ? decodeURIComponent(parsedDatabaseUrl?.username ?? "") === verifierRole
+  : poolerDatabaseMatch;
 
-if (!projectRef || (!directDatabaseMatch && !poolerDatabaseMatch)) {
+if (
+  !/^[a-z0-9]{20}$/i.test(expectedProjectRef) ||
+  projectRef !== expectedProjectRef ||
+  !verifierRoleMatch
+) {
   fail("the staging API and database URLs do not identify the same project");
+}
+
+if (
+  !validateStagingProjectTarget({
+    expectedProjectRef,
+    suppliedProtectedProjectRefs: protectedProjectRefs,
+    registry: projectRegistry,
+  })
+) {
+  fail("the expected staging project must match the reviewed project registry");
+}
+
+if (
+  !hasExactProjectConfirmation(
+    process.env.STAGING_VERIFY_CONFIRMATION,
+    "VERIFY",
+    expectedProjectRef,
+  )
+) {
+  fail("STAGING_VERIFY_CONFIRMATION must bind to the expected staging project reference");
 }
 
 if (
@@ -41,6 +91,12 @@ if (
 ) {
   fail("STAGING_SENTINEL_EVENT_ID must be a UUID");
 }
+
+const releaseSha = process.env.STAGING_RELEASE_SHA.trim().toLowerCase();
+if (!isFullGitSha(releaseSha)) {
+  fail("STAGING_RELEASE_SHA must be a full Git commit SHA");
+}
+const releaseProofId = releaseProofIdForSha(releaseSha);
 
 const productTables = [
   "users",
@@ -68,6 +124,7 @@ const database = postgres(stagingDatabaseUrl, {
   idle_timeout: 5,
   max: 1,
   prepare: false,
+  ssl: "verify-full",
 });
 const client = createClient(stagingUrl, process.env.STAGING_SUPABASE_PUBLISHABLE_KEY.trim(), {
   auth: {
@@ -79,9 +136,12 @@ const client = createClient(stagingUrl, process.env.STAGING_SUPABASE_PUBLISHABLE
 });
 
 let failures = 0;
-const initialDatabaseState = await inspectDatabase();
+let ownerHydration = null;
+let revokedAuthUserId = zeroUuid;
+const initialDatabaseState = await inspectDatabase(revokedAuthUserId);
 
 check(initialDatabaseState?.environment === "staging", "server-side staging sentinel");
+check(initialDatabaseState?.verifier_least_privilege === true, "least-privilege verifier role");
 check(initialDatabaseState?.acl_locked === true, "database mutation privileges locked");
 check(initialDatabaseState?.sentinel_ready === true, "sentinel care event provisioned");
 if (failures > 0) {
@@ -103,9 +163,9 @@ try {
   const userCheck = await execute(client.auth.getUser());
   check(!userCheck.error && Boolean(userCheck.data?.user), "server user validation");
 
-  const initialHydration = await hydrateBoundary();
-  check(initialHydration !== null, "read-only workspace hydration");
-  if (!initialHydration) finish();
+  ownerHydration = await hydrateBoundary();
+  check(ownerHydration !== null, "read-only workspace hydration");
+  if (!ownerHydration) finish();
 
   await expectRpcDenied("ensure_care_boundary", {
     p_recipient_display_name: null,
@@ -131,11 +191,7 @@ try {
   check(!careCircle.error && careCircle.data?.status === "ready", "Care Circle projection");
 
   const vault = await execute(
-    client
-      .rpc("get_vault_artifact_summary", {
-        p_request: { permission_version: initialHydration.permission_version },
-      })
-      .maybeSingle(),
+    client.rpc("get_vault_artifact_summary", { p_request: {} }).maybeSingle(),
   );
   check(
     !vault.error && ["empty", "ready"].includes(vault.data?.status),
@@ -147,13 +203,68 @@ try {
       .from("care_events")
       .select("id")
       .eq("id", process.env.STAGING_SENTINEL_EVENT_ID)
-      .eq("care_team_id", initialHydration.active_care_team_id)
-      .eq("care_recipient_id", initialHydration.active_care_recipient_id)
+      .eq("care_team_id", ownerHydration.active_care_team_id)
+      .eq("care_recipient_id", ownerHydration.active_care_recipient_id)
       .maybeSingle(),
   );
   check(
     !sentinelRead.error && sentinelRead.data?.id === process.env.STAGING_SENTINEL_EVENT_ID,
     "authorized sentinel care event read",
+  );
+
+  const noteClientEventId = `staging-note-${releaseProofId}`;
+  const existingNote = await execute(
+    client
+      .from("care_events")
+      .select("id,occurred_at")
+      .eq("care_team_id", ownerHydration.active_care_team_id)
+      .eq("client_event_id", noteClientEventId)
+      .maybeSingle(),
+  );
+  check(!existingNote.error, "durable care note baseline");
+  const noteOccurredAt = existingNote.data?.occurred_at ?? new Date().toISOString();
+  const noteWrite = await execute(
+    client
+      .rpc("append_care_event", {
+        p_care_recipient_id: ownerHydration.active_care_recipient_id,
+        p_care_team_id: ownerHydration.active_care_team_id,
+        p_causation_id: null,
+        p_client_event_id: noteClientEventId,
+        p_correlation_id: noteClientEventId,
+        p_event_source: "manual",
+        p_event_type: "CareNoteAddedEvent",
+        p_occurred_at: noteOccurredAt,
+        p_operational_context: "caregiver-note",
+        p_payload: { note: "Staging continuity check", noteType: "caregiver-context" },
+        p_schema_version: 1,
+      })
+      .maybeSingle(),
+  );
+  check(
+    !noteWrite.error &&
+      ["inserted", "duplicate"].includes(noteWrite.data?.status) &&
+      noteWrite.data?.read_back === true,
+    "durable care note create and read-back",
+  );
+
+  const noteEventId = noteWrite.data?.care_event_id;
+  const noteRead = await readCareNote(noteEventId, ownerHydration);
+  check(noteRead, "durable care note projection read");
+
+  await execute(client.auth.signOut());
+  const reloadSignIn = await signIn(
+    process.env.STAGING_OWNER_EMAIL,
+    process.env.STAGING_OWNER_PASSWORD,
+  );
+  check(reloadSignIn, "owner reload sign-in");
+  const reloadHydration = reloadSignIn ? await hydrateBoundary() : null;
+  check(
+    reloadHydration !== null && sameBoundary(ownerHydration, reloadHydration),
+    "workspace reload hydration",
+  );
+  check(
+    reloadHydration !== null && (await readCareNote(noteEventId, reloadHydration)),
+    "durable care note reload",
   );
 
   for (const table of productTables) {
@@ -168,16 +279,68 @@ try {
 
   const finalHydration = await hydrateBoundary();
   check(
-    finalHydration !== null && sameBoundary(initialHydration, finalHydration),
+    finalHydration !== null && sameBoundary(ownerHydration, finalHydration),
     "workspace boundary remained stable",
   );
 } finally {
   await execute(client.auth.signOut());
 }
 
-const finalDatabaseState = await inspectDatabase();
+const revokedSignIn = await signIn(
+  process.env.STAGING_REVOKED_EMAIL,
+  process.env.STAGING_REVOKED_PASSWORD,
+);
+check(revokedSignIn, "revoked user sign-in");
+if (revokedSignIn) {
+  const revokedUserCheck = await execute(client.auth.getUser());
+  revokedAuthUserId = revokedUserCheck.data?.user?.id ?? zeroUuid;
+  check(
+    !revokedUserCheck.error && revokedAuthUserId !== zeroUuid,
+    "revoked user server validation",
+  );
+  const revokedFixtureState = await inspectDatabase(revokedAuthUserId);
+  check(
+    revokedFixtureState?.revoked_fixture_ready === true,
+    "revoked membership fixture provisioned",
+  );
+  const revokedHydration = await execute(client.rpc("hydrate_permission_context").maybeSingle());
+  check(
+    !revokedHydration.error && revokedHydration.data?.status === "boundary_unavailable",
+    "revoked user workspace denied",
+  );
+  const revokedSentinelRead = await execute(
+    client.from("care_events").select("id").eq("id", process.env.STAGING_SENTINEL_EVENT_ID),
+  );
+  check(
+    !revokedSentinelRead.error && revokedSentinelRead.data?.length === 0,
+    "revoked user sentinel event hidden",
+  );
+  const revokedAppend = await execute(
+    client.rpc("append_care_event", {
+      p_care_recipient_id: ownerHydration.active_care_recipient_id,
+      p_care_team_id: ownerHydration.active_care_team_id,
+      p_causation_id: null,
+      p_client_event_id: "staging-revoked-denial",
+      p_correlation_id: "staging-revoked-denial",
+      p_event_source: "manual",
+      p_event_type: "CareNoteAddedEvent",
+      p_occurred_at: new Date().toISOString(),
+      p_operational_context: "caregiver-note",
+      p_payload: { note: "Staging denial check", noteType: "caregiver-context" },
+      p_schema_version: 1,
+    }),
+  );
+  check(
+    !revokedAppend.error && revokedAppend.data?.[0]?.status === "permission_denied",
+    "revoked user approved mutation denied",
+  );
+}
+await execute(client.auth.signOut());
+
+const finalDatabaseState = await inspectDatabase(revokedAuthUserId);
 check(finalDatabaseState?.environment === "staging", "staging sentinel remained active");
 check(finalDatabaseState?.acl_locked === true, "database privileges remained locked");
+check(Number(finalDatabaseState?.durable_note_count) === 1, "durable care note remained singular");
 check(
   initialDatabaseState?.boundary_fingerprint === finalDatabaseState?.boundary_fingerprint,
   "workspace records remained unchanged",
@@ -208,6 +371,38 @@ async function hydrateBoundary() {
   return row;
 }
 
+async function readCareNote(eventId, boundary) {
+  if (!eventId || !boundary) return false;
+
+  const result = await execute(
+    client
+      .from("care_events")
+      .select("id,event_type,payload")
+      .eq("id", eventId)
+      .eq("care_team_id", boundary.active_care_team_id)
+      .eq("care_recipient_id", boundary.active_care_recipient_id)
+      .maybeSingle(),
+  );
+
+  return (
+    !result.error &&
+    result.data?.id === eventId &&
+    result.data?.event_type === "CareNoteAddedEvent" &&
+    result.data?.payload?.note === "Staging continuity check" &&
+    result.data?.payload?.noteType === "caregiver-context"
+  );
+}
+
+async function signIn(email, password) {
+  const result = await execute(
+    client.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    }),
+  );
+  return !result.error && Boolean(result.data?.session);
+}
+
 async function expectRpcDenied(name, args) {
   const result = await execute(client.rpc(name, args));
   check(isPrivilegeDenied(result), `${name} execution denied`);
@@ -218,50 +413,98 @@ async function expectDirectWriteDenied(table, operation, query) {
   check(isPrivilegeDenied(result), `${table} direct ${operation} denied`);
 }
 
-async function inspectDatabase() {
+async function inspectDatabase(revokedUserId) {
   try {
-    const rows = await database.unsafe(databaseInspectionSql(), [
-      process.env.STAGING_SENTINEL_EVENT_ID,
-    ]);
-    return rows[0] ?? null;
+    const roleRows = await database.unsafe(verifierRoleInspectionSql());
+    const rows = await database.unsafe(
+      "select * from staging_verification.production_staging_inspect($1::uuid, $2::uuid, $3::uuid)",
+      [process.env.STAGING_SENTINEL_EVENT_ID, revokedUserId, releaseProofId],
+    );
+    return rows[0]
+      ? { ...rows[0], verifier_least_privilege: roleRows[0]?.verifier_least_privilege === true }
+      : null;
   } catch {
     return null;
   }
 }
 
-function databaseInspectionSql() {
-  const tableValues = productTables.map((table) => `('${table}')`).join(",");
-
+function verifierRoleInspectionSql() {
   return `
-with product_tables(table_name) as (values ${tableValues}),
-api_roles(role_name) as (values ('anon'), ('authenticated')),
-closed_functions(signature) as (values
-  ('public.ensure_care_boundary(text,text,uuid)'),
-  ('public.create_care_circle_invitation(jsonb)'),
-  ('public.team_has_no_members(uuid)'),
-  ('public.write_audit_event(uuid,uuid,uuid,uuid,text,text,uuid,jsonb)')
-)
+with table_privileges(privilege_name) as (values
+  ('SELECT'), ('INSERT'), ('UPDATE'), ('DELETE'), ('TRUNCATE'), ('REFERENCES'), ('TRIGGER')
+),
+sequence_privileges(privilege_name) as (values ('SELECT'), ('UPDATE'), ('USAGE'))
 select
-  current_setting('app.environment', true) as environment,
-  not exists (
-    select 1 from product_tables cross join api_roles
-    where has_table_privilege(
-      role_name,
-      format('public.%I', table_name),
-      'INSERT,UPDATE,DELETE'
+  current_user = '${verifierRole}'
+    and not coalesce((
+      select rolsuper or rolcreatedb or rolcreaterole or rolreplication or rolbypassrls or rolinherit
+      from pg_roles
+      where rolname = current_user
+    ), true)
+    and has_schema_privilege(current_user, 'staging_verification', 'USAGE')
+    and not has_schema_privilege(current_user, 'staging_verification', 'CREATE')
+    and has_function_privilege(
+      current_user,
+      'staging_verification.production_staging_inspect(uuid,uuid,uuid)',
+      'EXECUTE'
     )
-  ) and not exists (
-    select 1 from closed_functions cross join api_roles
-    where to_regprocedure(signature) is null
-       or has_function_privilege(role_name, to_regprocedure(signature), 'EXECUTE')
-  ) as acl_locked,
-  exists (select 1 from public.care_events where id = $1::uuid) as sentinel_ready,
-  md5(concat_ws('|',
-    (select coalesce(string_agg(to_jsonb(t)::text, ',' order by t.id), '') from public.users t),
-    (select coalesce(string_agg(to_jsonb(t)::text, ',' order by t.id), '') from public.care_recipients t),
-    (select coalesce(string_agg(to_jsonb(t)::text, ',' order by t.id), '') from public.care_teams t),
-    (select coalesce(string_agg(to_jsonb(t)::text, ',' order by t.id), '') from public.care_team_members t)
-  )) as boundary_fingerprint
+    and not exists (
+      select 1
+      from pg_auth_members
+      where member = (select oid from pg_roles where rolname = current_user)
+    )
+    and not exists (
+      select 1
+      from pg_namespace n
+      where n.nspname <> 'staging_verification'
+        and n.nspname <> 'information_schema'
+        and n.nspname !~ '^pg_'
+        and has_schema_privilege(current_user, n.oid, 'USAGE')
+    )
+    and not exists (
+      select 1
+      from pg_namespace n
+      where n.nspname <> 'information_schema'
+        and n.nspname !~ '^pg_'
+        and has_schema_privilege(current_user, n.oid, 'CREATE')
+    )
+    and has_database_privilege(current_user, current_database(), 'CONNECT')
+    and not has_database_privilege(current_user, current_database(), 'CREATE')
+    and has_database_privilege(current_user, current_database(), 'TEMPORARY')
+    and not exists (
+      select 1
+      from pg_class c
+      join pg_namespace n on n.oid = c.relnamespace
+      cross join table_privileges
+      where n.nspname <> 'information_schema'
+        and n.nspname !~ '^pg_'
+        and c.relkind in ('r', 'p', 'v', 'm', 'f')
+        and has_schema_privilege(current_user, n.oid, 'USAGE')
+        and has_table_privilege(current_user, c.oid, privilege_name)
+    )
+    and not exists (
+      select 1
+      from pg_class c
+      join pg_namespace n on n.oid = c.relnamespace
+      cross join sequence_privileges
+      where n.nspname <> 'information_schema'
+        and n.nspname !~ '^pg_'
+        and c.relkind = 'S'
+        and has_schema_privilege(current_user, n.oid, 'USAGE')
+        and has_sequence_privilege(current_user, c.oid, privilege_name)
+    )
+    and not exists (
+      select 1
+      from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname <> 'information_schema'
+        and n.nspname !~ '^pg_'
+        and has_schema_privilege(current_user, n.oid, 'USAGE')
+        and has_function_privilege(current_user, p.oid, 'EXECUTE')
+        and p.oid <> 'staging_verification.production_staging_inspect(uuid,uuid,uuid)'::regprocedure
+    )
+    and current_setting('default_transaction_read_only') = 'on'
+    as verifier_least_privilege
 `;
 }
 

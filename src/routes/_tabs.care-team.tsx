@@ -766,7 +766,7 @@ function InviteSheet({
                   <p className="text-[13px] font-semibold">{option.label}</p>
                   <p
                     className={`mt-1 text-[12px] ${
-                      role === option.value ? "text-primary-foreground/80" : "text-muted-foreground"
+                      role === option.value ? "text-primary-foreground" : "text-muted-foreground"
                     }`}
                   >
                     {option.description}

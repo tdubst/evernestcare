@@ -54,12 +54,18 @@ jobs:
       - run: npm audit --omit=dev --audit-level=high
       - name: Verify isolated staging database boundary
         env:
-          STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+          STAGING_EXPECTED_PROJECT_REF: ${{ vars.STAGING_EXPECTED_PROJECT_REF }}
+          STAGING_VERIFIER_DATABASE_URL: ${{ secrets.STAGING_VERIFIER_DATABASE_URL }}
           STAGING_OWNER_EMAIL: ${{ secrets.STAGING_OWNER_EMAIL }}
           STAGING_OWNER_PASSWORD: ${{ secrets.STAGING_OWNER_PASSWORD }}
+          STAGING_PROTECTED_PROJECT_REFS: ${{ vars.STAGING_PROTECTED_PROJECT_REFS }}
+          STAGING_RELEASE_SHA: ${{ inputs.release_sha }}
+          STAGING_REVOKED_EMAIL: ${{ secrets.STAGING_REVOKED_EMAIL }}
+          STAGING_REVOKED_PASSWORD: ${{ secrets.STAGING_REVOKED_PASSWORD }}
           STAGING_SENTINEL_EVENT_ID: ${{ secrets.STAGING_SENTINEL_EVENT_ID }}
           STAGING_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }}
           STAGING_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+          STAGING_VERIFY_CONFIRMATION: ${{ vars.STAGING_VERIFY_CONFIRMATION }}
         run: npm run test:staging
 
   deploy:

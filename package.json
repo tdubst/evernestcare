@@ -23,8 +23,10 @@
     "test:production-deployment": "node scripts/verify-production-deployment.mjs",
     "test:runtime-env": "node scripts/test-production-env.mjs",
     "test:sql-posture": "node scripts/check-production-sql-posture.mjs",
+    "test:staging-guards": "node scripts/test-production-staging-guards.mjs",
+    "provision:staging": "node scripts/provision-production-staging.mjs",
     "test:staging": "node scripts/verify-production-staging.mjs",
-    "verify": "npm run lint -- --quiet && npm run typecheck && npm run test:runtime-env && npm run test:sql-posture && npm run build && npm run build:production && npm run test:e2e && npm run test:e2e:production",
+    "verify": "npm run lint -- --quiet && npm run typecheck && npm run test:runtime-env && npm run test:sql-posture && npm run test:staging-guards && npm run build && npm run build:production && npm run test:e2e && npm run test:e2e:production",
     "format": "prettier --write ."
   },
   "dependencies": {
