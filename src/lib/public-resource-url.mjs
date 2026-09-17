@@ -1,5 +1,11 @@
 const approvedHosts = new Set(["evernestcare.com", "support.evernestcare.com"]);
 
+export const publicResourceUrls = Object.freeze({
+  privacyPolicy: "https://evernestcare.com/privacy",
+  support: "https://support.evernestcare.com/help",
+  terms: "https://evernestcare.com/terms",
+});
+
 export function parsePublicResourceUrl(value) {
   if (typeof value !== "string" || value.length === 0 || value.length > 2_048) return null;
 

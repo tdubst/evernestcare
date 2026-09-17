@@ -79,6 +79,11 @@ assertIncludes(
 );
 assertIncludes(
   browserVerifier,
+  "publicResourceUrls",
+  "production browser verification must enforce exact public-resource URLs",
+);
+assertIncludes(
+  browserVerifier,
   "maxRedirects: 0",
   "production browser verification must reject public-resource redirects",
 );

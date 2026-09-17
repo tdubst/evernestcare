@@ -8,6 +8,11 @@ const publicResources = {
   VITE_SUPPORT_URL: "https://support.evernestcare.com/help",
   VITE_TERMS_URL: "https://evernestcare.com/terms",
 };
+const wrongApprovedResourceUrls = {
+  VITE_PRIVACY_POLICY_URL: "https://evernestcare.com/privacy-notice",
+  VITE_SUPPORT_URL: "https://support.evernestcare.com/contact",
+  VITE_TERMS_URL: "https://evernestcare.com/legal",
+};
 const unsafePublicResourceUrls = [
   "http://evernestcare.com/privacy",
   "https://localhost./privacy",
@@ -102,6 +107,20 @@ for (const name of Object.keys(publicResources)) {
       `production must reject an unsafe ${name}`,
     );
   }
+
+  assert.notEqual(
+    run({
+      VITE_APP_MODE: "production",
+      VITE_ENABLE_DEMO_WORKSPACE: "false",
+      VITE_REQUIRE_AUTH: "true",
+      VITE_SUPABASE_PUBLISHABLE_KEY: "public-test-key",
+      VITE_SUPABASE_URL: "https://example.supabase.co",
+      ...publicResources,
+      [name]: wrongApprovedResourceUrls[name],
+    }).status,
+    0,
+    `production must reject the wrong approved-host path for ${name}`,
+  );
 }
 
 console.log("Production environment guard tests passed.");

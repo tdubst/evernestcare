@@ -1,6 +1,6 @@
 import { chromium } from "@playwright/test";
 
-import { parsePublicResourceUrl } from "../src/lib/public-resource-url.mjs";
+import { parsePublicResourceUrl, publicResourceUrls } from "../src/lib/public-resource-url.mjs";
 
 const productionUrl = parseProductionUrl(process.env.PRODUCTION_BROWSER_URL?.trim());
 const expectation = process.env.PRODUCTION_BROWSER_EXPECTATION?.trim() || "production";
@@ -59,13 +59,23 @@ try {
       throw new Error("production sign-in entry unavailable");
     }
     for (const resource of [
-      { heading: /privacy policy/i, label: "Privacy Policy" },
-      { heading: /terms/i, label: "Terms" },
-      { heading: /support/i, label: "Support" },
+      {
+        expectedHref: publicResourceUrls.privacyPolicy,
+        heading: /privacy policy/i,
+        label: "Privacy Policy",
+      },
+      { expectedHref: publicResourceUrls.terms, heading: /terms/i, label: "Terms" },
+      { expectedHref: publicResourceUrls.support, heading: /support/i, label: "Support" },
     ]) {
       const link = page.getByRole("link", { name: resource.label });
       if (await expectVisible(link, `${resource.label} link`)) {
-        await expectPublicResource(context, link, resource.heading, resource.label);
+        await expectPublicResource(
+          context,
+          link,
+          resource.expectedHref,
+          resource.heading,
+          resource.label,
+        );
       }
     }
 
@@ -127,10 +137,10 @@ async function expectNoOverflow(pageInstance, label) {
   if (hasOverflow) failures.push(`${label} overflow`);
 }
 
-async function expectPublicResource(contextInstance, link, heading, label) {
+async function expectPublicResource(contextInstance, link, expectedHref, heading, label) {
   const href = await link.getAttribute("href").catch(() => null);
   const approvedHref = parsePublicResourceUrl(href);
-  if (!approvedHref) {
+  if (approvedHref !== expectedHref) {
     failures.push(`${label} resource unavailable`);
     return;
   }
