@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "releaseVersion": "0.1.0",
+  "status": "not_approved",
+  "migrationRange": {
+    "first": null,
+    "last": null
+  },
+  "requiredEvidence": {
+    "pullRequestQuality": { "status": "pending", "reference": null, "date": null },
+    "architectureReview": { "status": "pending", "reference": null, "date": null },
+    "securityPrivacyReview": { "status": "pending", "reference": null, "date": null },
+    "backendReview": { "status": "pending", "reference": null, "date": null },
+    "uxReview": { "status": "pending", "reference": null, "date": null },
+    "isolatedStagingProof": { "status": "pending", "reference": null, "date": null },
+    "authRecoveryDrill": { "status": "pending", "reference": null, "date": null },
+    "authenticatedBrowserMatrix": { "status": "pending", "reference": null, "date": null },
+    "databaseAdvisors": { "status": "pending", "reference": null, "date": null },
+    "directMutationMatrix": { "status": "pending", "reference": null, "date": null },
+    "backupRestoreDrill": { "status": "pending", "reference": null, "date": null },
+    "accountClosureDrill": { "status": "pending", "reference": null, "date": null },
+    "credentialRevocationDrill": { "status": "pending", "reference": null, "date": null },
+    "incidentEvidenceDrill": { "status": "pending", "reference": null, "date": null },
+    "alertDeliveryDrill": { "status": "pending", "reference": null, "date": null },
+    "accessibilityCrossBrowser": { "status": "pending", "reference": null, "date": null },
+    "performance": { "status": "pending", "reference": null, "date": null },
+    "privacyPolicyTerms": { "status": "pending", "reference": null, "date": null },
+    "consentRetention": { "status": "pending", "reference": null, "date": null },
+    "hipaaVendorReview": { "status": "pending", "reference": null, "date": null },
+    "supportReadiness": { "status": "pending", "reference": null, "date": null },
+    "productionBaseline": { "status": "pending", "reference": null, "date": null },
+    "productionEnvironment": { "status": "pending", "reference": null, "date": null }
+  },
+  "ownerDecisions": {
+    "product": { "decision": "pending", "reference": null, "date": null },
+    "architecture": { "decision": "pending", "reference": null, "date": null },
+    "backend": { "decision": "pending", "reference": null, "date": null },
+    "webApp": { "decision": "pending", "reference": null, "date": null },
+    "securityPrivacy": { "decision": "pending", "reference": null, "date": null },
+    "ux": { "decision": "pending", "reference": null, "date": null },
+    "qaRelease": { "decision": "pending", "reference": null, "date": null },
+    "legal": { "decision": "pending", "reference": null, "date": null },
+    "operations": { "decision": "pending", "reference": null, "date": null }
+  }
+}

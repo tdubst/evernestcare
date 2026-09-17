@@ -52,6 +52,8 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run verify
       - run: npm audit --omit=dev --audit-level=high
+      - name: Verify production launch approval
+        run: npm run verify:launch-approval
       - name: Verify isolated staging database boundary
         env:
           STAGING_EXPECTED_PROJECT_REF: ${{ vars.STAGING_EXPECTED_PROJECT_REF }}

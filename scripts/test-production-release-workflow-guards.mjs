@@ -57,9 +57,26 @@ assertIncludes(
   "npm audit --omit=dev --audit-level=high",
   "pull-request CI must enforce the production dependency threshold",
 );
+assertIncludes(
+  release,
+  "npm run verify:launch-approval",
+  "production release must require completed launch approval",
+);
+assertBefore(
+  release,
+  "npm run verify:launch-approval",
+  "Verify isolated staging database boundary",
+  "launch approval must be verified before the isolated staging proof",
+);
 
 console.log("Production release workflow guard tests passed.");
 
 function assertIncludes(value, expected, message) {
   if (!value.includes(expected)) throw new Error(message);
+}
+
+function assertBefore(value, first, second, message) {
+  const firstIndex = value.indexOf(first);
+  const secondIndex = value.indexOf(second);
+  if (firstIndex < 0 || secondIndex < 0 || firstIndex >= secondIndex) throw new Error(message);
 }

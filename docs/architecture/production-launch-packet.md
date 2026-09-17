@@ -4,6 +4,8 @@ Status: Not approved
 
 This packet is the authoritative go/no-go record for the first authenticated Evernest Care WebApp release. A preview, successful build, merged pull request, or Vercel production deployment does not by itself authorize launch or real care data.
 
+The machine-readable approval record is `config/production-launch-approval.json`. Keep it `not_approved` with pending entries until the corresponding evidence and owner decisions exist. Evidence references use content-free `restricted:<record>` identifiers that resolve only inside the approved evidence system. The production release workflow independently rejects an incomplete record.
+
 ## Release Identity
 
 | Field | Required evidence | Status |
