@@ -19,6 +19,18 @@ Specialist chats own bounded implementation or review within their assigned scop
 
 ## Current Priority
 
+Sprints 7-10 and the controlled Beta v0.1.0 package are accepted. The active gate is now production readiness for the first authenticated WebApp release. The accepted Beta remains unchanged while an isolated production-like staging project, production Auth, durable authorized/revoked proofs, release controls, operations drills, legal/privacy review, and final owner approvals are completed. Production promotion, real-user onboarding, storage/upload, sharing/export, live Native data, and monitoring expansion remain blocked until that gate closes.
+
+The authoritative production artifacts are:
+
+- `docs/architecture/production-readiness-gate.md`
+- `docs/architecture/production-staging-runbook.md`
+- `docs/architecture/production-operations-runbook.md`
+- `.github/workflows/release-production.yml`
+- `config/production-project-registry.json`
+
+Historical sprint status follows.
+
 Sprint 2 is complete as of June 3, 2026.
 
 ```text
@@ -44,7 +56,7 @@ Sprint 3 hardening is accepted from the Product Planning gate as of June 4, 2026
 - `hydrate_permission_context` passed Architecture/Security review, remote readiness, owner/unrelated-user proof, negative permission fixture proof, and Today regression.
 - Today medication/vitals caregiver confidence passed Security/Privacy and signed-in mobile QA, including repeated vitals console cleanliness, reload preservation, care-note local-only guard, unrelated-user denial, and no sensitive proof/status leakage.
 
-The first Sprint 4 caregiver confidence slice is accepted as of June 4, 2026. The Sprint 5 gate and implementation contract are accepted as of June 4, 2026. Sprint 6 Durable Care Notes is accepted as of June 4, 2026 and recorded in `docs/architecture/sprint-6-durable-care-notes-closeout.md`. The Sprint 7-10 beta continuation policy is accepted in `DECISIONS/009-sprint-7-10-beta-continuation.md`. The active Product Planning priority is now Sprint 7 Care Circle / Invitations / Permissions UX, with Sprints 8-10 queued behind prior-sprint acceptance gates.
+The first Sprint 4 caregiver confidence slice was accepted as of June 4, 2026. The Sprint 5 gate and implementation contract, Sprint 6 Durable Care Notes, and the Sprint 7-10 beta continuation policy were subsequently accepted. The historical sequencing below governed entry into Sprints 7-10; it is superseded by the production-readiness priority above.
 
 - accepted Sprint 4 slice: Today-only generic active-workspace/access confidence plus medication/vitals continuity, Recent Updates, in-app Visit Prep confidence, care-note local-only guard, unrelated-user denial, and zero relevant console errors
 - keep any remaining Sprint 4 polish narrow and Today-first
@@ -124,7 +136,9 @@ Callback requirement:
 When this task is complete or blocked, send the status report back to Product Planning thread `019e8ef6-99ad-7f33-b752-9a9844a4a2f3`. Do not rely only on a final answer in this specialist thread.
 ```
 
-## Specialist Seed Prompts
+## Historical Specialist Seed Prompts (Archived)
+
+The prompts below preserve early-sprint coordination history and must not be used for current work. New specialist tasks must use the production-readiness artifacts listed under Current Priority, the current status protocol, and a scope tailored to the active production gate.
 
 ### Backend Supabase
 
@@ -415,15 +429,15 @@ Specialist chats must proactively report completion or blocker status back to Pr
 
 Use these thread IDs for direct CTO coordination from Product Planning:
 
-| Workstream | Thread ID |
-| --- | --- |
+| Workstream       | Thread ID                              |
+| ---------------- | -------------------------------------- |
 | Product Planning | `019e8ef6-99ad-7f33-b752-9a9844a4a2f3` |
 | Backend Supabase | `019e8ef6-9e6a-79a3-8b85-787b29dc80b5` |
-| Web App | `019e8ef6-9b0f-7f22-97ec-5c20164b6220` |
-| Native iOS | `019e8ef6-9cd1-7832-85b6-84293be284f0` |
-| Architecture | `019e8ef5-95d9-7523-9c2c-00ba4f36fff7` |
-| QA Release | `019e8ef6-a3bc-70f0-ba54-dbe5d9d556dc` |
-| Caregiver UX | `019e8ef6-a00e-7552-bf29-d26e32abd6fd` |
-| Agents | `019e8ef6-a1fe-7472-a392-1a402631afe1` |
-| Decisions | `019e8ef6-a659-7663-9bad-913e215927a3` |
-| Starter | `019e8eef-14a3-75a2-a74e-da808e3ddc7b` |
+| Web App          | `019e8ef6-9b0f-7f22-97ec-5c20164b6220` |
+| Native iOS       | `019e8ef6-9cd1-7832-85b6-84293be284f0` |
+| Architecture     | `019e8ef5-95d9-7523-9c2c-00ba4f36fff7` |
+| QA Release       | `019e8ef6-a3bc-70f0-ba54-dbe5d9d556dc` |
+| Caregiver UX     | `019e8ef6-a00e-7552-bf29-d26e32abd6fd` |
+| Agents           | `019e8ef6-a1fe-7472-a392-1a402631afe1` |
+| Decisions        | `019e8ef6-a659-7663-9bad-913e215927a3` |
+| Starter          | `019e8eef-14a3-75a2-a74e-da808e3ddc7b` |

@@ -72,6 +72,10 @@ Calendar mutation, realtime messaging, self-service onboarding, real document up
 
 ## Production Verification Commands
 
+Follow the [production operations runbook](./production-operations-runbook.md) for backup/restore, retention/deletion, incident response, monitoring, support, and launch evidence. The runbook is not accepted until its drills and owner decisions are recorded.
+
+Before the first production-mode promotion, the one-time `bootstrap-production-baseline.yml` workflow must verify and record the existing rollback baseline. The normal production release workflow remains fail-closed until that baseline exposes a matching release manifest.
+
 ```text
 npm ci
 npm run verify

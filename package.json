@@ -19,14 +19,17 @@
     "test:e2e": "playwright test",
     "test:e2e:production": "E2E_APP_MODE=production playwright test",
     "test:e2e:install": "playwright install chromium",
+    "test:account-closure-guards": "node scripts/account-closure/test-close-synthetic-staging-account-guards.mjs",
     "test:production-browser": "node scripts/verify-production-browser.mjs",
+    "test:production-deployment-guards": "node scripts/test-production-deployment-guards.mjs",
     "test:production-deployment": "node scripts/verify-production-deployment.mjs",
+    "test:production-release-workflow-guards": "node scripts/test-production-release-workflow-guards.mjs",
     "test:runtime-env": "node scripts/test-production-env.mjs",
     "test:sql-posture": "node scripts/check-production-sql-posture.mjs",
     "test:staging-guards": "node scripts/test-production-staging-guards.mjs",
     "provision:staging": "node scripts/provision-production-staging.mjs",
     "test:staging": "node scripts/verify-production-staging.mjs",
-    "verify": "npm run lint -- --quiet && npm run typecheck && npm run test:runtime-env && npm run test:sql-posture && npm run test:staging-guards && npm run build && npm run build:production && npm run test:e2e && npm run test:e2e:production",
+    "verify": "npm run lint -- --quiet && npm run typecheck && npm run test:runtime-env && npm run test:production-deployment-guards && npm run test:production-release-workflow-guards && npm run test:account-closure-guards && npm run test:sql-posture && npm run test:staging-guards && npm run build && npm run build:production && npm run test:e2e && npm run test:e2e:production",
     "format": "prettier --write ."
   },
   "dependencies": {

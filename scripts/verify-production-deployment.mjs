@@ -11,6 +11,7 @@ if (missingEnvironment.length > 0) {
 
 const expectedSha = process.env.EXPECTED_RELEASE_SHA.trim();
 const expectedDeploymentId = process.env.EXPECTED_DEPLOYMENT_ID.trim();
+const expectedAppMode = process.env.EXPECTED_APP_MODE?.trim() || "production";
 const productionUrl = parseProductionUrl(process.env.PRODUCTION_HEALTHCHECK_URL.trim());
 const attempts = readPositiveInteger(process.env.DEPLOYMENT_VERIFY_ATTEMPTS, 120);
 const intervalMs = readPositiveInteger(process.env.DEPLOYMENT_VERIFY_INTERVAL_MS, 5_000);
@@ -21,6 +22,10 @@ if (!/^[0-9a-f]{40}$/i.test(expectedSha)) {
 
 if (!/^dpl_[A-Za-z0-9]+$/.test(expectedDeploymentId)) {
   fail("EXPECTED_DEPLOYMENT_ID must be a Vercel deployment ID");
+}
+
+if (!new Set(["beta", "production"]).has(expectedAppMode)) {
+  fail("EXPECTED_APP_MODE must be beta or production");
 }
 
 if (!productionUrl) {
@@ -46,7 +51,7 @@ async function verifyDeployment() {
 
   const release = await releaseResponse.json().catch(() => null);
   if (
-    release?.appMode !== "production" ||
+    release?.appMode !== expectedAppMode ||
     release?.commit !== expectedSha ||
     release?.deploymentId !== expectedDeploymentId ||
     release?.environment !== "production" ||
