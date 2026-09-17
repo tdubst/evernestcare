@@ -108,6 +108,8 @@ Before launch, enable only content-free checks for:
 - Database availability, connection saturation, backup status, and migration drift.
 - Error-rate/status buckets without URLs containing tokens or request/response bodies.
 
+The repository's `.github/workflows/production-health.yml` check covers public HTTPS availability, security headers, production mode, exact release SHA, and exact Vercel deployment identity every 15 minutes. It uses repository variables only and sends no credentials or care data. Keep `PRODUCTION_MONITOR_ENABLED` unset until a canonical production release exists. At launch, set it to `true` together with `PRODUCTION_HEALTHCHECK_URL`, `PRODUCTION_EXPECTED_RELEASE_SHA`, and `PRODUCTION_EXPECTED_DEPLOYMENT_ID`, then prove one successful run and one controlled failure reaches both alert owners.
+
 Any error-monitoring vendor requires a separate Security/Privacy review of redaction, retention, access, data region, subprocessors, and deletion. Session replay remains prohibited.
 
 Route alerts to a monitored on-call destination with one primary and one backup owner. P0 acknowledgement target is 15 minutes, P1 is 30 minutes, and P2 is the next business day. Map every alert to the severity definitions above and to one response runbook. Before launch, trigger each alert class, verify primary and backup delivery, record acknowledgement time, and confirm escalation when the primary does not acknowledge. Repeat delivery tests quarterly and after provider or routing changes.

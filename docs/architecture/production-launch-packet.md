@@ -36,7 +36,7 @@ Every row must be `PASS` or `APPROVED` before production promotion. Links must p
 | Account closure drill | Approved artifact, two-operator authorization, Auth denial, and backup-expiry tracking | Backend + Security | Pending |
 | Credential revocation drill | User and operator revocation within the target window | Security + Operations | Pending |
 | Incident evidence drill | Restricted repository, integrity check, access test, and destruction workflow | Security + Legal | Pending |
-| Alert delivery drill | Availability, Auth, database, backup, and release-drift alerts reach primary and backup | Operations | Pending |
+| Alert delivery drill | Scheduled release-identity check plus Auth, database, and backup alerts reach primary and backup | Operations | Pending |
 | Accessibility/cross-browser | Mobile accessibility, supported browsers, responsive layout, and no P0/P1 findings | QA | Pending |
 | Performance | Accepted route-load and bundle measurements on the production candidate | QA + WebApp | Pending |
 | Privacy Policy and Terms | Counsel-approved public documents and effective dates | Legal | Pending |

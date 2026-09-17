@@ -1,0 +1,31 @@
+name: Production Health
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: evernest-production-health
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    if: ${{ vars.PRODUCTION_MONITOR_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: main
+      - name: Verify canonical production identity and HTTP boundary
+        env:
+          DEPLOYMENT_VERIFY_ATTEMPTS: 1
+          EXPECTED_APP_MODE: production
+          EXPECTED_DEPLOYMENT_ID: ${{ vars.PRODUCTION_EXPECTED_DEPLOYMENT_ID }}
+          EXPECTED_RELEASE_SHA: ${{ vars.PRODUCTION_EXPECTED_RELEASE_SHA }}
+          PRODUCTION_HEALTHCHECK_URL: ${{ vars.PRODUCTION_HEALTHCHECK_URL }}
+        run: node scripts/verify-production-deployment.mjs
