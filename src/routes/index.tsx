@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Heart, ShieldCheck, Users } from "lucide-react";
 
+import { PublicResourceLinks } from "@/components/app/public-resource-links";
 import { releaseShortLabel } from "@/lib/release";
 import { isProductionRuntime } from "@/lib/runtime-mode";
 
@@ -90,6 +91,7 @@ function Welcome() {
               </p>
             </>
           )}
+          {production && <PublicResourceLinks />}
         </div>
       </div>
     </div>

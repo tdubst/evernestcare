@@ -5,6 +5,18 @@ test("production entry uses invite-only sign-in instead of beta simulation", asy
   await expect(page.getByRole("link", { name: "Sign in" })).toBeVisible();
   await expect(page.getByText("Open beta workspace")).toHaveCount(0);
   await expect(page.getByText("Get started")).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Privacy Policy" })).toHaveAttribute(
+    "href",
+    "https://evernestcare.com/privacy",
+  );
+  await expect(page.getByRole("link", { name: "Terms" })).toHaveAttribute(
+    "href",
+    "https://evernestcare.com/terms",
+  );
+  await expect(page.getByRole("link", { name: "Support" })).toHaveAttribute(
+    "href",
+    "https://support.evernestcare.com/help",
+  );
 
   await page.goto("/onboarding");
   await expect(page.getByRole("heading", { name: "Access your care workspace" })).toBeVisible();
@@ -12,6 +24,15 @@ test("production entry uses invite-only sign-in instead of beta simulation", asy
 
   await page.getByRole("link", { name: "Sign in" }).click();
   await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
+});
+
+test("production signed-out and recovery surfaces expose legal and support links", async ({
+  page,
+}) => {
+  for (const route of ["/", "/sign-in", "/forgot-password", "/reset-password"]) {
+    await page.goto(route);
+    await expectPublicResourceLinks(page);
+  }
 });
 
 test("production protected routes fail closed without a session", async ({ page }) => {
@@ -181,3 +202,20 @@ test("authenticated production hydration is read-only and care updates are not s
   expect(requestedUrls.some((url) => url.includes("ensure_care_boundary"))).toBe(false);
   expect(requestedUrls.some((url) => url.includes("append_care_event"))).toBe(false);
 });
+
+async function expectPublicResourceLinks(page: import("@playwright/test").Page) {
+  const expectedLinks = [
+    ["Privacy Policy", "https://evernestcare.com/privacy"],
+    ["Terms", "https://evernestcare.com/terms"],
+    ["Support", "https://support.evernestcare.com/help"],
+  ] as const;
+
+  for (const [name, href] of expectedLinks) {
+    const link = page.getByRole("link", { name });
+    await expect(link).toHaveAttribute("href", href);
+    await expect(link).toHaveAttribute("rel", "noreferrer");
+    expect(await link.getAttribute("target")).toBeNull();
+    const height = await link.evaluate((element) => element.getBoundingClientRect().height);
+    expect(height).toBeGreaterThanOrEqual(44);
+  }
+}

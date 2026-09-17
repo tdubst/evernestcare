@@ -1,3 +1,5 @@
+import { parsePublicResourceUrl } from "../src/lib/public-resource-url.mjs";
+
 const isProductionDeploy = process.env.VERCEL_ENV === "production";
 
 if (!isProductionDeploy) process.exit(0);
@@ -14,6 +16,11 @@ if (process.env.VITE_REQUIRE_AUTH !== "true") {
 }
 if (!process.env.VITE_SUPABASE_URL) failures.push("VITE_SUPABASE_URL is required");
 if (!publishableKey) failures.push("a Supabase publishable key is required");
+for (const name of ["VITE_PRIVACY_POLICY_URL", "VITE_TERMS_URL", "VITE_SUPPORT_URL"]) {
+  if (!parsePublicResourceUrl(process.env[name])) {
+    failures.push(`${name} must be a canonical public HTTPS URL`);
+  }
+}
 if (process.env.VITE_ENABLE_DEMO_WORKSPACE === "true") {
   failures.push("VITE_ENABLE_DEMO_WORKSPACE must not be true");
 }

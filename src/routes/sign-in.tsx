@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { LockKeyhole, ShieldCheck } from "lucide-react";
 import { type FormEvent, useEffect, useState } from "react";
 
+import { PublicResourceLinks } from "@/components/app/public-resource-links";
 import { useAuth } from "@/lib/auth/auth-context";
 
 export const Route = createFileRoute("/sign-in")({
@@ -120,9 +121,12 @@ function SignIn() {
         </Link>
       </form>
 
-      <p className="mt-auto pt-10 text-center text-[12px] leading-relaxed text-muted-foreground">
-        Do not use Evernest Care for emergencies or medical decisions.
-      </p>
+      <div className="mt-auto space-y-4 pt-10">
+        <PublicResourceLinks />
+        <p className="text-center text-[12px] leading-relaxed text-muted-foreground">
+          Do not use Evernest Care for emergencies or medical decisions.
+        </p>
+      </div>
     </main>
   );
 }

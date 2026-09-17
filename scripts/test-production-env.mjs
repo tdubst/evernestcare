@@ -3,6 +3,36 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const validator = fileURLToPath(new URL("./validate-production-env.mjs", import.meta.url));
+const publicResources = {
+  VITE_PRIVACY_POLICY_URL: "https://evernestcare.com/privacy",
+  VITE_SUPPORT_URL: "https://support.evernestcare.com/help",
+  VITE_TERMS_URL: "https://evernestcare.com/terms",
+};
+const unsafePublicResourceUrls = [
+  "http://evernestcare.com/privacy",
+  "https://localhost./privacy",
+  "https://legal.local/privacy",
+  "https://10.0.0.1/privacy",
+  "https://169.254.169.254/latest/meta-data",
+  "https://[fd00::1]/privacy",
+  "https://user:password@evernestcare.com/privacy",
+  "https://evernestcare.com:444/privacy",
+  "https://evernestcare.com/privacy?token=value",
+  "https://evernestcare.com/privacy#account",
+  "https://evernestcare.com/privacy?",
+  "https://evernestcare.com/privacy#",
+  "https://evernestcare.com/privacy?#",
+  "https://example.com/privacy",
+  "https://privacy.example.com/policy",
+  "https://service.example/policy",
+  "https://legal.example/policy",
+  "https://privacy.onion/policy",
+  "https://privacy.alt/policy",
+  "https://home.arpa/policy",
+  "https://privacy.corp/policy",
+  "https://privacy.evernestcare.com/policy",
+  "https://xn--e1awd7f.com/privacy",
+];
 
 function run(overrides) {
   return spawnSync(process.execPath, [validator], {
@@ -23,6 +53,7 @@ assert.notEqual(
     VITE_REQUIRE_AUTH: "true",
     VITE_SUPABASE_PUBLISHABLE_KEY: "public-test-key",
     VITE_SUPABASE_URL: "https://example.supabase.co",
+    ...publicResources,
   }).status,
   0,
   "production must reject the demo workspace",
@@ -34,9 +65,43 @@ assert.equal(
     VITE_REQUIRE_AUTH: "true",
     VITE_SUPABASE_PUBLISHABLE_KEY: "public-test-key",
     VITE_SUPABASE_URL: "https://example.supabase.co",
+    ...publicResources,
   }).status,
   0,
   "production should accept complete fail-closed configuration",
 );
+
+for (const name of Object.keys(publicResources)) {
+  const missing = { ...publicResources };
+  delete missing[name];
+  assert.notEqual(
+    run({
+      VITE_APP_MODE: "production",
+      VITE_ENABLE_DEMO_WORKSPACE: "false",
+      VITE_REQUIRE_AUTH: "true",
+      VITE_SUPABASE_PUBLISHABLE_KEY: "public-test-key",
+      VITE_SUPABASE_URL: "https://example.supabase.co",
+      ...missing,
+    }).status,
+    0,
+    `production must reject missing ${name}`,
+  );
+
+  for (const unsafeUrl of unsafePublicResourceUrls) {
+    assert.notEqual(
+      run({
+        VITE_APP_MODE: "production",
+        VITE_ENABLE_DEMO_WORKSPACE: "false",
+        VITE_REQUIRE_AUTH: "true",
+        VITE_SUPABASE_PUBLISHABLE_KEY: "public-test-key",
+        VITE_SUPABASE_URL: "https://example.supabase.co",
+        ...publicResources,
+        [name]: unsafeUrl,
+      }).status,
+      0,
+      `production must reject an unsafe ${name}`,
+    );
+  }
+}
 
 console.log("Production environment guard tests passed.");

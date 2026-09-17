@@ -4,7 +4,10 @@ const productionMode = process.env.E2E_APP_MODE === "production";
 const port = productionMode ? 4174 : 4173;
 const productionEnvironment =
   "VITE_APP_MODE=production VITE_REQUIRE_AUTH=true VITE_ENABLE_DEMO_WORKSPACE=false " +
-  "VITE_SUPABASE_URL=https://example.supabase.co VITE_SUPABASE_PUBLISHABLE_KEY=test-public-key";
+  "VITE_SUPABASE_URL=https://example.supabase.co VITE_SUPABASE_PUBLISHABLE_KEY=test-public-key " +
+  "VITE_PRIVACY_POLICY_URL=https://evernestcare.com/privacy " +
+  "VITE_TERMS_URL=https://evernestcare.com/terms " +
+  "VITE_SUPPORT_URL=https://support.evernestcare.com/help";
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -22,8 +25,8 @@ export default defineConfig({
     trace: process.env.CI ? "retain-on-failure" : "off",
   },
   webServer: {
-    command: `${productionMode ? `${productionEnvironment} ` : ""}npm run dev -- --host 127.0.0.1 --port ${port}`,
-    reuseExistingServer: !process.env.CI,
+    command: `${productionMode ? `${productionEnvironment} ` : ""}node ./node_modules/vite/bin/vite.js --host 127.0.0.1 --port ${port}`,
+    reuseExistingServer: process.env.PLAYWRIGHT_REUSE_SERVER === "true",
     timeout: 120_000,
     url: `http://127.0.0.1:${port}`,
   },

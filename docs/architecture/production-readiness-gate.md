@@ -50,12 +50,13 @@ Calendar mutation, realtime messaging, self-service onboarding, real document up
 ## P0 Launch Gates
 
 - Provision a dedicated production Supabase project and apply only reviewed migrations in order.
-- Configure Vercel production with `VITE_APP_MODE=production`, `VITE_REQUIRE_AUTH=true`, a production Supabase URL, and a publishable key. Demo workspace must remain disabled.
+- Configure Vercel production with `VITE_APP_MODE=production`, `VITE_REQUIRE_AUTH=true`, a production Supabase URL, a publishable key, and counsel-approved public HTTPS URLs for Privacy Policy, Terms, and Support. Demo workspace must remain disabled.
 - Configure production Auth site URL, redirects, custom SMTP, administrative user provisioning, password reset, rate limits, CAPTCHA, and MFA policy.
 - Run the authenticated golden-flow matrix with synthetic production-like users: read-only workspace hydration, care event read/reload, care-note create/read/reload, Care Circle permission visibility, Vault placeholders, denial/revocation, password recovery, and sign-out.
 - Confirm every production table, view, and function has reviewed grants and RLS; rerun database advisors and direct-mutation denial tests.
 - Establish backup, restore, retention, deletion, account closure, incident response, and support procedures.
 - Obtain legal review for Privacy Policy, Terms, consent language, HIPAA applicability, vendor BAAs, and data-processing obligations before real care data.
+- Publish the approved Privacy Policy, Terms, and Support pages on the exact checked-in first-party host allowlist; each page must return successfully without unsafe redirects or authentication.
 - Add privacy-reviewed error monitoring with payload redaction, no session replay, no care content, no auth tokens, and documented retention/access.
 - Complete accessibility, cross-browser, performance, and mobile regression with no P0/P1 findings.
 - Product, Security/Privacy, Backend, Architecture, UX, and QA must record production go/no-go approval.

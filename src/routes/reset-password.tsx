@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 import { ShieldCheck } from "lucide-react";
 
+import { PublicResourceLinks } from "@/components/app/public-resource-links";
 import { useAuth } from "@/lib/auth/auth-context";
 
 export const Route = createFileRoute("/reset-password")({
@@ -83,6 +84,9 @@ function ResetPassword() {
           </Link>
         </div>
       )}
+      <div className="mt-auto pt-10">
+        <PublicResourceLinks />
+      </div>
     </main>
   );
 }

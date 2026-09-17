@@ -47,6 +47,9 @@ try {
 
   if (expectation === "production") {
     await expectVisible(page.getByRole("link", { name: "Sign in" }), "production sign-in entry");
+    await expectVisible(page.getByRole("link", { name: "Privacy Policy" }), "privacy policy link");
+    await expectVisible(page.getByRole("link", { name: "Terms" }), "terms link");
+    await expectVisible(page.getByRole("link", { name: "Support" }), "support link");
 
     const signInResponse = await page.goto(new URL("/sign-in", productionUrl).href, {
       waitUntil: "networkidle",

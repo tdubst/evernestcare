@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { type FormEvent, useEffect, useState } from "react";
 import { KeyRound } from "lucide-react";
 
+import { PublicResourceLinks } from "@/components/app/public-resource-links";
 import { useAuth } from "@/lib/auth/auth-context";
 
 export const Route = createFileRoute("/forgot-password")({
@@ -84,6 +85,9 @@ function ForgotPassword() {
           </button>
         </form>
       )}
+      <div className="mt-auto pt-10">
+        <PublicResourceLinks />
+      </div>
     </main>
   );
 }
