@@ -13,6 +13,18 @@ const migration = fileURLToPath(
     import.meta.url,
   ),
 );
+const environmentMigration = fileURLToPath(
+  new URL(
+    "../../supabase/migrations/20260923213812_production_environment_sentinel.sql",
+    import.meta.url,
+  ),
+);
+const functionAclMigration = fileURLToPath(
+  new URL(
+    "../../supabase/migrations/20260923215029_production_function_acl_lockdown.sql",
+    import.meta.url,
+  ),
+);
 const protectedRef = "ncbzkjwwvfguivrkgvus";
 const unregisteredRef = "abcdefghijklmnopqrst";
 const productionRef = "zyxwvutsrqponmlkjihg";
@@ -57,6 +69,8 @@ assert(
 
 const scriptSource = readFileSync(script, "utf8");
 const migrationSource = readFileSync(migration, "utf8").toLowerCase();
+const environmentMigrationSource = readFileSync(environmentMigration, "utf8").toLowerCase();
+const functionAclMigrationSource = readFileSync(functionAclMigration, "utf8").toLowerCase();
 
 for (const requiredControl of [
   'from "../production-project-registry.mjs"',
@@ -99,6 +113,8 @@ for (const requiredBoundary of [
   "nobypassrls",
   "noinherit",
   "password null",
+  "rolsuper or rolreplication or rolbypassrls",
+  "has elevated attributes that require platform administrator remediation",
   "security definer",
   "set search_path = ''",
   "set row_security = off",
@@ -131,6 +147,44 @@ for (const requiredBoundary of [
   "grant execute on function private.verify_synthetic_staging_account_closure(uuid, uuid, text)",
 ]) {
   assertSourceContains(migrationSource, requiredBoundary);
+}
+
+for (const requiredEnvironmentBoundary of [
+  "create table if not exists private.environment_sentinel",
+  "environment in ('staging', 'production')",
+  "revoke all on table private.environment_sentinel from service_role",
+  "create or replace function private.environment_is_staging()",
+  "security invoker",
+  "revoke all on function private.environment_is_staging() from evernest_account_closure_operator",
+  "private.close_synthetic_staging_account(uuid,uuid,text)",
+  "private.verify_synthetic_staging_account_closure(uuid,uuid,text)",
+  "not private.environment_is_staging()",
+]) {
+  assertSourceContains(environmentMigrationSource, requiredEnvironmentBoundary);
+}
+
+for (const requiredRoleMembershipBoundary of [
+  "pg_catalog.pg_auth_members",
+  "member_role.rolname = 'postgres'",
+  "grantor_role.rolname = 'supabase_admin'",
+  "and not memberships.inherit_option",
+  "and not memberships.set_option",
+  "pg_catalog.acldefault(''d'', databases.datdba)",
+  "pg_catalog.acldefault(''n'', namespaces.nspowner)",
+  "evernest_account_closure_operator posture remains invalid",
+]) {
+  assertSourceContains(functionAclMigrationSource, requiredRoleMembershipBoundary);
+}
+
+const managedRoleAlteration = migrationSource.match(
+  /alter role evernest_account_closure_operator[\s\S]*?password null;/,
+)?.[0];
+assert(managedRoleAlteration, "managed role alteration is missing");
+for (const platformAdminOnlyAttribute of ["nosuperuser", "noreplication", "nobypassrls"]) {
+  assert(
+    !managedRoleAlteration.includes(platformAdminOnlyAttribute),
+    `managed role alteration must not request ${platformAdminOnlyAttribute}`,
+  );
 }
 
 assert(

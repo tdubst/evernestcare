@@ -107,7 +107,11 @@ const database = postgres(stagingDatabaseUrl, {
 });
 
 try {
-  const environment = await database`select current_setting('app.environment', true) as value`;
+  const environment = await database`
+    select environment as value
+    from private.environment_sentinel
+    where singleton
+  `;
   if (environment[0]?.value !== "staging") {
     fail("database does not report the staging sentinel");
   }
@@ -701,7 +705,11 @@ try {
           ('public.write_audit_event(uuid,uuid,uuid,uuid,text,text,uuid,jsonb)')
         )
         select
-          current_setting('app.environment', true),
+          (
+            select environment
+            from private.environment_sentinel
+            where singleton
+          ),
           not exists (
             select 1 from product_tables cross join api_roles
             where has_table_privilege(

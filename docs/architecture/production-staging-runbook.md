@@ -20,14 +20,6 @@ This runbook creates and proves an isolated production-like Supabase staging bou
 2. Create `evernestcare-staging` in the production region candidate.
 3. Add the new staging reference to `config/production-project-registry.json` in a separately reviewed commit. The registry is the repository trust anchor: it allowlists staging and protects the accepted Beta, PokerOS, and every future production project reference. Add the production reference before any production database is used.
 4. Store administrator credentials only in the approved secret manager.
-5. Set the database sentinel, then reconnect before any fixture or proof command:
-
-```sql
-alter database postgres set app.environment = 'staging';
-```
-
-The fixture and verifier fail closed unless the server reports this exact value.
-
 ## 2. Apply Reviewed Migrations
 
 1. Start from an empty project.
@@ -36,11 +28,41 @@ The fixture and verifier fail closed unless the server reports this exact value.
    - `20260915172849_production_public_dml_lockdown.sql`
    - `20260915190000_production_public_schema_usage_lockdown.sql`
    - `20260917193454_production_account_closure_boundary.sql`
+   - `20260923213812_production_environment_sentinel.sql`
+   - `20260923215029_production_function_acl_lockdown.sql`
+   - `20260923220240_production_scope_api_lockdown.sql`
+   - `20260923220633_production_policy_and_fk_index_hardening.sql`
 3. Do not edit an applied migration. Add a forward repair if review finds a defect.
-4. Run database lint and Supabase security/performance advisors.
-5. Stop if any migration, lint check, or security advisor reports an unresolved error.
+4. Set the private database sentinel, then reconnect before any fixture or proof command:
+
+```sql
+insert into private.environment_sentinel (singleton, environment)
+values (true, 'staging')
+on conflict (singleton) do update
+set environment = excluded.environment,
+    configured_at = now();
+```
+
+The fixture and verifier fail closed unless this locked private row reports `staging`.
+
+5. Run database lint and Supabase security/performance advisors.
+6. Stop if any migration, sentinel write, lint check, or security advisor reports an unresolved error.
 
 No migration may be applied to the accepted Beta project as part of this runbook.
+
+### Current Schema Evidence
+
+The registered isolated staging project has applied the reviewed range through `20260923220633_production_policy_and_fk_index_hardening.sql`. Content-free live checks currently show:
+
+- closure-operator posture: valid;
+- anonymous public-function execution: zero;
+- anonymous public-relation reads: zero;
+- mutable public-function search paths: zero;
+- direct-write RLS policies: zero;
+- foreign keys without covering indexes: zero;
+- authenticated function access: 19 explicitly allowlisted RPC/RLS helpers.
+
+The remaining security-advisor warning is the expected signed-in `SECURITY DEFINER` allowlist. The remaining performance notices are unused indexes on the empty staging database. Neither substitutes for the pending authenticated fixture proof or owner review.
 
 ## 3. Configure Staging Auth
 

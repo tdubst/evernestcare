@@ -79,13 +79,21 @@ begin
       noinherit;
   end if;
 
+  if exists (
+    select 1
+    from pg_catalog.pg_roles
+    where rolname = 'evernest_account_closure_operator'
+      and (rolsuper or rolreplication or rolbypassrls)
+  ) then
+    raise exception using
+      errcode = '42501',
+      message = 'evernest_account_closure_operator has elevated attributes that require platform administrator remediation';
+  end if;
+
   alter role evernest_account_closure_operator
     login
-    nosuperuser
     nocreatedb
     nocreaterole
-    noreplication
-    nobypassrls
     noinherit
     connection limit 1
     password null;

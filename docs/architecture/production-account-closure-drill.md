@@ -22,7 +22,7 @@ The operator receives only:
 - `EXECUTE` on `private.close_synthetic_staging_account(uuid, uuid, text)`;
 - `EXECUTE` on `private.verify_synthetic_staging_account_closure(uuid, uuid, text)`.
 
-It receives no database or schema `CREATE`, table, sequence, unrelated function, public, Auth, or Storage privileges. PostgreSQL's inherited `TEMPORARY` database privilege is explicitly allowed, matching the staging verifier boundary; the operator receives no direct `TEMPORARY` grant. The private functions are `SECURITY DEFINER`, owned by the trusted migration owner, use an empty search path, disable row security only inside their reviewed bodies, verify the caller's exact role posture, and refuse non-staging execution. Do not grant the operator to another role or grant another role to it.
+It receives no database or schema `CREATE`, table, sequence, unrelated function, public, Auth, or Storage privileges. PostgreSQL's inherited `TEMPORARY` database privilege is explicitly allowed, matching the staging verifier boundary; the operator receives no direct `TEMPORARY` grant. The private functions are `SECURITY DEFINER`, owned by the trusted migration owner, use an empty search path, disable row security only inside their reviewed bodies, verify the caller's exact role posture, and refuse non-staging execution. PostgreSQL 17 on managed Supabase records one platform-created `supabase_admin` grant of the operator role to `postgres`; the posture check permits it only with `ADMIN`, `NOINHERIT`, and `SET FALSE`. No other inbound or outbound membership is allowed.
 
 A trusted database administrator must provision a unique temporary password for the operator after the migration. Deliver it through the approved secret channel and clear or rotate it immediately after the drill. Do not put it in source control, shell history, CI variables with broad readership, screenshots, or evidence.
 
@@ -40,8 +40,8 @@ The migration changes `public.users.auth_user_id` to nullable `ON DELETE SET NUL
 
 1. Register the isolated target in `stagingProjectRefs` in `config/production-project-registry.json` through separate review. It must not appear in `protectedProjectRefs` or `productionProjectRefs`.
 2. Keep every protected and production project in the same registry. Supply the complete union to the executor; omission blocks execution.
-3. Confirm `app.environment=staging` in the target database.
-4. Apply migrations through `20260917193454_production_account_closure_boundary.sql` as the trusted migration owner.
+3. Confirm the locked `private.environment_sentinel` row reports `staging` in the target database.
+4. Apply migrations through `20260923220633_production_policy_and_fk_index_hardening.sql` as the trusted migration owner. This includes the private staging sentinel and the forward repair that validates the exact managed PostgreSQL 17 role-creator relationship without granting the closure operator any inherited or settable role access.
 5. Provision a temporary password for the exact `evernest_account_closure_operator` login. Do not alter its attributes, memberships, or grants.
 6. Use a synthetic Auth user marked in protected app metadata with `evernest_fixture=production-staging-v1`.
 7. Confirm the target owns no Storage objects and no non-placeholder document rows. The private closure function independently enforces both conditions.

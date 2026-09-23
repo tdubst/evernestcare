@@ -173,6 +173,12 @@ try {
     p_requested_care_recipient_id: null,
   });
   await expectRpcDenied("create_care_circle_invitation", { p_request: {} });
+  await expectRpcDenied("preview_care_circle_invitation", { p_request: {} });
+  await expectRpcDenied("accept_care_circle_invitation", { p_request: {} });
+  await expectRpcDenied("deny_care_circle_invitation", { p_request: {} });
+  await expectRpcDenied("expire_care_circle_invitation", { p_request: {} });
+  await expectRpcDenied("expire_care_circle_invitations", { p_request: {} });
+  await expectRpcDenied("revoke_care_circle_invitation", { p_request: {} });
   await expectRpcDenied("team_has_no_members", { p_care_team_id: zeroUuid });
   await expectRpcDenied("write_audit_event", {
     p_action: "staging_denial_probe",

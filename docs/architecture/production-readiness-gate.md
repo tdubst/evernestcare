@@ -34,7 +34,7 @@ Calendar mutation, realtime messaging, self-service onboarding, real document up
 - Mobile dependency versions are explicit rather than `latest`.
 - Hosted responses include restrictive browser security headers and disable unused device permissions.
 - Pre-promotion and post-promotion browser verification requires the exact checked-in Privacy Policy, Terms, and Support URLs to return public HTML directly, without redirects or authentication, on an approved first-party host with an accessible page heading.
-- Forward migrations remove direct mutation access for `PUBLIC`, `anon`, and `authenticated`, remove public execution of the internal audit helper and bootstrap helper, and close production workspace/invitation provisioning RPCs. They remain unapplied until database review and runtime proof pass.
+- Forward migrations remove direct mutation access for `PUBLIC`, `anon`, and `authenticated`, remove public execution of internal helpers, enforce an explicit authenticated RPC/RLS-helper allowlist, fix public-function search paths, and close production workspace/invitation provisioning RPCs.
 - A forward migration removes PostgreSQL's default `PUBLIC` access to the API schema while preserving explicit access for `anon`, `authenticated`, and `service_role`.
 
 ## Local Verification Status
@@ -46,7 +46,8 @@ Calendar mutation, realtime messaging, self-service onboarding, real document up
 - Mobile typecheck and iOS export: PASS.
 - Root production dependency audit: PASS at high severity; one low development-server advisory remains.
 - Mobile production dependency audit: BLOCKED by four high transitive Expo/Metro advisories. Native is excluded from the initial production scope.
-- Local Supabase database lint: BLOCKED because Docker/local Postgres is unavailable. No remote migration was applied.
+- Isolated Supabase staging schema: migrations through `20260923220633_production_policy_and_fk_index_hardening.sql` are applied only to the registered staging project. The private staging sentinel is active. Live checks confirm zero anonymous public-function/table access, zero mutable function search paths, zero direct-write policies, zero unindexed foreign keys, and a valid least-privilege closure-operator posture. No accepted Beta or production project was changed.
+- Staging security advisors now report only the 19 intentionally signed-in `SECURITY DEFINER` functions in the explicit production RPC/RLS-helper allowlist. Performance advisors report only unused indexes, expected before synthetic fixtures and query traffic exist. Final Backend and Security owner acceptance remains pending until authenticated staging proof passes.
 
 ## P0 Launch Gates
 
@@ -125,10 +126,14 @@ Required local environment variables:
 npm run test:staging
 ```
 
-Before running the proof, set the staging database sentinel once through the Supabase SQL editor or another reviewed administrator connection, then reconnect:
+After applying the reviewed migrations, set the private staging sentinel once through the Supabase SQL editor or another reviewed administrator connection, then reconnect:
 
 ```sql
-alter database postgres set app.environment = 'staging';
+insert into private.environment_sentinel (singleton, environment)
+values (true, 'staging')
+on conflict (singleton) do update
+set environment = excluded.environment,
+    configured_at = now();
 ```
 
-The API URL and database URL must identify the same project. The proof refuses to continue unless the database itself reports the `staging` sentinel, the closed RPC/table privileges are revoked for both API roles, and the content-free sentinel care event exists. It then requires successful owner authentication, server-side user validation, read-only hydration of one pre-provisioned workspace, Care Circle/Vault/sentinel-event reads, durable care-note create/read/reload through the approved RPC, API-level denial of every closed RPC and direct table mutation, revoked-user authentication with workspace/event denial, unchanged workspace records, and an intact sentinel event. Do not run it against production or the accepted Beta project.
+The API URL and database URL must identify the same project. The proof refuses to continue unless the locked private row reports the `staging` sentinel, the closed RPC/table privileges are revoked for both API roles, and the content-free sentinel care event exists. It then requires successful owner authentication, server-side user validation, read-only hydration of one pre-provisioned workspace, Care Circle/Vault/sentinel-event reads, durable care-note create/read/reload through the approved RPC, API-level denial of every closed RPC and direct table mutation, revoked-user authentication with workspace/event denial, unchanged workspace records, and an intact sentinel event. Do not run it against production or the accepted Beta project.
