@@ -1,5 +1,5 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import {
   Accessibility,
   ArrowRight,
@@ -22,7 +22,7 @@ const STEPS = [
   "Welcome",
   "Care recipient",
   "Relationship",
-  "Invite family",
+  "Beta setup",
   "Permissions",
   "Medications",
   "Continuity",
@@ -30,33 +30,40 @@ const STEPS = [
 ] as const;
 
 function Onboarding() {
-  const navigate = useNavigate();
-  const [step, setStep] = useState(0);
-  const [name, setName] = useState("Margaret");
-  const [relation, setRelation] = useState("Parent");
-  const [profileType, setProfileType] = useState("Older adult");
+  const [step] = useState(getInitialStep);
+  const name = "Evelyn";
+  const [relation, setRelation] = useState("Family caregiver");
+  const [profileType, setProfileType] = useState("Family care");
   const [setupNotice, setSetupNotice] = useState<string | null>(null);
   const [textSize, setTextSize] = useState(1);
 
-  const next = () => {
-    if (step === STEPS.length - 1) navigate({ to: "/today" });
-    else setStep((s) => s + 1);
-  };
-  const back = () => setStep((s) => Math.max(0, s - 1));
+  useEffect(() => {
+    window.scrollTo({ behavior: "smooth", top: 0 });
+  }, [step]);
 
   return (
     <div className="phone-shell grad-hero">
       <div className="flex min-h-dvh flex-col px-6 pt-6 pb-8">
         {/* Top bar */}
         <div className="flex items-center justify-between">
-          <button
-            onClick={back}
-            disabled={step === 0}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-card hairline border disabled:opacity-30"
-            aria-label="Back"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
+          {step === 0 ? (
+            <button
+              type="button"
+              disabled
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-card hairline border opacity-30"
+              aria-label="Back"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+          ) : (
+            <a
+              href={getStepHref(step - 1)}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-card hairline border"
+              aria-label="Back"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </a>
+          )}
           <div className="flex gap-1.5">
             {STEPS.map((_, i) => (
               <span
@@ -65,12 +72,9 @@ function Onboarding() {
               />
             ))}
           </div>
-          <button
-            onClick={() => navigate({ to: "/today" })}
-            className="text-[13px] font-medium text-muted-foreground"
-          >
+          <a href="/today" className="text-[13px] font-medium text-muted-foreground">
             Skip
-          </button>
+          </a>
         </div>
 
         <div className="mt-10 flex-1">
@@ -85,6 +89,9 @@ function Onboarding() {
               <p className="mt-3 text-[16px] text-muted-foreground leading-relaxed max-w-[34ch]">
                 Start with one person, one care team, and the key details for the next handoff.
               </p>
+              <p className="mt-3 text-[13px] text-muted-foreground leading-relaxed max-w-[36ch]">
+                This beta setup keeps details summarized until the reviewed workspace is connected.
+              </p>
             </div>
           )}
 
@@ -94,26 +101,27 @@ function Onboarding() {
                 Who are you caring for?
               </h2>
               <p className="mt-2 text-[15px] text-muted-foreground">
-                Their first name is enough for now.
+                This beta preview uses a fictional care recipient so setup can continue without
+                storing data.
               </p>
               <div className="mt-8 card-soft p-5">
-                <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wide">
-                  Name
-                </label>
-                <input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="mt-1 w-full bg-transparent text-[22px] font-medium outline-none"
-                />
+                <p className="text-[12px] font-medium text-muted-foreground uppercase tracking-wide">
+                  Demo recipient
+                </p>
+                <p className="mt-1 text-[22px] font-medium">{name}</p>
+                <p className="mt-2 text-[13px] text-muted-foreground">
+                  Evelyn is a synthetic demo profile for beta testing.
+                </p>
               </div>
               <div className="mt-4 grid grid-cols-2 gap-3">
                 {[
-                  { label: "Older adult", desc: "Geriatric care", active: true },
-                  { label: "Child", desc: "Coming soon" },
-                  { label: "Recovery", desc: "Post-op" },
-                  { label: "Chronic", desc: "Ongoing care" },
+                  { label: "Family care", desc: "Active beta" },
+                  { label: "Team care", desc: "Planned" },
+                  { label: "Recovery", desc: "Beta later" },
+                  { label: "Long-term", desc: "Beta later" },
                 ].map((t) => (
                   <button
+                    type="button"
                     key={t.label}
                     onClick={() => setProfileType(t.label)}
                     className={`text-left card-soft p-4 border ${profileType === t.label ? "ring-2 ring-primary border-transparent" : "hairline"}`}
@@ -133,14 +141,15 @@ function Onboarding() {
               </h2>
               <div className="mt-6 space-y-2.5">
                 {[
-                  "Parent",
-                  "Spouse / Partner",
+                  "Family caregiver",
+                  "Care partner",
                   "Sibling",
-                  "Child",
+                  "Adult child",
                   "Friend",
-                  "Professional caregiver",
+                  "Supporter",
                 ].map((r) => (
                   <button
+                    type="button"
                     key={r}
                     onClick={() => setRelation(r)}
                     className={`w-full flex items-center justify-between card-soft px-5 py-4 border ${relation === r ? "ring-2 ring-primary border-transparent" : "hairline"}`}
@@ -158,11 +167,13 @@ function Onboarding() {
               <h2 className="text-[28px] font-semibold tracking-tight leading-tight">
                 Invite your care team
               </h2>
-              <p className="mt-2 text-[15px] text-muted-foreground">Care is lighter when shared.</p>
+              <p className="mt-2 text-[15px] text-muted-foreground">
+                Care is lighter with a prepared team.
+              </p>
               <div className="mt-6 card-soft p-2">
                 {[
-                  { n: "Sarah Chen", r: "Sister", e: "sarah@example.com" },
-                  { n: "David Chen", r: "Brother", e: "david@example.com" },
+                  { n: "Jordan", r: "Secondary helper", e: "Invite pending" },
+                  { n: "Sam", r: "Weekend support", e: "Invite pending" },
                 ].map((p) => (
                   <div
                     key={p.n}
@@ -180,14 +191,17 @@ function Onboarding() {
                 ))}
               </div>
               <button
+                type="button"
                 onClick={() =>
-                  setSetupNotice("Invite links will be sent once test accounts are connected.")
+                  setSetupNotice("Invite setup will activate once beta accounts are connected.")
                 }
                 className="mt-3 w-full flex items-center justify-center gap-2 rounded-2xl border hairline bg-card py-4 text-[15px] font-medium"
               >
                 <UserPlus className="h-4 w-4" /> Invite someone else
               </button>
-              {setupNotice && <SetupNotice text={setupNotice} onClose={() => setSetupNotice(null)} />}
+              {setupNotice && (
+                <SetupNotice text={setupNotice} onClose={() => setSetupNotice(null)} />
+              )}
             </div>
           )}
 
@@ -203,7 +217,7 @@ function Onboarding() {
                 {[
                   { i: ShieldCheck, t: "Granular access", s: "Per person, per category." },
                   { i: Users, t: "Family-first", s: "No data sold. No ads. Ever." },
-                  { i: Heart, t: "Always yours", s: "Export or delete at any time." },
+                  { i: Heart, t: "Controlled beta", s: "Release actions stay reviewed." },
                 ].map(({ i: Icon, t, s }) => (
                   <div key={t} className="flex items-start gap-3 card-soft px-4 py-4">
                     <span className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-full bg-sage text-sage-foreground">
@@ -225,13 +239,13 @@ function Onboarding() {
                 Bring in medications
               </h2>
               <p className="mt-2 text-[15px] text-muted-foreground">
-                Optional. Add what helps your family confirm the next dose.
+                Optional. Add category and status context for family coordination.
               </p>
               <div className="mt-6 space-y-2.5">
                 {[
-                  { n: "Lisinopril", d: "10 mg · once daily" },
-                  { n: "Metformin", d: "500 mg · twice daily" },
-                  { n: "Atorvastatin", d: "20 mg · evening" },
+                  { n: "Morning medication", d: "Schedule details hidden for beta preview" },
+                  { n: "Midday medication", d: "Schedule details hidden for beta preview" },
+                  { n: "Evening medication", d: "Schedule details hidden for beta preview" },
                 ].map((m) => (
                   <label key={m.n} className="flex items-center gap-3 card-soft px-4 py-3.5">
                     <input
@@ -249,12 +263,12 @@ function Onboarding() {
                   </label>
                 ))}
               </div>
-              <button
-                onClick={next}
-                className="mt-3 w-full rounded-2xl border hairline bg-card py-3.5 text-[14px] font-medium text-muted-foreground"
+              <a
+                href={getStepHref(step + 1)}
+                className="mt-3 block w-full rounded-2xl border hairline bg-card py-3.5 text-center text-[14px] font-medium text-muted-foreground"
               >
                 Skip for now
-              </button>
+              </a>
             </div>
           )}
 
@@ -267,22 +281,22 @@ function Onboarding() {
                 Start a continuity trail
               </h2>
               <p className="mt-2 text-[15px] text-muted-foreground">
-                Evernest Care keeps a calm record of what happened, who helped, and what is ready for
-                a visit.
+                Evernest Care keeps a calm record of what happened, who helped, and what is ready
+                for a visit.
               </p>
               <div className="mt-6 space-y-3">
                 {[
                   {
-                    t: "Attach key documents",
-                    s: "Discharge notes, medication photos, and appointment paperwork.",
+                    t: "Add safe Vault placeholders",
+                    s: "Vault details stay summarized for beta preview.",
                   },
                   {
                     t: "Build the timeline",
-                    s: "Medications, vitals, notes, and documents stay linked to care events.",
+                    s: "Care updates stay grouped for family coordination.",
                   },
                   {
-                    t: "Prepare the first summary",
-                    s: "A factual visit-ready snapshot can be shared when needed.",
+                    t: "Prepare the workspace",
+                    s: "Workspace details stay in beta-safe summaries.",
                   },
                 ].map((item) => (
                   <div key={item.t} className="card-soft px-4 py-4">
@@ -321,7 +335,7 @@ function Onboarding() {
                   <span className="text-[22px] font-semibold">A</span>
                 </div>
                 <p className="mt-4 text-[15px]" style={{ fontSize: 14 + textSize * 3 }}>
-                  Margaret took her morning Lisinopril at 8:14am.
+                  Care update recorded this morning.
                 </p>
               </div>
               <div className="mt-3 card-soft p-5 flex items-center justify-between">
@@ -344,16 +358,42 @@ function Onboarding() {
           )}
         </div>
 
-        <button
-          onClick={next}
+        <a
+          href={step === STEPS.length - 1 ? "/today" : getStepHref(step + 1)}
+          data-testid="onboarding-continue"
           className="mt-8 w-full flex items-center justify-center gap-2 rounded-full bg-primary py-4 text-[17px] font-medium text-primary-foreground shadow-card active:scale-[0.99] transition"
         >
           {step === STEPS.length - 1 ? "Enter Evernest Care" : "Continue"}
           <ArrowRight className="h-4 w-4" />
-        </button>
+        </a>
+        {step < STEPS.length - 1 && (
+          <a
+            href="/today"
+            className="mt-3 block w-full rounded-full bg-card py-3.5 text-center text-[14px] font-medium text-foreground hairline border"
+          >
+            Enter beta workspace
+          </a>
+        )}
       </div>
     </div>
   );
+}
+
+function getInitialStep() {
+  if (typeof window === "undefined") return 0;
+
+  return parseStep(window.location.search);
+}
+
+function getStepHref(step: number) {
+  return `/onboarding?step=${Math.max(0, Math.min(STEPS.length - 1, step))}`;
+}
+
+function parseStep(search: string) {
+  const rawStep = Number(new URLSearchParams(search).get("step") ?? "0");
+  if (!Number.isFinite(rawStep)) return 0;
+
+  return Math.max(0, Math.min(STEPS.length - 1, Math.trunc(rawStep)));
 }
 
 function SetupNotice({ onClose, text }: { onClose: () => void; text: string }) {
@@ -371,6 +411,7 @@ function Toggle() {
   const [on, setOn] = useState(false);
   return (
     <button
+      type="button"
       onClick={() => setOn(!on)}
       className={`relative h-7 w-12 rounded-full transition ${on ? "bg-primary" : "bg-muted"}`}
       aria-pressed={on}

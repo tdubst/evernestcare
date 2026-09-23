@@ -19,7 +19,7 @@ export const Route = createFileRoute("/_tabs/calendar")({
 type View = "Day" | "Week" | "Month";
 type EventTone = "sky" | "blush" | "sage" | "sand";
 type EventKind = "appointment" | "medication" | "task";
-type CalendarFilter = "All" | "Appointments" | "Meds" | "Tasks";
+type CalendarFilter = "All" | "Appointments" | "Status" | "Tasks";
 type CalendarEvent = {
   time: string;
   title: string;
@@ -32,25 +32,25 @@ type CalendarEvent = {
 const EVENTS: Record<number, CalendarEvent[]> = {
   26: [
     {
-      time: "9:00 AM",
-      title: "Lisinopril",
-      sub: "10 mg · medication",
+      time: "Logged",
+      title: "Care status",
+      sub: "Category status hidden",
       tone: "blush",
       icon: Pill,
       kind: "medication",
     },
     {
-      time: "11:30 AM",
-      title: "Cardiology — Dr. Okafor",
-      sub: "Mercy Heart Clinic",
+      time: "Ready",
+      title: "Care visit",
+      sub: "Location pending",
       tone: "sky",
       icon: Stethoscope,
       kind: "appointment",
     },
     {
-      time: "3:00 PM",
-      title: "Physical therapy",
-      sub: "Home visit · 45 min",
+      time: "Open",
+      title: "Care task",
+      sub: "Family workspace",
       tone: "sage",
       icon: Activity,
       kind: "task",
@@ -58,9 +58,9 @@ const EVENTS: Record<number, CalendarEvent[]> = {
   ],
   28: [
     {
-      time: "10:00 AM",
-      title: "MRI follow-up",
-      sub: "Dr. Patel · Neurology",
+      time: "Planned",
+      title: "Follow-up care",
+      sub: "Details hidden",
       tone: "sky",
       icon: ScanLine,
       kind: "appointment",
@@ -68,9 +68,9 @@ const EVENTS: Record<number, CalendarEvent[]> = {
   ],
   30: [
     {
-      time: "8:30 AM",
-      title: "Lab draw",
-      sub: "Fasting · Quest Diagnostics",
+      time: "Planned",
+      title: "Care appointment",
+      sub: "Instructions hidden",
       tone: "sand",
       icon: Activity,
       kind: "appointment",
@@ -83,7 +83,6 @@ function CalendarPage() {
   const [selected, setSelected] = useState(26);
   const [filter, setFilter] = useState<CalendarFilter>("All");
   const [open, setOpen] = useState<{ day: number; event: CalendarEvent } | null>(null);
-  const [addOpen, setAddOpen] = useState(false);
 
   const week = [
     { d: "Sun", n: 25 },
@@ -102,20 +101,22 @@ function CalendarPage() {
 
   return (
     <div>
-      <header className="px-6 pt-14 pb-2">
+      <header id="calendar-top" className="px-6 pt-14 pb-2">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[13px] font-medium text-muted-foreground">May 2026</p>
             <h1 className="mt-0.5 text-[28px] font-semibold tracking-tight">Calendar</h1>
           </div>
-          <button
-            onClick={() => setAddOpen(true)}
+          <a
+            href="#calendar-add-preview-title"
             className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-card"
             aria-label="Add appointment"
           >
             <CalendarPlus className="h-4 w-4" />
-          </button>
+          </a>
         </div>
+
+        <AddAppointmentPreview />
 
         <div className="mt-4 inline-flex rounded-full bg-secondary p-1">
           {(["Day", "Week", "Month"] as View[]).map((item) => (
@@ -168,7 +169,7 @@ function CalendarPage() {
 
       {view !== "Month" && (
         <div className="px-6 mt-4 flex gap-2 overflow-x-auto pb-1">
-          {(["All", "Appointments", "Meds", "Tasks"] as CalendarFilter[]).map((item) => (
+          {(["All", "Appointments", "Status", "Tasks"] as CalendarFilter[]).map((item) => (
             <button
               key={item}
               onClick={() => setFilter(item)}
@@ -259,7 +260,6 @@ function CalendarPage() {
       {open && (
         <VisitDetailSheet event={open.event} selected={open.day} onClose={() => setOpen(null)} />
       )}
-      {addOpen && <AddAppointmentSheet onClose={() => setAddOpen(false)} />}
     </div>
   );
 }
@@ -375,7 +375,7 @@ function VisitDetailSheet({
       >
         <div className="mx-auto h-1 w-10 rounded-full bg-muted mb-5" />
         <p className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
-          Visit detail
+          Care detail
         </p>
         <h3 className="mt-1 text-[22px] font-semibold tracking-tight">{event.title}</h3>
         <p className="text-[14px] text-muted-foreground mt-1">
@@ -383,19 +383,19 @@ function VisitDetailSheet({
         </p>
 
         <div className="mt-5 card-soft p-4 space-y-2">
-          <Detail k="Location" v="Mercy Heart Clinic · 2nd floor" />
-          <Detail k="Assigned to" v="David Chen" />
+          <Detail k="Location" v="Visit location pending" />
+          <Detail k="Assigned to" v="Care team member" />
           <Detail k="Visibility" v="Family visible" />
         </div>
 
         <div className="mt-4">
           <p className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-            Visit prep
+            Care prep
           </p>
           <ul className="card-soft p-4 space-y-2 text-[14px]">
-            <li>Bring updated medication list</li>
-            <li>Ask about evening dose timing</li>
-            <li>Share recent BP log</li>
+            <li>Review current care notes</li>
+            <li>Check care status updates</li>
+            <li>Keep visit prep inside the family workspace</li>
           </ul>
         </div>
 
@@ -404,7 +404,7 @@ function VisitDetailSheet({
             onClick={() => setNotice("document")}
             className="rounded-full bg-secondary py-3 text-[14px] font-medium"
           >
-            Attach document
+            Link Vault placeholder
           </button>
           <button
             onClick={() => setNotice("thread")}
@@ -415,11 +415,11 @@ function VisitDetailSheet({
         </div>
         {notice && (
           <CalendarNotice
-            title={notice === "document" ? "Attach a visit file" : "Add a care update"}
+            title={notice === "document" ? "Link Vault placeholder" : "Add a care update"}
             body={
               notice === "document"
-                ? "Documents will attach from Vault during beta. Files stay private until shared with the care team or included in a visit summary."
-                : "Real-time messaging is not part of this beta. Visit notes will be saved as care updates for the family to review."
+                ? "Vault stays in the reviewed placeholder flow during beta. Content remains hidden."
+                : "Real-time messaging is not part of this beta. Care updates stay available for the family to review."
             }
             onClose={() => setNotice(null)}
           />
@@ -452,35 +452,40 @@ function CalendarNotice({
   );
 }
 
-function AddAppointmentSheet({ onClose }: { onClose: () => void }) {
+function AddAppointmentPreview() {
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30" onClick={onClose}>
-      <div
-        className="w-full max-w-[440px] rounded-t-3xl bg-card p-6 pb-10"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-muted" />
-        <p className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
-          New appointment
-        </p>
-        <h3 className="mt-1 text-[22px] font-semibold tracking-tight">Prepare a visit</h3>
-        <div className="mt-4 space-y-2.5">
-          <Field label="Appointment" value="Cardiology follow-up" />
-          <Field label="Date and time" value="May 29 · 10:00 AM" />
-          <Field label="Visibility" value="Family visible" />
+    <section className="mt-4 card-soft p-4" aria-labelledby="calendar-add-preview-title">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Calendar preview
+          </p>
+          <h2 id="calendar-add-preview-title" className="mt-1 text-[17px] font-semibold">
+            Appointment preview
+          </h2>
         </div>
-        <p className="mt-3 text-[12px] leading-relaxed text-muted-foreground">
-          Appointment details are private. Visit summaries should stay focused on what the family
-          wants to share.
-        </p>
-        <button
-          onClick={onClose}
-          className="mt-5 w-full rounded-full bg-primary py-3 text-[14px] font-medium text-primary-foreground"
+        <a
+          href="/calendar"
+          className="rounded-full bg-secondary px-3 py-1.5 text-[12px] font-medium text-muted-foreground"
         >
-          Save appointment
-        </button>
+          Close
+        </a>
       </div>
-    </div>
+      <div className="mt-4 space-y-2.5">
+        <Field label="Category" value="Care follow-up" />
+        <Field label="Schedule" value="Tomorrow family check-in" />
+        <Field label="Visibility" value="Maya, Jordan, and Sam" />
+      </div>
+      <p className="mt-3 text-[12px] leading-relaxed text-muted-foreground">
+        This is a local preview. No appointment is saved or sent.
+      </p>
+      <a
+        href="/calendar"
+        className="mt-4 w-full rounded-full bg-primary py-3 text-[14px] font-medium text-primary-foreground"
+      >
+        Done
+      </a>
+    </section>
   );
 }
 
@@ -508,7 +513,7 @@ function getToneClass(tone: EventTone) {
 function filterEvents(events: CalendarEvent[], filter: CalendarFilter) {
   if (filter === "All") return events;
   if (filter === "Appointments") return events.filter((event) => event.kind === "appointment");
-  if (filter === "Meds") return events.filter((event) => event.kind === "medication");
+  if (filter === "Status") return events.filter((event) => event.kind === "medication");
   return events.filter((event) => event.kind === "task");
 }
 

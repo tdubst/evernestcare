@@ -8,37 +8,43 @@ export const Route = createFileRoute("/profile-types")({
 
 const PROFILES = [
   {
-    id: "older",
-    name: "Older Adult Care",
-    desc: "Geriatric coordination across family and providers.",
+    id: "family",
+    name: "Family Care",
+    desc: "Team coordination for a family care workspace.",
     icon: Heart,
     tone: "bg-blush text-blush-foreground",
     active: true,
-    modules: ["Medication schedule", "Mobility tracking", "Cognitive notes", "Imaging organizer", "Provider summaries"],
+    modules: [
+      "Care updates",
+      "Team roles",
+      "Vault placeholders",
+      "Permission checks",
+      "Beta readiness",
+    ],
   },
   {
-    id: "child",
-    name: "Child Care",
-    desc: "Growth, school, pediatrician visits, allergies.",
+    id: "team-support",
+    name: "Team Support",
+    desc: "Simple coordination for helpers and family members.",
     icon: Baby,
     tone: "bg-sky text-sky-foreground",
-    modules: ["Vaccination log", "Growth chart", "School notes", "Allergies & sensitivities", "Pediatric visits"],
+    modules: ["Invite flow", "Access review", "Task notes", "Status checks", "Planned"],
   },
   {
     id: "recovery",
     name: "Recovery Care",
-    desc: "Post-operative coordination and rehab tracking.",
+    desc: "Future workflow for time-limited care coordination.",
     icon: Activity,
     tone: "bg-sage text-sage-foreground",
-    modules: ["Pain log", "Rehab milestones", "Wound check reminders", "PT schedule", "Discharge plan"],
+    modules: ["Care timeline", "Milestones", "Helper roles", "Document placeholders", "Planned"],
   },
   {
-    id: "chronic",
-    name: "Chronic Care",
-    desc: "Ongoing condition support and trend visibility.",
+    id: "long-term",
+    name: "Long-Term Care",
+    desc: "Future workflow for ongoing family coordination.",
     icon: Sparkles,
     tone: "bg-sand text-sand-foreground",
-    modules: ["Symptom tracking", "Trigger journal", "Specialist team", "Lab trends", "Treatment plan"],
+    modules: ["Routine checks", "Care notes", "Access history", "Workspace status", "Planned"],
   },
 ];
 
@@ -47,11 +53,11 @@ function ProfileTypes() {
     <div className="phone-shell">
       <header className="px-6 pt-14 pb-3">
         <Link to="/today" className="inline-flex items-center gap-1 text-[14px] text-primary mb-3">
-          <ChevronLeft className="h-4 w-4" /> Today
+          <ChevronLeft className="h-4 w-4" /> Back to workspace
         </Link>
         <h1 className="text-[28px] font-semibold tracking-tight">Care profiles</h1>
         <p className="text-[14px] text-muted-foreground mt-1 max-w-[36ch]">
-          Evernest Care is built to grow with your family. Add a profile for anyone on your care team.
+          Evernest Care is built to grow carefully. This beta keeps profiles broad and content-free.
         </p>
       </header>
 
@@ -59,7 +65,9 @@ function ProfileTypes() {
         {PROFILES.map((p) => (
           <article key={p.id} className="card-soft p-5">
             <div className="flex items-start gap-3">
-              <span className={`inline-flex h-12 w-12 items-center justify-center rounded-2xl ${p.tone}`}>
+              <span
+                className={`inline-flex h-12 w-12 items-center justify-center rounded-2xl ${p.tone}`}
+              >
                 <p.icon className="h-5 w-5" />
               </span>
               <div className="flex-1">
@@ -85,15 +93,21 @@ function ProfileTypes() {
             </ul>
 
             <button
-              className={`mt-5 w-full rounded-full py-3 text-[14px] font-medium ${p.active ? "bg-secondary text-foreground" : "bg-primary text-primary-foreground"}`}
+              aria-disabled={!p.active}
+              disabled={!p.active}
+              className={`mt-5 w-full rounded-full py-3 text-[14px] font-medium ${
+                p.active
+                  ? "bg-secondary text-foreground"
+                  : "cursor-not-allowed bg-secondary text-muted-foreground"
+              }`}
             >
-              {p.active ? "Currently active" : `Add ${p.name.toLowerCase()} profile`}
+              {p.active ? "Selected for beta" : "Planned for later"}
             </button>
           </article>
         ))}
 
         <p className="text-center text-[11px] text-muted-foreground pt-2">
-          Disability support and complex family care · coming soon.
+          Additional care profiles are planned after beta review.
         </p>
       </section>
     </div>

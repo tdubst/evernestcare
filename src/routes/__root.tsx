@@ -75,7 +75,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { name: "twitter:card", content: "summary" },
     ],
-    links: [{ rel: "stylesheet", href: appCss }],
+    links: [
+      { rel: "stylesheet", href: appCss },
+      {
+        rel: "icon",
+        href: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23f7f6f1'/%3E%3Cpath d='M32 12c8 7 16 8 16 8v13c0 10-7 16-16 19-9-3-16-9-16-19V20s8-1 16-8Z' fill='%236ea7c8'/%3E%3Cpath d='M25 33h14M32 26v14' stroke='white' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E",
+      },
+    ],
   }),
   shellComponent: RootShell,
   component: RootComponent,

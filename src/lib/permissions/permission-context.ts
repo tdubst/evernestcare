@@ -1,12 +1,35 @@
 import { createContext, useContext } from "react";
 
-export type PermissionRuntimeStatus = "auth-required" | "ready" | "unconfigured";
+export type PermissionRuntimeStatus =
+  | "auth-required"
+  | "error"
+  | "loading"
+  | "ready"
+  | "unconfigured";
+
+export type CareNoteAccess = {
+  canAppend: boolean;
+  canView: boolean;
+  status: "ready" | "unavailable";
+};
+
+export const EMPTY_CARE_NOTE_ACCESS: CareNoteAccess = {
+  canAppend: false,
+  canView: false,
+  status: "unavailable",
+};
 
 export type PermissionContextValue = {
   activeCareTeamId: string | null;
   activeCareRecipientId: string | null;
   appUserId: string | null;
+  careNoteAccess: CareNoteAccess;
   grants: string[];
+  isBetaPreviewWorkspace: boolean;
+  membershipId: string | null;
+  membershipStatus: string | null;
+  permissionVersion: string | null;
+  roleKey: string | null;
   status: PermissionRuntimeStatus;
 };
 

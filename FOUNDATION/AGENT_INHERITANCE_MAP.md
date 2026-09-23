@@ -6,6 +6,8 @@ Inherits from:
 
 Evernest agents are overlays. They do not replace AI-OS agents or create a separate orchestration doctrine.
 
+Cross-workstream CTO coordination is defined in `FOUNDATION/CTO_COORDINATION.md`.
+
 | Evernest agent | Inherits AI-OS standard | Primary scope | Review trigger |
 | --- | --- | --- | --- |
 | `orchestration-agent` | bounded role, explicit outputs, escalation | `FOUNDATION/**`, `docs/decisions/**` | any multi-agent or architecture task |
@@ -24,4 +26,3 @@ Evernest agents are overlays. They do not replace AI-OS agents or create a separ
 - If a change touches copy around care, health, medications, vitals, or providers, include `security-agent`.
 - If a change creates reusable UI, include `ux-agent`.
 - If a change proposes Next.js, Expo, Supabase, Vercel, Sentry, PostHog, or Storybook setup, create or update a decision record first.
-
