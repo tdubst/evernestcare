@@ -17,6 +17,7 @@ const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
 const page = await context.newPage();
 const failures = [];
+const hostedRouteReadinessBudgetMs = 15_000;
 
 page.on("pageerror", () => failures.push("browser page error"));
 page.on("console", (message) => {
@@ -39,6 +40,7 @@ page.on("response", (response) => {
 });
 
 try {
+  const entryStartedAt = Date.now();
   const entryResponse = await page.goto(new URL("/", productionUrl).href, {
     waitUntil: "networkidle",
     timeout: 30_000,
@@ -49,6 +51,7 @@ try {
   if (!(await expectVisible(page.getByText("Evernest Care").first(), "application shell"))) {
     throw new Error("application shell unavailable");
   }
+  expectReadinessBudget(entryStartedAt, "production entry");
   await expectNoOverflow(page, "production entry layout");
 
   if (expectation === "production") {
@@ -81,6 +84,7 @@ try {
       }
     }
 
+    const signInStartedAt = Date.now();
     const signInResponse = await page.goto(new URL("/sign-in", productionUrl).href, {
       waitUntil: "networkidle",
       timeout: 30_000,
@@ -92,8 +96,10 @@ try {
     );
     await expectVisible(page.getByLabel("Email"), "sign-in email field");
     await expectVisible(page.getByLabel("Password"), "sign-in password field");
+    expectReadinessBudget(signInStartedAt, "sign-in route");
     await expectNoOverflow(page, "sign-in layout");
 
+    const protectedStartedAt = Date.now();
     const protectedResponse = await page.goto(new URL("/today", productionUrl).href, {
       waitUntil: "networkidle",
       timeout: 30_000,
@@ -103,6 +109,7 @@ try {
       page.getByRole("heading", { name: "Sign in required" }),
       "protected route boundary",
     );
+    expectReadinessBudget(protectedStartedAt, "protected route");
     await expectNoOverflow(page, "protected route layout");
   }
 } catch {
@@ -139,6 +146,12 @@ async function expectNoOverflow(pageInstance, label) {
     .evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)
     .catch(() => true);
   if (hasOverflow) failures.push(`${label} overflow`);
+}
+
+function expectReadinessBudget(startedAt, label) {
+  if (Date.now() - startedAt > hostedRouteReadinessBudgetMs) {
+    failures.push(`${label} readiness budget exceeded`);
+  }
 }
 
 async function expectPublicResource(contextInstance, link, expectedHref, heading, label) {

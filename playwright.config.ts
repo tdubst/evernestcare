@@ -8,7 +8,7 @@ const webServerCommand = `${buildCommand} && node ./node_modules/vite/bin/vite.j
 export default defineConfig({
   testDir: "./tests/e2e",
   testMatch: productionMode
-    ? "production-boundary.spec.ts"
+    ? ["production-boundary.spec.ts", "production-performance.spec.ts"]
     : ["accessibility.spec.ts", "golden-flows.spec.ts"],
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),

@@ -10,6 +10,10 @@ const release = readFileSync(
   "utf8",
 );
 const quality = readFileSync(new URL("../.github/workflows/quality.yml", import.meta.url), "utf8");
+const operationsRunbook = readFileSync(
+  new URL("../docs/architecture/production-operations-runbook.md", import.meta.url),
+  "utf8",
+);
 const browserVerifier = readFileSync(
   new URL("./verify-production-browser.mjs", import.meta.url),
   "utf8",
@@ -196,6 +200,36 @@ assertIncludes(
   browserVerifier,
   "resource page heading",
   "production browser verification must inspect public-resource page content",
+);
+assertIncludes(
+  browserVerifier,
+  "hostedRouteReadinessBudgetMs = 15_000",
+  "production browser verification must enforce a hosted route-readiness budget",
+);
+assertIncludes(
+  browserVerifier,
+  'expectReadinessBudget(protectedStartedAt, "protected route")',
+  "production browser verification must budget the protected signed-out boundary",
+);
+assertIncludes(
+  operationsRunbook,
+  "BOOTSTRAP LEGACY",
+  "operations runbook must document the explicit legacy bootstrap confirmation",
+);
+assertIncludes(
+  operationsRunbook,
+  "USE VERIFIED LEGACY BASELINE",
+  "operations runbook must document the first-release legacy confirmation",
+);
+assertIncludes(
+  operationsRunbook,
+  "HTML non-JSON manifest fallback",
+  "operations runbook must not claim the legacy baseline has a release manifest",
+);
+assertIncludes(
+  operationsRunbook,
+  "Leave both legacy inputs empty after the first successful manifest-bearing release.",
+  "operations runbook must retire the legacy path after transition",
 );
 
 console.log("Production release workflow guard tests passed.");

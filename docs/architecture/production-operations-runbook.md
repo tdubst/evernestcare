@@ -114,6 +114,14 @@ Any error-monitoring vendor requires a separate Security/Privacy review of redac
 
 Route alerts to a monitored on-call destination with one primary and one backup owner. P0 acknowledgement target is 15 minutes, P1 is 30 minutes, and P2 is the next business day. Map every alert to the severity definitions above and to one response runbook. Before launch, trigger each alert class, verify primary and backup delivery, record acknowledgement time, and confirm escalation when the primary does not acknowledge. Repeat delivery tests quarterly and after provider or routing changes.
 
+## Performance Gate
+
+- The exact production build must remain within the checked JavaScript bundle budget enforced by `scripts/check-web-bundle-budget.mjs`.
+- Local production-mode browser checks must render the signed-out entry, sign-in route, and protected-route denial within 5 seconds on mobile Chromium, mobile WebKit, and desktop Firefox, with no horizontal overflow.
+- Staged and canonical hosted verification must render the same three boundaries within 15 seconds at 390x844. This generous release threshold catches unusable deployments without treating normal internet variance as a failure.
+- Record only route class, browser class, pass/fail, and the slowest duration. Do not record query strings, user content, credentials, backend payloads, or raw identifiers.
+- Any threshold failure blocks promotion until reproduced, explained, and accepted by WebApp plus QA, or repaired and rerun.
+
 ## Credential And Access Lifecycle
 
 - Maintain a quarterly access inventory for GitHub, Vercel, Supabase, DNS, SMTP, and the support channel. Record roles and review status, never credential values.
@@ -137,11 +145,12 @@ Route alerts to a monitored on-call destination with one primary and one backup 
 
 ## Release And Rollback
 
-- Before the first production-mode release, run `.github/workflows/bootstrap-production-baseline.yml` once from `main` with production-environment approval. It must verify the current Vercel production target, trusted project/repository identity, `main` Git ancestry, exact release-manifest deployment ID, full commit SHA, app mode, and signed-out browser shell. Record the successful workflow URL in the launch packet. This workflow does not deploy or promote; it establishes the accepted rollback baseline required by the normal release workflow.
+- Before the first production-mode release, run `.github/workflows/bootstrap-production-baseline.yml` from `main` with production-environment approval and the exact `BOOTSTRAP LEGACY` confirmation. The current legacy target predates `release.json` and the production security-header policy, so the workflow must verify the exact Vercel project, repository, production deployment, full commit SHA, original source ref, trusted final-`main` ancestry, HTML non-JSON manifest fallback, and signed-out `legacy-rollback` shell/mobile layout. It then archives a typed `production-legacy-baseline` artifact for 30 days. Record the successful workflow URL and deployment identity in the launch packet. If the artifact expires before the first release, rerun the bootstrap against the still-current legacy target. This workflow does not deploy or promote.
 - Release only through `.github/workflows/release-production.yml` from the exact reviewed `main` SHA.
 - Require staging and production environment approvals with administrator bypass disabled.
 - Keep Vercel automatic production-domain assignment disabled.
-- Before promotion, the workflow corroborates the exact prior production deployment ID and commit across Vercel control-plane metadata, the trusted repository's `main` history, and the release manifest. If post-promotion verification fails, it restores that deployment and verifies the production target, restored release identity, and signed-out browser shell.
+- For the first manifest-bearing release only, supply the successful bootstrap workflow run ID and exact `USE VERIFIED LEGACY BASELINE` confirmation. The release workflow verifies the bootstrap run's repository, workflow path, success status, and trusted ancestry; downloads its artifact; and exact-matches the current canonical URL, project, deployment, commit, and source ref. If production already serves any JSON response at `release.json`, the legacy fallback is rejected. Leave both legacy inputs empty after the first successful manifest-bearing release.
+- Before promotion, the workflow corroborates the exact prior production deployment ID and commit across Vercel control-plane metadata and trusted Git history. Manifest-bearing prior releases must also match the release manifest and originate from `main`. If post-promotion verification fails, recovery restores only the previously verified deployment. A manifest-bearing rollback re-verifies target, release identity, headers, and browser shell; the bounded legacy rollback verifies the archived identity, target, shell, and layout while explicitly omitting headers the legacy deployment never had.
 - Database migrations are forward-only. A database rollback requires a reviewed forward repair or a tested restore decision; never reverse production schema manually.
 
 ## Launch Evidence
