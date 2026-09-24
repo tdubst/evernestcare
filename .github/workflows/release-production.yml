@@ -11,8 +11,17 @@ on:
         description: Type RELEASE to confirm the production gate
         required: true
         type: string
+      legacy_baseline_run_id:
+        description: Successful Production Baseline Bootstrap workflow run ID; leave blank after the first manifest-bearing release
+        required: false
+        type: string
+      legacy_baseline_confirmation:
+        description: Type USE VERIFIED LEGACY BASELINE only for the first manifest-bearing production release
+        required: false
+        type: string
 
 permissions:
+  actions: read
   contents: read
 
 concurrency:
@@ -83,7 +92,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
           ref: main
       - name: Revalidate main after approval
         env:
@@ -92,11 +101,42 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$RELEASE_SHA"
           test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$RELEASE_SHA"
+      - name: Validate legacy baseline workflow run
+        if: ${{ inputs.legacy_baseline_run_id != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LEGACY_BASELINE_RUN_ID: ${{ inputs.legacy_baseline_run_id }}
+        run: |
+          set -euo pipefail
+          test "$(printf '%s' "$LEGACY_BASELINE_RUN_ID" | grep -Ec '^[0-9]+$')" = "1"
+          run_url="https://api.github.com/repos/$GITHUB_REPOSITORY/actions/runs/$LEGACY_BASELINE_RUN_ID"
+          printf 'url = "%s"\nheader = "Authorization: Bearer %s"\nheader = "X-GitHub-Api-Version: 2022-11-28"\nsilent\nshow-error\nfail\noutput = "legacy-baseline-run.json"\n' \
+            "$run_url" "$GH_TOKEN" | curl --config -
+          test "$(jq -er '.conclusion' legacy-baseline-run.json)" = "success"
+          test "$(jq -er '.event' legacy-baseline-run.json)" = "workflow_dispatch"
+          test "$(jq -er '.head_branch' legacy-baseline-run.json)" = "main"
+          test "$(jq -er '.path' legacy-baseline-run.json)" = ".github/workflows/bootstrap-production-baseline.yml"
+          test "$(jq -er '.repository.id | tostring' legacy-baseline-run.json)" = "$GITHUB_REPOSITORY_ID"
+          bootstrap_run_sha="$(jq -er '.head_sha' legacy-baseline-run.json)"
+          test "$(printf '%s' "$bootstrap_run_sha" | grep -Ec '^[0-9a-fA-F]{40}$')" = "1"
+          git cat-file -e "$bootstrap_run_sha^{commit}"
+          git merge-base --is-ancestor "$bootstrap_run_sha" HEAD
+      - name: Download verified legacy baseline
+        if: ${{ inputs.legacy_baseline_run_id != '' }}
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: production-legacy-baseline
+          path: legacy-baseline
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.legacy_baseline_run_id }}
       - id: deploy
         name: Create staged production deployment
         env:
           PRODUCTION_HEALTHCHECK_URL: ${{ secrets.PRODUCTION_HEALTHCHECK_URL }}
           RELEASE_SHA: ${{ needs.verify.outputs.release_sha }}
+          LEGACY_BASELINE_CONFIRMATION: ${{ inputs.legacy_baseline_confirmation }}
+          LEGACY_BASELINE_RUN_ID: ${{ inputs.legacy_baseline_run_id }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
@@ -120,22 +160,62 @@ jobs:
           test "$(jq -er '.projectId' prior-deployment.json)" = "$VERCEL_PROJECT_ID"
           test "$(jq -er '.target' prior-deployment.json)" = "production"
           test "$(jq -er '(.gitSource.repoId // .meta.githubRepoId) | tostring' prior-deployment.json)" = "$(printf '%s' "$repo_id")"
-          test "$(jq -er '.gitSource.ref // .meta.githubCommitRef' prior-deployment.json)" = "main"
+          previous_source_ref="$(jq -er '.gitSource.ref // .meta.githubCommitRef' prior-deployment.json)"
+          test -n "$previous_source_ref"
           previous_release_sha="$(jq -er '.gitSource.sha // .meta.githubCommitSha' prior-deployment.json)"
           test "$(printf '%s' "$previous_release_sha" | grep -Ec '^[0-9a-fA-F]{40}$')" = "1"
           git cat-file -e "$previous_release_sha^{commit}"
           git merge-base --is-ancestor "$previous_release_sha" HEAD
           prior_release_url="${PRODUCTION_HEALTHCHECK_URL%/}/release.json?check=$(date +%s)"
-          printf 'url = "%s"\nsilent\nshow-error\nfail\noutput = "prior-release.json"\n' \
-            "$prior_release_url" | curl --config -
-          test "$(jq -er '.deploymentId' prior-release.json)" = "$previous_production_id"
-          test "$(jq -er '.commit' prior-release.json)" = "$previous_release_sha"
-          jq -e '
+          prior_release_status="$(curl \
+            --silent \
+            --show-error \
+            --max-redirs 0 \
+            --dump-header prior-release-headers.txt \
+            --output prior-release.json \
+            --write-out '%{http_code}' \
+            "$prior_release_url")"
+          test "$prior_release_status" = "200"
+          if jq -e --arg deploymentId "$previous_production_id" --arg commit "$previous_release_sha" '
+            (.deploymentId == $deploymentId) and
+            (.commit == $commit) and
             (.appMode == "beta" or .appMode == "production") and
             (.commit | test("^[0-9a-fA-F]{40}$")) and
             (.environment == "production") and
             (.version == "0.1.0")
-          ' prior-release.json >/dev/null
+          ' prior-release.json >/dev/null 2>&1; then
+            test -z "$LEGACY_BASELINE_RUN_ID"
+            test -z "$LEGACY_BASELINE_CONFIRMATION"
+            test "$previous_source_ref" = "main"
+            previous_has_release_manifest=true
+            previous_app_mode="$(jq -er '.appMode' prior-release.json)"
+          else
+            test "$LEGACY_BASELINE_CONFIRMATION" = "USE VERIFIED LEGACY BASELINE"
+            test "$(printf '%s' "$LEGACY_BASELINE_RUN_ID" | grep -Ec '^[0-9]+$')" = "1"
+            test -f legacy-baseline/production-legacy-baseline.json
+            grep -Eiq '^content-type:[[:space:]]*text/html([;[:space:]]|$)' prior-release-headers.txt
+            if jq -e . prior-release.json >/dev/null 2>&1; then
+              echo "Refusing legacy baseline fallback for a JSON release response." >&2
+              exit 1
+            fi
+            jq -e \
+              --arg canonicalUrl "${PRODUCTION_HEALTHCHECK_URL%/}" \
+              --arg commit "$previous_release_sha" \
+              --arg deploymentId "$previous_production_id" \
+              --arg projectId "$VERCEL_PROJECT_ID" \
+              --arg sourceRef "$previous_source_ref" '
+                (.schemaVersion == 1) and
+                (.kind == "legacy-no-manifest") and
+                (.canonicalUrl == $canonicalUrl) and
+                (.commit == $commit) and
+                (.deploymentId == $deploymentId) and
+                (.projectId == $projectId) and
+                (.environment == "production") and
+                (.sourceRef == $sourceRef)
+              ' legacy-baseline/production-legacy-baseline.json >/dev/null
+            previous_has_release_manifest=false
+            previous_app_mode=legacy
+          fi
           jq -n \
             --arg name "evernestcare" \
             --arg project "$VERCEL_PROJECT_ID" \
@@ -153,7 +233,8 @@ jobs:
           echo "deployment_url=https://$(jq -er '.url' deployment.json)" >> "$GITHUB_OUTPUT"
           echo "previous_production_id=$previous_production_id" >> "$GITHUB_OUTPUT"
           echo "previous_release_sha=$previous_release_sha" >> "$GITHUB_OUTPUT"
-          echo "previous_app_mode=$(jq -er '.appMode' prior-release.json)" >> "$GITHUB_OUTPUT"
+          echo "previous_app_mode=$previous_app_mode" >> "$GITHUB_OUTPUT"
+          echo "previous_has_release_manifest=$previous_has_release_manifest" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
@@ -263,11 +344,11 @@ jobs:
       - name: Verify restored browser shell
         if: ${{ always() && steps.recovery.outputs.rollback_required == 'true' }}
         env:
-          PRODUCTION_BROWSER_EXPECTATION: rollback
+          PRODUCTION_BROWSER_EXPECTATION: ${{ steps.deploy.outputs.previous_has_release_manifest == 'true' && 'rollback' || 'legacy-rollback' }}
           PRODUCTION_BROWSER_URL: ${{ secrets.PRODUCTION_HEALTHCHECK_URL }}
         run: npm run test:production-browser
       - name: Verify restored release identity
-        if: ${{ always() && steps.recovery.outputs.rollback_required == 'true' }}
+        if: ${{ always() && steps.recovery.outputs.rollback_required == 'true' && steps.deploy.outputs.previous_has_release_manifest == 'true' }}
         env:
           DEPLOYMENT_VERIFY_ATTEMPTS: 30
           DEPLOYMENT_VERIFY_INTERVAL_MS: 2000

@@ -46,7 +46,7 @@ The authenticated isolated-staging command last passed locally on September 24, 
 | Consent and retention | Counsel-approved consent, retention, deletion, and legal-hold policy | Legal + Privacy | Pending |
 | HIPAA/vendor review | Applicability decision, vendor list, subprocessors, and required BAAs/DPAs | Legal + Security | Pending |
 | Support readiness | Public contact, response targets, escalation, and non-emergency language | Product + Operations | Pending |
-| Production baseline | Successful one-time bootstrap workflow and verified rollback deployment | Release | Pending |
+| Production baseline | Successful one-time legacy bootstrap workflow, archived exact deployment identity, and verified rollback shell | Release | Pending |
 | Production environment | GitHub and Vercel settings independently checked against the runbook | Release + Security | Pending |
 
 ## Owner Decision

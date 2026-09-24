@@ -9,8 +9,8 @@ if (!productionUrl) {
   fail("PRODUCTION_BROWSER_URL must be a public HTTPS URL");
 }
 
-if (!new Set(["production", "rollback"]).has(expectation)) {
-  fail("PRODUCTION_BROWSER_EXPECTATION must be production or rollback");
+if (!new Set(["production", "rollback", "legacy-rollback"]).has(expectation)) {
+  fail("PRODUCTION_BROWSER_EXPECTATION must be production, rollback, or legacy-rollback");
 }
 
 const browser = await chromium.launch({ headless: true });
@@ -43,7 +43,9 @@ try {
     waitUntil: "networkidle",
     timeout: 30_000,
   });
-  expectSecurityHeaders(entryResponse?.headers(), "production entry headers");
+  if (expectation !== "legacy-rollback") {
+    expectSecurityHeaders(entryResponse?.headers(), "production entry headers");
+  }
   if (!(await expectVisible(page.getByText("Evernest Care").first(), "application shell"))) {
     throw new Error("application shell unavailable");
   }
@@ -114,9 +116,11 @@ if (failures.length > 0) {
 }
 
 console.log(
-  expectation === "rollback"
-    ? "Production rollback browser verification passed."
-    : "Production browser verification passed.",
+  expectation === "legacy-rollback"
+    ? "Legacy production rollback browser verification passed."
+    : expectation === "rollback"
+      ? "Production rollback browser verification passed."
+      : "Production browser verification passed.",
 );
 
 async function expectVisible(locator, label) {

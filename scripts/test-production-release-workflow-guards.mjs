@@ -36,6 +36,96 @@ assertIncludes(
   "bootstrap must inspect the current deployment",
 );
 assertIncludes(
+  bootstrap,
+  'test "$CONFIRMATION" = "BOOTSTRAP LEGACY"',
+  "legacy bootstrap must require an explicit one-time confirmation",
+);
+assertIncludes(
+  bootstrap,
+  'kind: "legacy-no-manifest"',
+  "legacy bootstrap must archive a typed baseline",
+);
+assertIncludes(
+  bootstrap,
+  "sourceRef: $sourceRef",
+  "legacy bootstrap must archive the deployment's original source ref",
+);
+assertIncludes(
+  bootstrap,
+  "production-legacy-baseline.json",
+  "legacy bootstrap must archive its verified identity",
+);
+assertIncludes(
+  bootstrap,
+  "text/html",
+  "legacy bootstrap must only accept the known HTML manifest fallback",
+);
+assertIncludes(
+  bootstrap,
+  "PRODUCTION_BROWSER_EXPECTATION: legacy-rollback",
+  "legacy bootstrap must use the explicitly degraded browser expectation",
+);
+assertIncludes(
+  release,
+  ".github/workflows/bootstrap-production-baseline.yml",
+  "release must verify the source bootstrap workflow",
+);
+assertIncludes(
+  release,
+  ".repository.id | tostring",
+  "release must bind the bootstrap run to the current repository",
+);
+assertIncludes(
+  release,
+  'git merge-base --is-ancestor "$bootstrap_run_sha" HEAD',
+  "release must bind the bootstrap run to trusted main ancestry",
+);
+assertIncludes(
+  release,
+  'test "$LEGACY_BASELINE_CONFIRMATION" = "USE VERIFIED LEGACY BASELINE"',
+  "first manifest release must require explicit legacy-baseline confirmation",
+);
+assertIncludes(
+  release,
+  'test -z "$LEGACY_BASELINE_RUN_ID"',
+  "manifest-bearing releases must reject the legacy baseline path",
+);
+assertIncludes(
+  release,
+  'test "$previous_source_ref" = "main"',
+  "manifest-bearing rollback targets must originate from main",
+);
+assertIncludes(
+  release,
+  "(.sourceRef == $sourceRef)",
+  "legacy release transition must match the archived source ref",
+);
+assertIncludes(
+  release,
+  "Refusing legacy baseline fallback for a JSON release response.",
+  "legacy fallback must reject malformed or mismatched JSON manifests",
+);
+assertIncludes(
+  release,
+  "steps.deploy.outputs.previous_has_release_manifest == 'true'",
+  "legacy rollback must not require metadata the legacy deployment never emitted",
+);
+assertIncludes(
+  release,
+  "steps.deploy.outputs.previous_has_release_manifest == 'true' && 'rollback' || 'legacy-rollback'",
+  "rollback browser verification must distinguish manifest and legacy baselines",
+);
+assertIncludes(
+  browserVerifier,
+  'new Set(["production", "rollback", "legacy-rollback"])',
+  "browser verifier must name the legacy rollback exception explicitly",
+);
+assertIncludes(
+  browserVerifier,
+  'expectation !== "legacy-rollback"',
+  "only the legacy rollback exception may omit modern response headers",
+);
+assertIncludes(
   release,
   "deployments/$previous_production_id",
   "release must inspect its rollback deployment",
