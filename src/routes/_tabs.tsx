@@ -1,7 +1,9 @@
-import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
-import { CalendarDays, Home, MessageCircle, FolderLock, Users } from "lucide-react";
+import { createFileRoute, Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
+import { CalendarDays, FolderLock, Home, LogOut, MessageCircle, Users } from "lucide-react";
+import { useState } from "react";
 
 import { ProtectedShell } from "@/components/app/protected-shell";
+import { useAuth } from "@/lib/auth/auth-context";
 import { isProductionRuntime } from "@/lib/runtime-mode";
 
 export const Route = createFileRoute("/_tabs")({
@@ -18,9 +20,21 @@ const TABS = [
 
 function TabsLayout() {
   const { pathname } = useLocation();
-  const tabs = isProductionRuntime()
+  const navigate = useNavigate();
+  const { signOut } = useAuth();
+  const [signingOut, setSigningOut] = useState(false);
+  const productionRuntime = isProductionRuntime();
+  const tabs = productionRuntime
     ? TABS.filter(({ to }) => to !== "/calendar" && to !== "/messages")
     : TABS;
+
+  const handleSignOut = async () => {
+    if (signingOut) return;
+    setSigningOut(true);
+    await signOut();
+    await navigate({ to: "/", replace: true });
+  };
+
   return (
     <ProtectedShell>
       <div className="phone-shell pb-[calc(9rem+env(safe-area-inset-bottom))]">
@@ -40,6 +54,20 @@ function TabsLayout() {
                 </Link>
               );
             })}
+            {productionRuntime && (
+              <button
+                type="button"
+                onClick={() => void handleSignOut()}
+                disabled={signingOut}
+                className="flex-1 flex flex-col items-center gap-0.5 rounded-full py-1.5 text-muted-foreground transition disabled:cursor-wait disabled:opacity-50"
+                aria-label="Sign out"
+              >
+                <LogOut className="h-[22px] w-[22px]" strokeWidth={1.8} />
+                <span className="text-[10px] font-medium tracking-wide">
+                  {signingOut ? "Signing out" : "Sign out"}
+                </span>
+              </button>
+            )}
           </div>
         </nav>
       </div>

@@ -218,6 +218,97 @@ test("authenticated production hydration is read-only and care updates are not s
   expect(requestedUrls.some((url) => url.includes("append_care_event"))).toBe(false);
 });
 
+test("authenticated production users can sign out and lose protected access", async ({ page }) => {
+  await page.addInitScript(() => {
+    if (window.sessionStorage.getItem("production-sign-out-session-seeded")) return;
+    window.sessionStorage.setItem("production-sign-out-session-seeded", "true");
+    window.localStorage.setItem(
+      "sb-example-auth-token",
+      JSON.stringify({
+        access_token: "production-sign-out-access-token",
+        expires_at: Math.floor(Date.now() / 1000) + 3600,
+        refresh_token: "production-sign-out-refresh-token",
+        token_type: "bearer",
+        user: {
+          app_metadata: {},
+          aud: "authenticated",
+          created_at: "2026-09-24T00:00:00.000Z",
+          email: "authorized@example.invalid",
+          id: "00000000-0000-4000-8000-000000000001",
+          role: "authenticated",
+          user_metadata: {},
+        },
+      }),
+    );
+  });
+  await page.route("https://example.supabase.co/**", async (route) => {
+    const url = route.request().url();
+
+    if (url.endsWith("/auth/v1/user")) {
+      await route.fulfill({
+        contentType: "application/json",
+        json: {
+          app_metadata: {},
+          aud: "authenticated",
+          created_at: "2026-09-24T00:00:00.000Z",
+          email: "authorized@example.invalid",
+          id: "00000000-0000-4000-8000-000000000001",
+          role: "authenticated",
+          user_metadata: {},
+        },
+      });
+      return;
+    }
+
+    if (url.includes("/rest/v1/rpc/hydrate_permission_context")) {
+      await route.fulfill({
+        contentType: "application/json",
+        json: {
+          active_care_recipient_id: "00000000-0000-4000-8000-000000000003",
+          active_care_team_id: "00000000-0000-4000-8000-000000000002",
+          advisory_capabilities: ["care_event.view", "care_note.view"],
+          app_user_id: "00000000-0000-4000-8000-000000000001",
+          membership_id: "00000000-0000-4000-8000-000000000004",
+          membership_status: "active",
+          permission_version: "production-test-version",
+          role_key: "viewer",
+          status: "ready",
+        },
+      });
+      return;
+    }
+
+    if (url.includes("/rest/v1/rpc/hydrate_resource_access_context")) {
+      await route.fulfill({
+        contentType: "application/json",
+        json: {
+          active_care_recipient_id: "00000000-0000-4000-8000-000000000003",
+          active_care_team_id: "00000000-0000-4000-8000-000000000002",
+          app_user_id: "00000000-0000-4000-8000-000000000001",
+          membership_id: "00000000-0000-4000-8000-000000000004",
+          permission_version: "production-test-version",
+          resource_access: [],
+          role_key: "viewer",
+          status: "ready",
+        },
+      });
+      return;
+    }
+
+    await route.fulfill({ contentType: "application/json", json: {} });
+  });
+
+  await page.goto("/today");
+  await expect(page.getByRole("heading", { name: "Home" })).toBeVisible();
+  await page.getByRole("button", { name: "Sign out" }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole("link", { name: "Sign in" })).toBeVisible();
+
+  await page.waitForTimeout(100);
+  await page.goto("/today", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: "Sign in required" })).toBeVisible();
+});
+
 async function expectPublicResourceLinks(page: import("@playwright/test").Page) {
   const expectedLinks = [
     ["Privacy Policy", "https://evernestcare.vercel.app/privacy"],
