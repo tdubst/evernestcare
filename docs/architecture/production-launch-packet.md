@@ -23,6 +23,22 @@ Every row must be `PASS` or `APPROVED` before production promotion. Links must p
 
 The authenticated isolated-staging command last passed locally on September 24, 2026 for commit `ea67231`, including the direct mutation matrix and the owner/revoked/unrelated-ID helper-oracle matrix. The exact-SHA production-mode candidate also passed hosted owner sign-in, cross-browser sign-out, and post-sign-out protected-route denial. The verifier binds each run to the supplied full release SHA, so the final reviewed `main` SHA must pass again before promotion. The corresponding rows below intentionally remain `Pending` until the final result is archived under valid `restricted:` evidence references and the named owners accept it. A local or preview pass is not release approval. Architecture, Backend, Security/Privacy, and QA accept the exact 19-function authenticated `SECURITY DEFINER` allowlist as a bounded initial-release exception. The staging organization is currently on the Free plan, so leaked password protection remains a separate unresolved P0 production gate that requires a paid-plan decision.
 
+## External Release-Control Audit
+
+Product Planning inspected the live GitHub and Vercel control planes on September 24, 2026. This audit records configuration state only; it is not restricted launch evidence and does not change any `Pending` gate below.
+
+| Control | Observed state | Status |
+| --- | --- | --- |
+| GitHub `main` protection | Pull requests required; `web` and `mobile` checks required; branch must be current; conversations must be resolved; administrator bypass, force pushes, and deletion are disabled | PASS |
+| GitHub Actions policy | Third-party actions must use full commit SHAs; external-contributor workflows require approval; default workflow token is read-only | PASS |
+| GitHub `staging` environment | Reviewer approval required; only `main` may deploy; administrator bypass disabled; eight proof secrets and three project-bound variables are present | PASS |
+| GitHub `production` environment | Reviewer approval required; only `main` may deploy; administrator bypass disabled; healthcheck, Vercel organization, and project values are present | BLOCKED: short-lived project-scoped `VERCEL_TOKEN` is not configured |
+| Vercel project boundary | Repository is `tdubst/evernestcare`; production branch is `main`; automatic custom-production-domain assignment is disabled | PASS |
+| Vercel production environment | No production environment variables are configured for the authenticated application contract | BLOCKED |
+| Existing canonical target | `https://evernestcare.vercel.app` serves the legacy HTML fallback without a valid `release.json`; its observed source ref predates the `main` production path | Expected legacy baseline; bootstrap pending |
+
+Create the Vercel token only when the remaining launch gates are near completion. It must be scoped to the Evernest Care project, use the shortest practical expiration, be stored only in the GitHub `production` environment, and be rotated or deleted after release. Configure the production Vercel environment only after the dedicated production Supabase project, Auth controls, approved public-resource URLs, and exact production values are available. Never reuse staging, beta, or local credentials.
+
 | Gate | Required evidence | Owner role | Status |
 | --- | --- | --- | --- |
 | Pull-request quality | Required GitHub checks on the reviewed SHA | Engineering | Pending |
