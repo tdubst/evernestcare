@@ -1,6 +1,6 @@
 # Production Staging Runbook
 
-Status: Review-ready, not executed
+Status: Executed for release candidate `c1129a8`; formal acceptance pending
 
 ## Purpose
 
@@ -62,7 +62,7 @@ The registered isolated staging project has applied the reviewed range through `
 - foreign keys without covering indexes: zero;
 - authenticated function access: 19 explicitly allowlisted RPC/RLS helpers.
 
-The remaining security-advisor warning is the expected signed-in `SECURITY DEFINER` allowlist. The remaining performance notices are unused indexes on the empty staging database. Neither substitutes for the pending authenticated fixture proof or owner review.
+The remaining security-advisor warning is the expected signed-in `SECURITY DEFINER` allowlist. The remaining performance notices are unused indexes in the low-traffic synthetic staging environment. The authenticated fixture proof has passed for the release candidate identified below, but neither the advisor review nor the proof substitutes for formal owner review and archived release evidence.
 
 ## 3. Configure Staging Auth
 
@@ -175,6 +175,23 @@ Use synthetic values only and capture content-free results:
 - Security headers, no sensitive console output, and no horizontal overflow.
 
 Any P0/P1 failure blocks production promotion.
+
+### Current Execution Evidence
+
+The isolated staging runbook was executed on September 23, 2026 for release commit `c1129a8f1b95138ed9b3d7d51be685c687a81295`.
+
+- Ordered migrations through `20260923220633_production_policy_and_fk_index_hardening.sql`: PASS.
+- Staging sentinel, API/database project match, and protected-project denial: PASS.
+- Synthetic owner and revoked-user provisioning, including idempotent reprovisioning: PASS.
+- Least-privilege verifier posture and inspector isolation: PASS.
+- Owner sign-in, server validation, read-only hydration, and reload stability: PASS.
+- Care Circle, Vault placeholder, and sentinel-event projections: PASS.
+- Durable care-note create, read-back, and reload through the approved RPC: PASS.
+- Closed RPC denial and direct insert/update/delete denial across all 18 production tables: PASS (54 direct mutation checks).
+- Revoked-user workspace/event denial and approved mutation denial: PASS.
+- Unchanged workspace records, singular durable note, and sentinel integrity: PASS.
+
+Only content-free pass/fail results are recorded here. The production launch packet remains pending until the result is stored in the approved restricted evidence system, the authenticated browser matrix and recovery drills pass, and the required owners record acceptance.
 
 ## 8. Evidence And Teardown
 
