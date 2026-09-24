@@ -1,0 +1,361 @@
+name: Production Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_sha:
+        description: Full SHA of the current main commit to release
+        required: true
+        type: string
+      confirmation:
+        description: Type RELEASE to confirm the production gate
+        required: true
+        type: string
+      legacy_baseline_run_id:
+        description: Successful Production Baseline Bootstrap workflow run ID; leave blank after the first manifest-bearing release
+        required: false
+        type: string
+      legacy_baseline_confirmation:
+        description: Type USE VERIFIED LEGACY BASELINE only for the first manifest-bearing production release
+        required: false
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: evernest-production-release
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    environment: staging
+    outputs:
+      release_sha: ${{ steps.commit.outputs.release_sha }}
+    steps:
+      - name: Validate release confirmation
+        env:
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          test "$CONFIRMATION" = "RELEASE"
+          test "$GITHUB_REF" = "refs/heads/main"
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          ref: main
+      - id: commit
+        env:
+          REQUESTED_SHA: ${{ inputs.release_sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$REQUESTED_SHA"
+          echo "release_sha=$REQUESTED_SHA" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium firefox webkit
+      - run: npm run verify
+      - run: npm audit --omit=dev --audit-level=high
+      - name: Verify production launch approval
+        env:
+          PRODUCTION_RELEASE_SHA: ${{ steps.commit.outputs.release_sha }}
+        run: npm run verify:launch-approval
+      - name: Verify isolated staging database boundary
+        env:
+          NODE_EXTRA_CA_CERTS: ${{ github.workspace }}/config/supabase-prod-ca-2021.crt
+          STAGING_EXPECTED_PROJECT_REF: ${{ vars.STAGING_EXPECTED_PROJECT_REF }}
+          STAGING_VERIFIER_DATABASE_URL: ${{ secrets.STAGING_VERIFIER_DATABASE_URL }}
+          STAGING_OWNER_EMAIL: ${{ secrets.STAGING_OWNER_EMAIL }}
+          STAGING_OWNER_PASSWORD: ${{ secrets.STAGING_OWNER_PASSWORD }}
+          STAGING_PROTECTED_PROJECT_REFS: ${{ vars.STAGING_PROTECTED_PROJECT_REFS }}
+          STAGING_RELEASE_SHA: ${{ inputs.release_sha }}
+          STAGING_REVOKED_EMAIL: ${{ secrets.STAGING_REVOKED_EMAIL }}
+          STAGING_REVOKED_PASSWORD: ${{ secrets.STAGING_REVOKED_PASSWORD }}
+          STAGING_SENTINEL_EVENT_ID: ${{ secrets.STAGING_SENTINEL_EVENT_ID }}
+          STAGING_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }}
+          STAGING_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+          STAGING_VERIFY_CONFIRMATION: ${{ vars.STAGING_VERIFY_CONFIRMATION }}
+        run: npm run test:staging
+
+  deploy:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: production
+    outputs:
+      deployment_id: ${{ steps.deploy.outputs.deployment_id }}
+      deployment_url: ${{ steps.deploy.outputs.deployment_url }}
+      previous_production_id: ${{ steps.deploy.outputs.previous_production_id }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          ref: main
+      - name: Revalidate main after approval
+        env:
+          RELEASE_SHA: ${{ needs.verify.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$RELEASE_SHA"
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$RELEASE_SHA"
+      - name: Validate legacy baseline workflow run
+        if: ${{ inputs.legacy_baseline_run_id != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LEGACY_BASELINE_RUN_ID: ${{ inputs.legacy_baseline_run_id }}
+        run: |
+          set -euo pipefail
+          test "$(printf '%s' "$LEGACY_BASELINE_RUN_ID" | grep -Ec '^[0-9]+$')" = "1"
+          run_url="https://api.github.com/repos/$GITHUB_REPOSITORY/actions/runs/$LEGACY_BASELINE_RUN_ID"
+          printf 'url = "%s"\nheader = "Authorization: Bearer %s"\nheader = "X-GitHub-Api-Version: 2022-11-28"\nsilent\nshow-error\nfail\noutput = "legacy-baseline-run.json"\n' \
+            "$run_url" "$GH_TOKEN" | curl --config -
+          test "$(jq -er '.conclusion' legacy-baseline-run.json)" = "success"
+          test "$(jq -er '.event' legacy-baseline-run.json)" = "workflow_dispatch"
+          test "$(jq -er '.head_branch' legacy-baseline-run.json)" = "main"
+          test "$(jq -er '.path' legacy-baseline-run.json)" = ".github/workflows/bootstrap-production-baseline.yml"
+          test "$(jq -er '.repository.id | tostring' legacy-baseline-run.json)" = "$GITHUB_REPOSITORY_ID"
+          bootstrap_run_sha="$(jq -er '.head_sha' legacy-baseline-run.json)"
+          test "$(printf '%s' "$bootstrap_run_sha" | grep -Ec '^[0-9a-fA-F]{40}$')" = "1"
+          git cat-file -e "$bootstrap_run_sha^{commit}"
+          git merge-base --is-ancestor "$bootstrap_run_sha" HEAD
+      - name: Download verified legacy baseline
+        if: ${{ inputs.legacy_baseline_run_id != '' }}
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: production-legacy-baseline
+          path: legacy-baseline
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.legacy_baseline_run_id }}
+      - id: deploy
+        name: Create staged production deployment
+        env:
+          PRODUCTION_HEALTHCHECK_URL: ${{ secrets.PRODUCTION_HEALTHCHECK_URL }}
+          RELEASE_SHA: ${{ needs.verify.outputs.release_sha }}
+          LEGACY_BASELINE_CONFIRMATION: ${{ inputs.legacy_baseline_confirmation }}
+          LEGACY_BASELINE_RUN_ID: ${{ inputs.legacy_baseline_run_id }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$VERCEL_ORG_ID"
+          test -n "$VERCEL_PROJECT_ID"
+          test -n "$VERCEL_TOKEN"
+
+          project_url="https://api.vercel.com/v9/projects/$VERCEL_PROJECT_ID?teamId=$VERCEL_ORG_ID"
+          authorization="Authorization: Bearer $VERCEL_TOKEN"
+          printf 'url = "%s"\nheader = "%s"\nsilent\nshow-error\nfail\noutput = "project.json"\n' \
+            "$project_url" "$authorization" | curl --config -
+
+          test "$(jq -r '.autoAssignCustomDomains' project.json)" = "false"
+          previous_production_id="$(jq -er '.targets.production.id' project.json)"
+          repo_id="$(jq -er '.link.repoId' project.json)"
+          prior_deployment_url="https://api.vercel.com/v13/deployments/$previous_production_id?teamId=$VERCEL_ORG_ID"
+          printf 'url = "%s"\nheader = "%s"\nsilent\nshow-error\nfail\noutput = "prior-deployment.json"\n' \
+            "$prior_deployment_url" "$authorization" | curl --config -
+          test "$(jq -er '.projectId' prior-deployment.json)" = "$VERCEL_PROJECT_ID"
+          test "$(jq -er '.target' prior-deployment.json)" = "production"
+          test "$(jq -er '(.gitSource.repoId // .meta.githubRepoId) | tostring' prior-deployment.json)" = "$(printf '%s' "$repo_id")"
+          previous_source_ref="$(jq -er '.gitSource.ref // .meta.githubCommitRef' prior-deployment.json)"
+          test -n "$previous_source_ref"
+          previous_release_sha="$(jq -er '.gitSource.sha // .meta.githubCommitSha' prior-deployment.json)"
+          test "$(printf '%s' "$previous_release_sha" | grep -Ec '^[0-9a-fA-F]{40}$')" = "1"
+          git cat-file -e "$previous_release_sha^{commit}"
+          git merge-base --is-ancestor "$previous_release_sha" HEAD
+          prior_release_url="${PRODUCTION_HEALTHCHECK_URL%/}/release.json?check=$(date +%s)"
+          prior_release_status="$(curl \
+            --silent \
+            --show-error \
+            --max-redirs 0 \
+            --dump-header prior-release-headers.txt \
+            --output prior-release.json \
+            --write-out '%{http_code}' \
+            "$prior_release_url")"
+          test "$prior_release_status" = "200"
+          if jq -e --arg deploymentId "$previous_production_id" --arg commit "$previous_release_sha" '
+            (.deploymentId == $deploymentId) and
+            (.commit == $commit) and
+            (.appMode == "beta" or .appMode == "production") and
+            (.commit | test("^[0-9a-fA-F]{40}$")) and
+            (.environment == "production") and
+            (.version == "0.1.0")
+          ' prior-release.json >/dev/null 2>&1; then
+            test -z "$LEGACY_BASELINE_RUN_ID"
+            test -z "$LEGACY_BASELINE_CONFIRMATION"
+            test "$previous_source_ref" = "main"
+            previous_has_release_manifest=true
+            previous_app_mode="$(jq -er '.appMode' prior-release.json)"
+          else
+            test "$LEGACY_BASELINE_CONFIRMATION" = "USE VERIFIED LEGACY BASELINE"
+            test "$(printf '%s' "$LEGACY_BASELINE_RUN_ID" | grep -Ec '^[0-9]+$')" = "1"
+            test -f legacy-baseline/production-legacy-baseline.json
+            grep -Eiq '^content-type:[[:space:]]*text/html([;[:space:]]|$)' prior-release-headers.txt
+            if jq -e . prior-release.json >/dev/null 2>&1; then
+              echo "Refusing legacy baseline fallback for a JSON release response." >&2
+              exit 1
+            fi
+            jq -e \
+              --arg canonicalUrl "${PRODUCTION_HEALTHCHECK_URL%/}" \
+              --arg commit "$previous_release_sha" \
+              --arg deploymentId "$previous_production_id" \
+              --arg projectId "$VERCEL_PROJECT_ID" \
+              --arg sourceRef "$previous_source_ref" '
+                (.schemaVersion == 1) and
+                (.kind == "legacy-no-manifest") and
+                (.canonicalUrl == $canonicalUrl) and
+                (.commit == $commit) and
+                (.deploymentId == $deploymentId) and
+                (.projectId == $projectId) and
+                (.environment == "production") and
+                (.sourceRef == $sourceRef)
+              ' legacy-baseline/production-legacy-baseline.json >/dev/null
+            previous_has_release_manifest=false
+            previous_app_mode=legacy
+          fi
+          jq -n \
+            --arg name "evernestcare" \
+            --arg project "$VERCEL_PROJECT_ID" \
+            --arg ref "main" \
+            --arg sha "$RELEASE_SHA" \
+            --argjson repoId "$repo_id" \
+            '{name: $name, project: $project, target: "production", gitSource: {type: "github", repoId: $repoId, ref: $ref, sha: $sha}}' \
+            > deployment-request.json
+
+          deployment_url="https://api.vercel.com/v13/deployments?teamId=$VERCEL_ORG_ID&forceNew=1"
+          printf 'url = "%s"\nrequest = "POST"\nheader = "%s"\nheader = "Content-Type: application/json"\ndata-binary = "@deployment-request.json"\nsilent\nshow-error\nfail\noutput = "deployment.json"\n' \
+            "$deployment_url" "$authorization" | curl --config -
+          jq -e '.id and .url and (.target == "production") and (.aliasAssigned == false)' deployment.json >/dev/null
+          echo "deployment_id=$(jq -er '.id' deployment.json)" >> "$GITHUB_OUTPUT"
+          echo "deployment_url=https://$(jq -er '.url' deployment.json)" >> "$GITHUB_OUTPUT"
+          echo "previous_production_id=$previous_production_id" >> "$GITHUB_OUTPUT"
+          echo "previous_release_sha=$previous_release_sha" >> "$GITHUB_OUTPUT"
+          echo "previous_app_mode=$previous_app_mode" >> "$GITHUB_OUTPUT"
+          echo "previous_has_release_manifest=$previous_has_release_manifest" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Verify staged production release metadata
+        env:
+          EXPECTED_DEPLOYMENT_ID: ${{ steps.deploy.outputs.deployment_id }}
+          EXPECTED_RELEASE_SHA: ${{ needs.verify.outputs.release_sha }}
+          PRODUCTION_HEALTHCHECK_URL: ${{ steps.deploy.outputs.deployment_url }}
+        run: npm run test:production-deployment
+      - name: Verify staged production release in browser
+        env:
+          PRODUCTION_BROWSER_URL: ${{ steps.deploy.outputs.deployment_url }}
+        run: npm run test:production-browser
+      - id: promote
+        name: Promote verified deployment
+        env:
+          DEPLOYMENT_ID: ${{ steps.deploy.outputs.deployment_id }}
+          PREVIOUS_PRODUCTION_ID: ${{ steps.deploy.outputs.previous_production_id }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          set -euo pipefail
+          project_url="https://api.vercel.com/v9/projects/$VERCEL_PROJECT_ID?teamId=$VERCEL_ORG_ID"
+          promote_url="https://api.vercel.com/v10/projects/$VERCEL_PROJECT_ID/promote/$DEPLOYMENT_ID?teamId=$VERCEL_ORG_ID"
+          authorization="Authorization: Bearer $VERCEL_TOKEN"
+          printf 'url = "%s"\nheader = "%s"\nsilent\nshow-error\nfail\noutput = "pre-promote-project.json"\n' \
+            "$project_url" "$authorization" | curl --config -
+          test "$(jq -er '.targets.production.id' pre-promote-project.json)" = "$PREVIOUS_PRODUCTION_ID"
+          printf 'url = "%s"\nrequest = "POST"\nheader = "%s"\nsilent\nshow-error\nfail\noutput = "/dev/null"\n' \
+            "$promote_url" "$authorization" | curl --config -
+          echo "promoted=true" >> "$GITHUB_OUTPUT"
+      - name: Verify canonical production release metadata
+        env:
+          DEPLOYMENT_VERIFY_ATTEMPTS: 24
+          EXPECTED_DEPLOYMENT_ID: ${{ steps.deploy.outputs.deployment_id }}
+          EXPECTED_RELEASE_SHA: ${{ needs.verify.outputs.release_sha }}
+          PRODUCTION_HEALTHCHECK_URL: ${{ secrets.PRODUCTION_HEALTHCHECK_URL }}
+        run: npm run test:production-deployment
+      - name: Verify canonical production release in browser
+        env:
+          PRODUCTION_BROWSER_URL: ${{ secrets.PRODUCTION_HEALTHCHECK_URL }}
+        run: npm run test:production-browser
+      - id: recovery
+        name: Inspect production target for recovery
+        if: ${{ always() && (failure() || cancelled()) }}
+        env:
+          DEPLOYMENT_ID: ${{ steps.deploy.outputs.deployment_id }}
+          PREVIOUS_PRODUCTION_ID: ${{ steps.deploy.outputs.previous_production_id }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOYMENT_ID"
+          test -n "$PREVIOUS_PRODUCTION_ID"
+          project_url="https://api.vercel.com/v9/projects/$VERCEL_PROJECT_ID?teamId=$VERCEL_ORG_ID"
+          authorization="Authorization: Bearer $VERCEL_TOKEN"
+          printf 'url = "%s"\nheader = "%s"\nsilent\nshow-error\nfail\noutput = "recovery-project.json"\n' \
+            "$project_url" "$authorization" | curl --config -
+          current_production_id="$(jq -er '.targets.production.id' recovery-project.json)"
+          if test "$current_production_id" = "$DEPLOYMENT_ID"; then
+            echo "rollback_required=true" >> "$GITHUB_OUTPUT"
+          elif test "$current_production_id" = "$PREVIOUS_PRODUCTION_ID"; then
+            echo "rollback_required=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Unexpected production target; refusing automatic rollback." >&2
+            exit 1
+          fi
+      - name: Restore previous production deployment
+        if: ${{ always() && steps.recovery.outputs.rollback_required == 'true' }}
+        env:
+          PREVIOUS_PRODUCTION_ID: ${{ steps.deploy.outputs.previous_production_id }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$PREVIOUS_PRODUCTION_ID"
+          rollback_url="https://api.vercel.com/v1/projects/$VERCEL_PROJECT_ID/rollback/$PREVIOUS_PRODUCTION_ID?teamId=$VERCEL_ORG_ID"
+          authorization="Authorization: Bearer $VERCEL_TOKEN"
+          printf 'url = "%s"\nrequest = "POST"\nheader = "%s"\nsilent\nshow-error\nfail\noutput = "/dev/null"\n' \
+            "$rollback_url" "$authorization" | curl --config -
+      - name: Verify rollback control plane
+        if: ${{ always() && steps.recovery.outputs.rollback_required == 'true' }}
+        env:
+          PREVIOUS_PRODUCTION_ID: ${{ steps.deploy.outputs.previous_production_id }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          set -euo pipefail
+          project_url="https://api.vercel.com/v9/projects/$VERCEL_PROJECT_ID?teamId=$VERCEL_ORG_ID"
+          authorization="Authorization: Bearer $VERCEL_TOKEN"
+          for attempt in $(seq 1 30); do
+            printf 'url = "%s"\nheader = "%s"\nsilent\nshow-error\nfail\noutput = "rollback-project.json"\n' \
+              "$project_url" "$authorization" | curl --config -
+            if test "$(jq -er '.targets.production.id' rollback-project.json)" = "$PREVIOUS_PRODUCTION_ID"; then
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1
+      - name: Verify restored browser shell
+        if: ${{ always() && steps.recovery.outputs.rollback_required == 'true' }}
+        env:
+          PRODUCTION_BROWSER_EXPECTATION: ${{ steps.deploy.outputs.previous_has_release_manifest == 'true' && 'rollback' || 'legacy-rollback' }}
+          PRODUCTION_BROWSER_URL: ${{ secrets.PRODUCTION_HEALTHCHECK_URL }}
+        run: npm run test:production-browser
+      - name: Verify restored release identity
+        if: ${{ always() && steps.recovery.outputs.rollback_required == 'true' && steps.deploy.outputs.previous_has_release_manifest == 'true' }}
+        env:
+          DEPLOYMENT_VERIFY_ATTEMPTS: 30
+          DEPLOYMENT_VERIFY_INTERVAL_MS: 2000
+          EXPECTED_APP_MODE: ${{ steps.deploy.outputs.previous_app_mode }}
+          EXPECTED_DEPLOYMENT_ID: ${{ steps.deploy.outputs.previous_production_id }}
+          EXPECTED_RELEASE_SHA: ${{ steps.deploy.outputs.previous_release_sha }}
+          PRODUCTION_HEALTHCHECK_URL: ${{ secrets.PRODUCTION_HEALTHCHECK_URL }}
+        run: npm run test:production-deployment

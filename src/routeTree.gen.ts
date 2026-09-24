@@ -9,19 +9,34 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as ProfileTypesRouteImport } from './routes/profile-types'
-import { Route as OnboardingRouteImport } from './routes/onboarding'
-import { Route as TabsRouteImport } from './routes/_tabs'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as TabsVaultRouteImport } from './routes/_tabs.vault'
-import { Route as TabsTodayRouteImport } from './routes/_tabs.today'
-import { Route as TabsMessagesRouteImport } from './routes/_tabs.messages'
-import { Route as TabsCareTeamRouteImport } from './routes/_tabs.care-team'
+import { Route as TabsRouteImport } from './routes/_tabs'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as ProfileTypesRouteImport } from './routes/profile-types'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as SignInRouteImport } from './routes/sign-in'
+import { Route as SupportRouteImport } from './routes/support'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as TabsCalendarRouteImport } from './routes/_tabs.calendar'
+import { Route as TabsCareTeamRouteImport } from './routes/_tabs.care-team'
+import { Route as TabsMessagesRouteImport } from './routes/_tabs.messages'
+import { Route as TabsTodayRouteImport } from './routes/_tabs.today'
+import { Route as TabsVaultRouteImport } from './routes/_tabs.vault'
 
-const ProfileTypesRoute = ProfileTypesRouteImport.update({
-  id: '/profile-types',
-  path: '/profile-types',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TabsRoute = TabsRouteImport.update({
+  id: '/_tabs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OnboardingRoute = OnboardingRouteImport.update({
@@ -29,28 +44,39 @@ const OnboardingRoute = OnboardingRouteImport.update({
   path: '/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TabsRoute = TabsRouteImport.update({
-  id: '/_tabs',
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const ProfileTypesRoute = ProfileTypesRouteImport.update({
+  id: '/profile-types',
+  path: '/profile-types',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TabsVaultRoute = TabsVaultRouteImport.update({
-  id: '/vault',
-  path: '/vault',
-  getParentRoute: () => TabsRoute,
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const TabsTodayRoute = TabsTodayRouteImport.update({
-  id: '/today',
-  path: '/today',
-  getParentRoute: () => TabsRoute,
+const SignInRoute = SignInRouteImport.update({
+  id: '/sign-in',
+  path: '/sign-in',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const TabsMessagesRoute = TabsMessagesRouteImport.update({
-  id: '/messages',
-  path: '/messages',
+const SupportRoute = SupportRouteImport.update({
+  id: '/support',
+  path: '/support',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TabsCalendarRoute = TabsCalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
   getParentRoute: () => TabsRoute,
 } as any)
 const TabsCareTeamRoute = TabsCareTeamRouteImport.update({
@@ -58,16 +84,32 @@ const TabsCareTeamRoute = TabsCareTeamRouteImport.update({
   path: '/care-team',
   getParentRoute: () => TabsRoute,
 } as any)
-const TabsCalendarRoute = TabsCalendarRouteImport.update({
-  id: '/calendar',
-  path: '/calendar',
+const TabsMessagesRoute = TabsMessagesRouteImport.update({
+  id: '/messages',
+  path: '/messages',
+  getParentRoute: () => TabsRoute,
+} as any)
+const TabsTodayRoute = TabsTodayRouteImport.update({
+  id: '/today',
+  path: '/today',
+  getParentRoute: () => TabsRoute,
+} as any)
+const TabsVaultRoute = TabsVaultRouteImport.update({
+  id: '/vault',
+  path: '/vault',
   getParentRoute: () => TabsRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/onboarding': typeof OnboardingRoute
+  '/privacy': typeof PrivacyRoute
   '/profile-types': typeof ProfileTypesRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/sign-in': typeof SignInRoute
+  '/support': typeof SupportRoute
+  '/terms': typeof TermsRoute
   '/calendar': typeof TabsCalendarRoute
   '/care-team': typeof TabsCareTeamRoute
   '/messages': typeof TabsMessagesRoute
@@ -76,8 +118,14 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/onboarding': typeof OnboardingRoute
+  '/privacy': typeof PrivacyRoute
   '/profile-types': typeof ProfileTypesRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/sign-in': typeof SignInRoute
+  '/support': typeof SupportRoute
+  '/terms': typeof TermsRoute
   '/calendar': typeof TabsCalendarRoute
   '/care-team': typeof TabsCareTeamRoute
   '/messages': typeof TabsMessagesRoute
@@ -88,8 +136,14 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_tabs': typeof TabsRouteWithChildren
+  '/forgot-password': typeof ForgotPasswordRoute
   '/onboarding': typeof OnboardingRoute
+  '/privacy': typeof PrivacyRoute
   '/profile-types': typeof ProfileTypesRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/sign-in': typeof SignInRoute
+  '/support': typeof SupportRoute
+  '/terms': typeof TermsRoute
   '/_tabs/calendar': typeof TabsCalendarRoute
   '/_tabs/care-team': typeof TabsCareTeamRoute
   '/_tabs/messages': typeof TabsMessagesRoute
@@ -100,8 +154,14 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/forgot-password'
     | '/onboarding'
+    | '/privacy'
     | '/profile-types'
+    | '/reset-password'
+    | '/sign-in'
+    | '/support'
+    | '/terms'
     | '/calendar'
     | '/care-team'
     | '/messages'
@@ -110,8 +170,14 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/forgot-password'
     | '/onboarding'
+    | '/privacy'
     | '/profile-types'
+    | '/reset-password'
+    | '/sign-in'
+    | '/support'
+    | '/terms'
     | '/calendar'
     | '/care-team'
     | '/messages'
@@ -121,8 +187,14 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_tabs'
+    | '/forgot-password'
     | '/onboarding'
+    | '/privacy'
     | '/profile-types'
+    | '/reset-password'
+    | '/sign-in'
+    | '/support'
+    | '/terms'
     | '/_tabs/calendar'
     | '/_tabs/care-team'
     | '/_tabs/messages'
@@ -133,24 +205,23 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   TabsRoute: typeof TabsRouteWithChildren
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
   OnboardingRoute: typeof OnboardingRoute
+  PrivacyRoute: typeof PrivacyRoute
   ProfileTypesRoute: typeof ProfileTypesRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
+  SignInRoute: typeof SignInRoute
+  SupportRoute: typeof SupportRoute
+  TermsRoute: typeof TermsRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/profile-types': {
-      id: '/profile-types'
-      path: '/profile-types'
-      fullPath: '/profile-types'
-      preLoaderRoute: typeof ProfileTypesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/onboarding': {
-      id: '/onboarding'
-      path: '/onboarding'
-      fullPath: '/onboarding'
-      preLoaderRoute: typeof OnboardingRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_tabs': {
@@ -160,32 +231,67 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TabsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_tabs/vault': {
-      id: '/_tabs/vault'
-      path: '/vault'
-      fullPath: '/vault'
-      preLoaderRoute: typeof TabsVaultRouteImport
-      parentRoute: typeof TabsRoute
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_tabs/today': {
-      id: '/_tabs/today'
-      path: '/today'
-      fullPath: '/today'
-      preLoaderRoute: typeof TabsTodayRouteImport
-      parentRoute: typeof TabsRoute
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_tabs/messages': {
-      id: '/_tabs/messages'
-      path: '/messages'
-      fullPath: '/messages'
-      preLoaderRoute: typeof TabsMessagesRouteImport
+    '/profile-types': {
+      id: '/profile-types'
+      path: '/profile-types'
+      fullPath: '/profile-types'
+      preLoaderRoute: typeof ProfileTypesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sign-in': {
+      id: '/sign-in'
+      path: '/sign-in'
+      fullPath: '/sign-in'
+      preLoaderRoute: typeof SignInRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/support': {
+      id: '/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof SupportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_tabs/calendar': {
+      id: '/_tabs/calendar'
+      path: '/calendar'
+      fullPath: '/calendar'
+      preLoaderRoute: typeof TabsCalendarRouteImport
       parentRoute: typeof TabsRoute
     }
     '/_tabs/care-team': {
@@ -195,11 +301,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TabsCareTeamRouteImport
       parentRoute: typeof TabsRoute
     }
-    '/_tabs/calendar': {
-      id: '/_tabs/calendar'
-      path: '/calendar'
-      fullPath: '/calendar'
-      preLoaderRoute: typeof TabsCalendarRouteImport
+    '/_tabs/messages': {
+      id: '/_tabs/messages'
+      path: '/messages'
+      fullPath: '/messages'
+      preLoaderRoute: typeof TabsMessagesRouteImport
+      parentRoute: typeof TabsRoute
+    }
+    '/_tabs/today': {
+      id: '/_tabs/today'
+      path: '/today'
+      fullPath: '/today'
+      preLoaderRoute: typeof TabsTodayRouteImport
+      parentRoute: typeof TabsRoute
+    }
+    '/_tabs/vault': {
+      id: '/_tabs/vault'
+      path: '/vault'
+      fullPath: '/vault'
+      preLoaderRoute: typeof TabsVaultRouteImport
       parentRoute: typeof TabsRoute
     }
   }
@@ -226,8 +346,14 @@ const TabsRouteWithChildren = TabsRoute._addFileChildren(TabsRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   TabsRoute: TabsRouteWithChildren,
+  ForgotPasswordRoute: ForgotPasswordRoute,
   OnboardingRoute: OnboardingRoute,
+  PrivacyRoute: PrivacyRoute,
   ProfileTypesRoute: ProfileTypesRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
+  SignInRoute: SignInRoute,
+  SupportRoute: SupportRoute,
+  TermsRoute: TermsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

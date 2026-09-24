@@ -1,0 +1,125 @@
+name: Production Baseline Bootstrap
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_deployment_id:
+        description: Vercel deployment ID currently serving the production domain
+        required: true
+        type: string
+      expected_release_sha:
+        description: Full Git SHA recorded by the current legacy production deployment
+        required: true
+        type: string
+      confirmation:
+        description: Type BOOTSTRAP LEGACY to verify the one-time legacy rollback baseline
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: evernest-production-release
+  cancel-in-progress: false
+
+jobs:
+  verify-baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    steps:
+      - name: Validate bootstrap confirmation
+        env:
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          test "$CONFIRMATION" = "BOOTSTRAP LEGACY"
+          test "$GITHUB_REF" = "refs/heads/main"
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          ref: main
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Verify current Vercel production target
+        env:
+          EXPECTED_DEPLOYMENT_ID: ${{ inputs.expected_deployment_id }}
+          EXPECTED_RELEASE_SHA: ${{ inputs.expected_release_sha }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$EXPECTED_DEPLOYMENT_ID"
+          test "$(printf '%s' "$EXPECTED_RELEASE_SHA" | grep -Ec '^[0-9a-fA-F]{40}$')" = "1"
+          test -n "$VERCEL_ORG_ID"
+          test -n "$VERCEL_PROJECT_ID"
+          test -n "$VERCEL_TOKEN"
+          project_url="https://api.vercel.com/v9/projects/$VERCEL_PROJECT_ID?teamId=$VERCEL_ORG_ID"
+          authorization="Authorization: Bearer $VERCEL_TOKEN"
+          printf 'url = "%s"\nheader = "%s"\nsilent\nshow-error\nfail\noutput = "baseline-project.json"\n' \
+            "$project_url" "$authorization" | curl --config -
+          test "$(jq -r '.autoAssignCustomDomains' baseline-project.json)" = "false"
+          test "$(jq -er '.targets.production.id' baseline-project.json)" = "$EXPECTED_DEPLOYMENT_ID"
+          project_repo_id="$(jq -er '.link.repoId | tostring' baseline-project.json)"
+          deployment_url="https://api.vercel.com/v13/deployments/$EXPECTED_DEPLOYMENT_ID?teamId=$VERCEL_ORG_ID"
+          printf 'url = "%s"\nheader = "%s"\nsilent\nshow-error\nfail\noutput = "baseline-deployment.json"\n' \
+            "$deployment_url" "$authorization" | curl --config -
+          test "$(jq -er '.projectId' baseline-deployment.json)" = "$VERCEL_PROJECT_ID"
+          test "$(jq -er '.target' baseline-deployment.json)" = "production"
+          test "$(jq -er '(.gitSource.repoId // .meta.githubRepoId) | tostring' baseline-deployment.json)" = "$project_repo_id"
+          source_ref="$(jq -er '.gitSource.ref // .meta.githubCommitRef' baseline-deployment.json)"
+          test -n "$source_ref"
+          test "$(jq -er '.gitSource.sha // .meta.githubCommitSha' baseline-deployment.json)" = "$EXPECTED_RELEASE_SHA"
+          git cat-file -e "$EXPECTED_RELEASE_SHA^{commit}"
+          git merge-base --is-ancestor "$EXPECTED_RELEASE_SHA" HEAD
+      - name: Verify legacy baseline boundary
+        env:
+          EXPECTED_DEPLOYMENT_ID: ${{ inputs.expected_deployment_id }}
+          EXPECTED_RELEASE_SHA: ${{ inputs.expected_release_sha }}
+          PRODUCTION_HEALTHCHECK_URL: ${{ secrets.PRODUCTION_HEALTHCHECK_URL }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          test -n "$PRODUCTION_HEALTHCHECK_URL"
+          release_url="${PRODUCTION_HEALTHCHECK_URL%/}/release.json?check=$(date +%s)"
+          release_status="$(curl \
+            --silent \
+            --show-error \
+            --max-redirs 0 \
+            --dump-header baseline-release-headers.txt \
+            --output baseline-release-body.txt \
+            --write-out '%{http_code}' \
+            "$release_url")"
+          test "$release_status" = "200"
+          grep -Eiq '^content-type:[[:space:]]*text/html([;[:space:]]|$)' baseline-release-headers.txt
+          if jq -e . baseline-release-body.txt >/dev/null 2>&1; then
+            echo "Current production already exposes JSON at /release.json; legacy bootstrap is prohibited." >&2
+            exit 1
+          fi
+          source_ref="$(jq -er '.gitSource.ref // .meta.githubCommitRef' baseline-deployment.json)"
+          jq -n \
+            --arg canonicalUrl "${PRODUCTION_HEALTHCHECK_URL%/}" \
+            --arg commit "$EXPECTED_RELEASE_SHA" \
+            --arg deploymentId "$EXPECTED_DEPLOYMENT_ID" \
+            --arg projectId "$VERCEL_PROJECT_ID" \
+            --arg sourceRef "$source_ref" \
+            '{schemaVersion: 1, kind: "legacy-no-manifest", canonicalUrl: $canonicalUrl, commit: $commit, deploymentId: $deploymentId, projectId: $projectId, environment: "production", sourceRef: $sourceRef}' \
+            > production-legacy-baseline.json
+      - name: Verify baseline browser shell
+        env:
+          PRODUCTION_BROWSER_EXPECTATION: legacy-rollback
+          PRODUCTION_BROWSER_URL: ${{ secrets.PRODUCTION_HEALTHCHECK_URL }}
+        run: npm run test:production-browser
+      - name: Archive verified legacy baseline
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: production-legacy-baseline
+          path: production-legacy-baseline.json
+          if-no-files-found: error
+          retention-days: 30
