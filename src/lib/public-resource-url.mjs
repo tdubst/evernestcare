@@ -1,9 +1,9 @@
-const approvedHosts = new Set(["evernestcare.com", "support.evernestcare.com"]);
+const approvedHosts = new Set(["evernestcare.vercel.app"]);
 
 export const publicResourceUrls = Object.freeze({
-  privacyPolicy: "https://evernestcare.com/privacy",
-  support: "https://support.evernestcare.com/help",
-  terms: "https://evernestcare.com/terms",
+  privacyPolicy: "https://evernestcare.vercel.app/privacy",
+  support: "https://evernestcare.vercel.app/support",
+  terms: "https://evernestcare.vercel.app/terms",
 });
 
 export function parsePublicResourceUrl(value) {

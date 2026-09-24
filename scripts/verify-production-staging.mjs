@@ -150,15 +150,15 @@ if (failures > 0) {
 }
 
 try {
-  const signIn = await execute(
+  const ownerSignIn = await execute(
     client.auth.signInWithPassword({
       email: process.env.STAGING_OWNER_EMAIL.trim(),
       password: process.env.STAGING_OWNER_PASSWORD,
     }),
   );
 
-  check(!signIn.error && Boolean(signIn.data?.session), "owner sign-in");
-  if (signIn.error || !signIn.data?.session) finish();
+  check(!ownerSignIn.error && Boolean(ownerSignIn.data?.session), "owner sign-in");
+  if (ownerSignIn.error || !ownerSignIn.data?.session) finish();
 
   const userCheck = await execute(client.auth.getUser());
   check(!userCheck.error && Boolean(userCheck.data?.user), "server user validation");
@@ -278,7 +278,7 @@ try {
     await expectDirectWriteDenied(
       table,
       "update",
-      client.from(table).update({}).eq("id", zeroUuid),
+      client.from(table).update({ id: zeroUuid }).eq("id", zeroUuid),
     );
     await expectDirectWriteDenied(table, "delete", client.from(table).delete().eq("id", zeroUuid));
   }

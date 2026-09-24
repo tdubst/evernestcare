@@ -7,15 +7,15 @@ test("production entry uses invite-only sign-in instead of beta simulation", asy
   await expect(page.getByText("Get started")).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Privacy Policy" })).toHaveAttribute(
     "href",
-    "https://evernestcare.com/privacy",
+    "https://evernestcare.vercel.app/privacy",
   );
   await expect(page.getByRole("link", { name: "Terms" })).toHaveAttribute(
     "href",
-    "https://evernestcare.com/terms",
+    "https://evernestcare.vercel.app/terms",
   );
   await expect(page.getByRole("link", { name: "Support" })).toHaveAttribute(
     "href",
-    "https://support.evernestcare.com/help",
+    "https://evernestcare.vercel.app/support",
   );
 
   await page.goto("/onboarding");
@@ -220,9 +220,9 @@ test("authenticated production hydration is read-only and care updates are not s
 
 async function expectPublicResourceLinks(page: import("@playwright/test").Page) {
   const expectedLinks = [
-    ["Privacy Policy", "https://evernestcare.com/privacy"],
-    ["Terms", "https://evernestcare.com/terms"],
-    ["Support", "https://support.evernestcare.com/help"],
+    ["Privacy Policy", "https://evernestcare.vercel.app/privacy"],
+    ["Terms", "https://evernestcare.vercel.app/terms"],
+    ["Support", "https://evernestcare.vercel.app/support"],
   ] as const;
 
   for (const [name, href] of expectedLinks) {

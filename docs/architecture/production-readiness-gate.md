@@ -34,6 +34,7 @@ Calendar mutation, realtime messaging, self-service onboarding, real document up
 - Mobile dependency versions are explicit rather than `latest`.
 - Hosted responses include restrictive browser security headers and disable unused device permissions.
 - Pre-promotion and post-promotion browser verification requires the exact checked-in Privacy Policy, Terms, and Support URLs to return public HTML directly, without redirects or authentication, on an approved first-party host with an accessible page heading.
+- The initial canonical host is the Vercel-owned `https://evernestcare.vercel.app` origin. The project does not control `evernestcare.com`, so production validation must not depend on that domain. Privacy Policy, Terms, and Support are first-party routes on the canonical Vercel origin.
 - Forward migrations remove direct mutation access for `PUBLIC`, `anon`, and `authenticated`, remove public execution of internal helpers, enforce an explicit authenticated RPC/RLS-helper allowlist, fix public-function search paths, and close production workspace/invitation provisioning RPCs.
 - A forward migration removes PostgreSQL's default `PUBLIC` access to the API schema while preserving explicit access for `anon`, `authenticated`, and `service_role`.
 

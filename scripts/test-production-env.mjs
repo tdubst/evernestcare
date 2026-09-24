@@ -4,29 +4,29 @@ import { fileURLToPath } from "node:url";
 
 const validator = fileURLToPath(new URL("./validate-production-env.mjs", import.meta.url));
 const publicResources = {
-  VITE_PRIVACY_POLICY_URL: "https://evernestcare.com/privacy",
-  VITE_SUPPORT_URL: "https://support.evernestcare.com/help",
-  VITE_TERMS_URL: "https://evernestcare.com/terms",
+  VITE_PRIVACY_POLICY_URL: "https://evernestcare.vercel.app/privacy",
+  VITE_SUPPORT_URL: "https://evernestcare.vercel.app/support",
+  VITE_TERMS_URL: "https://evernestcare.vercel.app/terms",
 };
 const wrongApprovedResourceUrls = {
-  VITE_PRIVACY_POLICY_URL: "https://evernestcare.com/privacy-notice",
-  VITE_SUPPORT_URL: "https://support.evernestcare.com/contact",
-  VITE_TERMS_URL: "https://evernestcare.com/legal",
+  VITE_PRIVACY_POLICY_URL: "https://evernestcare.vercel.app/privacy-notice",
+  VITE_SUPPORT_URL: "https://evernestcare.vercel.app/contact",
+  VITE_TERMS_URL: "https://evernestcare.vercel.app/legal",
 };
 const unsafePublicResourceUrls = [
-  "http://evernestcare.com/privacy",
+  "http://evernestcare.vercel.app/privacy",
   "https://localhost./privacy",
   "https://legal.local/privacy",
   "https://10.0.0.1/privacy",
   "https://169.254.169.254/latest/meta-data",
   "https://[fd00::1]/privacy",
-  "https://user:password@evernestcare.com/privacy",
-  "https://evernestcare.com:444/privacy",
-  "https://evernestcare.com/privacy?token=value",
-  "https://evernestcare.com/privacy#account",
-  "https://evernestcare.com/privacy?",
-  "https://evernestcare.com/privacy#",
-  "https://evernestcare.com/privacy?#",
+  "https://user:password@evernestcare.vercel.app/privacy",
+  "https://evernestcare.vercel.app:444/privacy",
+  "https://evernestcare.vercel.app/privacy?token=value",
+  "https://evernestcare.vercel.app/privacy#account",
+  "https://evernestcare.vercel.app/privacy?",
+  "https://evernestcare.vercel.app/privacy#",
+  "https://evernestcare.vercel.app/privacy?#",
   "https://example.com/privacy",
   "https://privacy.example.com/policy",
   "https://service.example/policy",
@@ -35,7 +35,7 @@ const unsafePublicResourceUrls = [
   "https://privacy.alt/policy",
   "https://home.arpa/policy",
   "https://privacy.corp/policy",
-  "https://privacy.evernestcare.com/policy",
+  "https://privacy.evernestcare.vercel.app/policy",
   "https://xn--e1awd7f.com/privacy",
 ];
 

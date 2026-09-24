@@ -12,6 +12,7 @@ The machine-readable approval record is `config/production-launch-approval.json`
 | --- | --- | --- |
 | Release SHA | Full reviewed `main` commit SHA | Pending |
 | Release version | Package and release-manifest version | `0.1.0` |
+| Canonical HTTPS origin | Vercel-owned production origin | `https://evernestcare.vercel.app` |
 | Reviewed migration range | First and last migration filenames applied to staging and production | Pending |
 | Initial product boundary | Invite-only authenticated WebApp; read-only hydration; durable care notes; Care Circle visibility; Vault placeholders | Defined |
 | Excluded scope | Calendar mutation, messaging, self-service onboarding, invitation delivery, medication/check-in writes, real files, sharing/export, native live data, third-party monitoring | Enforced in source; runtime proof pending |

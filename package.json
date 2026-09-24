@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
-    "build:production": "VERCEL_ENV=production VITE_APP_MODE=production VITE_REQUIRE_AUTH=true VITE_ENABLE_DEMO_WORKSPACE=false VITE_SUPABASE_URL=https://example.supabase.co VITE_SUPABASE_PUBLISHABLE_KEY=production-public-test-key VITE_PRIVACY_POLICY_URL=https://evernestcare.com/privacy VITE_TERMS_URL=https://evernestcare.com/terms VITE_SUPPORT_URL=https://support.evernestcare.com/help npm run build:vercel",
+    "build:production": "VERCEL_ENV=production VITE_APP_MODE=production VITE_REQUIRE_AUTH=true VITE_ENABLE_DEMO_WORKSPACE=false VITE_SUPABASE_URL=https://example.supabase.co VITE_SUPABASE_PUBLISHABLE_KEY=production-public-test-key VITE_PRIVACY_POLICY_URL=https://evernestcare.vercel.app/privacy VITE_TERMS_URL=https://evernestcare.vercel.app/terms VITE_SUPPORT_URL=https://evernestcare.vercel.app/support npm run build:vercel",
     "build:vercel": "node scripts/validate-production-env.mjs && vite --config vite.vercel.config.ts build --outDir dist-vercel && node scripts/write-vercel-static-config.mjs && node scripts/check-web-bundle-budget.mjs",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
