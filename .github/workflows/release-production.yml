@@ -56,6 +56,7 @@ jobs:
         run: npm run verify:launch-approval
       - name: Verify isolated staging database boundary
         env:
+          NODE_EXTRA_CA_CERTS: ${{ github.workspace }}/config/supabase-prod-ca-2021.crt
           STAGING_EXPECTED_PROJECT_REF: ${{ vars.STAGING_EXPECTED_PROJECT_REF }}
           STAGING_VERIFIER_DATABASE_URL: ${{ secrets.STAGING_VERIFIER_DATABASE_URL }}
           STAGING_OWNER_EMAIL: ${{ secrets.STAGING_OWNER_EMAIL }}

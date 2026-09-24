@@ -134,7 +134,7 @@ Run:
 npm run test:staging
 ```
 
-`STAGING_RELEASE_SHA` must be the full reviewed Git commit SHA. The verifier deterministically derives the proof identifier from that SHA, making reruns idempotent while preventing an older proof from certifying a different release. Recreate the isolated staging project after 25 release proofs or 90 days, whichever comes first. The verifier database URL must include `sslmode=verify-full`.
+`STAGING_RELEASE_SHA` must be the full reviewed Git commit SHA. The verifier deterministically derives the proof identifier from that SHA, making reruns idempotent while preventing an older proof from certifying a different release. Recreate the isolated staging project after 25 release proofs or 90 days, whichever comes first. The verifier database URL must include `sslmode=verify-full`. Set `NODE_EXTRA_CA_CERTS` to the checked-in `config/supabase-prod-ca-2021.crt`; the release guard pins that public CA certificate to its reviewed SHA-256 digest.
 
 Required result: every check prints `PASS` and the command ends with `Production staging verification passed.` The proof covers protected-project denial, server-side staging identity, API/database project matching, locked table and RPC privileges, owner authentication, read-only workspace hydration, owner/revoked/unrelated-ID helper-oracle outcomes, Care Circle and Vault projections, sentinel-event read, durable care-note create/read/reload through the approved RPC, direct mutation denial, Auth-UUID-bound revoked-user denial, and unchanged workspace records.
 

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 
 const bootstrap = readFileSync(
@@ -12,6 +13,9 @@ const quality = readFileSync(new URL("../.github/workflows/quality.yml", import.
 const browserVerifier = readFileSync(
   new URL("./verify-production-browser.mjs", import.meta.url),
   "utf8",
+);
+const supabaseDatabaseCa = readFileSync(
+  new URL("../config/supabase-prod-ca-2021.crt", import.meta.url),
 );
 
 for (const [name, workflow] of [
@@ -66,6 +70,17 @@ assertIncludes(
   "npm run verify:launch-approval",
   "production release must require completed launch approval",
 );
+assertIncludes(
+  release,
+  "NODE_EXTRA_CA_CERTS: ${{ github.workspace }}/config/supabase-prod-ca-2021.crt",
+  "staging proof must use the pinned Supabase database CA",
+);
+if (
+  createHash("sha256").update(supabaseDatabaseCa).digest("hex") !==
+  "700723581420dd1ac98fd7e9ac529f0ef210eadcaf87fc868a3ad7d114c2f3b7"
+) {
+  throw new Error("Pinned Supabase database CA does not match the reviewed certificate.");
+}
 assertBefore(
   release,
   "npm run verify:launch-approval",
