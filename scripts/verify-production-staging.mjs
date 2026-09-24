@@ -167,6 +167,8 @@ try {
   check(ownerHydration !== null, "read-only workspace hydration");
   if (!ownerHydration) finish();
 
+  await verifyOwnerHelperBoundary(ownerHydration);
+
   await expectRpcDenied("ensure_care_boundary", {
     p_recipient_display_name: null,
     p_relationship_context: null,
@@ -314,6 +316,7 @@ if (revokedSignIn) {
     !revokedHydration.error && revokedHydration.data?.status === "boundary_unavailable",
     "revoked user workspace denied",
   );
+  await verifyRevokedHelperBoundary(ownerHydration);
   const revokedSentinelRead = await execute(
     client.from("care_events").select("id").eq("id", process.env.STAGING_SENTINEL_EVENT_ID),
   );
@@ -375,6 +378,142 @@ async function hydrateBoundary() {
   }
 
   return row;
+}
+
+async function verifyOwnerHelperBoundary(boundary) {
+  const unrelatedId = releaseProofId;
+  const selfResult = await execute(client.rpc("current_app_user_id"));
+  check(
+    !selfResult.error && selfResult.data === boundary.app_user_id,
+    "owner helper returns only self identifier",
+  );
+
+  await expectHelperBoolean(
+    "has_active_team_membership",
+    { p_care_team_id: boundary.active_care_team_id },
+    true,
+    "owner helper confirms active workspace",
+  );
+  await expectHelperBoolean(
+    "has_active_team_membership",
+    { p_care_team_id: unrelatedId },
+    false,
+    "owner helper denies unrelated workspace",
+  );
+  await expectHelperBoolean(
+    "has_team_capability",
+    { p_capability: "team.view", p_care_team_id: boundary.active_care_team_id },
+    true,
+    "owner helper confirms team capability",
+  );
+  await expectHelperBoolean(
+    "has_team_capability",
+    { p_capability: "team.view", p_care_team_id: unrelatedId },
+    false,
+    "owner helper denies unrelated team capability",
+  );
+  await expectHelperBoolean(
+    "has_resource_capability",
+    {
+      p_capability: "care_event.view",
+      p_care_team_id: boundary.active_care_team_id,
+      p_resource_id: boundary.active_care_recipient_id,
+      p_resource_type: "care_recipient",
+    },
+    true,
+    "owner helper confirms resource capability",
+  );
+  await expectHelperBoolean(
+    "has_resource_capability",
+    {
+      p_capability: "care_event.view",
+      p_care_team_id: unrelatedId,
+      p_resource_id: unrelatedId,
+      p_resource_type: "care_recipient",
+    },
+    false,
+    "owner helper denies unrelated resource capability",
+  );
+  await expectHelperBoolean(
+    "can_view_recipient",
+    { p_care_recipient_id: boundary.active_care_recipient_id },
+    true,
+    "owner helper confirms recipient visibility",
+  );
+  await expectHelperBoolean(
+    "can_view_recipient",
+    { p_care_recipient_id: unrelatedId },
+    false,
+    "owner helper denies unrelated recipient visibility",
+  );
+  await expectHelperBoolean(
+    "can_view_conversation",
+    { p_conversation_id: unrelatedId },
+    false,
+    "owner helper denies unrelated conversation visibility",
+  );
+  await expectHelperBoolean(
+    "can_view_document",
+    { p_document_id: unrelatedId },
+    false,
+    "owner helper denies unrelated document visibility",
+  );
+}
+
+async function verifyRevokedHelperBoundary(boundary) {
+  const unrelatedId = releaseProofId;
+  const selfResult = await execute(client.rpc("current_app_user_id"));
+  check(
+    !selfResult.error && isUuid(selfResult.data),
+    "revoked helper returns only self identifier",
+  );
+
+  await expectHelperBoolean(
+    "has_active_team_membership",
+    { p_care_team_id: boundary.active_care_team_id },
+    false,
+    "revoked helper denies former workspace",
+  );
+  await expectHelperBoolean(
+    "has_team_capability",
+    { p_capability: "team.view", p_care_team_id: boundary.active_care_team_id },
+    false,
+    "revoked helper denies team capability",
+  );
+  await expectHelperBoolean(
+    "has_resource_capability",
+    {
+      p_capability: "care_event.view",
+      p_care_team_id: boundary.active_care_team_id,
+      p_resource_id: boundary.active_care_recipient_id,
+      p_resource_type: "care_recipient",
+    },
+    false,
+    "revoked helper denies resource capability",
+  );
+  await expectHelperBoolean(
+    "can_view_recipient",
+    { p_care_recipient_id: boundary.active_care_recipient_id },
+    false,
+    "revoked helper denies recipient visibility",
+  );
+  await expectHelperBoolean(
+    "can_view_conversation",
+    { p_conversation_id: unrelatedId },
+    false,
+    "revoked helper denies unrelated conversation visibility",
+  );
+  await expectHelperBoolean(
+    "can_view_document",
+    { p_document_id: unrelatedId },
+    false,
+    "revoked helper denies unrelated document visibility",
+  );
+}
+
+async function expectHelperBoolean(name, args, expected, label) {
+  const result = await execute(client.rpc(name, args));
+  check(!result.error && result.data === expected, label);
 }
 
 async function readCareNote(eventId, boundary) {
@@ -540,6 +679,13 @@ function sameBoundary(before, after) {
     before.permission_version === after.permission_version &&
     before.membership_status === after.membership_status &&
     before.role_key === after.role_key
+  );
+}
+
+function isUuid(value) {
+  return (
+    typeof value === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
   );
 }
 

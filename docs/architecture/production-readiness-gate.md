@@ -41,15 +41,25 @@ Calendar mutation, realtime messaging, self-service onboarding, real document up
 ## Local Verification Status
 
 - `npm run verify`: PASS.
-- Browser suites: 42 Beta/accessibility/golden-flow checks and 18 production-boundary/auth-recovery/public-resource/read-only-hydration checks PASS across mobile Chromium, mobile WebKit, and desktop Firefox.
+- Browser suites: 42 Beta/accessibility/golden-flow checks and 21 production-boundary/auth-recovery/public-resource/read-only-hydration/sign-out checks PASS across mobile Chromium, mobile WebKit, and desktop Firefox.
 - Production SQL posture and Vercel bundle-budget checks: PASS.
 - Production-mode Vercel environment guard and build: PASS with synthetic public configuration.
 - Mobile typecheck and iOS export: PASS.
 - Root production dependency audit: PASS at high severity; one low development-server advisory remains.
 - Mobile production dependency audit: BLOCKED by four high transitive Expo/Metro advisories. Native is excluded from the initial production scope.
 - Isolated Supabase staging schema: migrations through `20260923220633_production_policy_and_fk_index_hardening.sql` are applied only to the registered staging project. The private staging sentinel is active. Live checks confirm zero anonymous public-function/table access, zero mutable function search paths, zero direct-write policies, zero unindexed foreign keys, and a valid least-privilege closure-operator posture. No accepted Beta or production project was changed.
-- Staging security advisors report only the 19 intentionally signed-in `SECURITY DEFINER` functions in the explicit production RPC/RLS-helper allowlist. Performance advisors report only unused indexes in the low-traffic synthetic staging environment.
+- Staging security advisors report the 19 intentionally signed-in `SECURITY DEFINER` functions in the explicit production RPC/RLS-helper allowlist plus a separate leaked-password-protection warning. Architecture and Backend recommend accepting the exact allowlist as a bounded initial-release exception; final Security/Privacy sign-off remains required after the helper-oracle staging proof. Leaked password protection requires Supabase Pro or above and is a P0 launch gate for the email/password production boundary. Performance advisors report only unused indexes in the low-traffic synthetic staging environment.
 - Authenticated isolated-staging proof last passed on September 24, 2026. The proof covered owner and revoked-user authentication, read-only workspace hydration, durable care-note create/read/reload, Care Circle and Vault projections, closed RPC denial, 54 direct table mutation denials, unchanged workspace records, and sentinel integrity. The verifier binds every run to the supplied full release SHA; it must run again for the final reviewed `main` SHA before promotion. Formal Backend, Security, and QA acceptance remains pending until the final result is archived in the approved restricted evidence system and referenced by the launch packet.
+- The latest exact-SHA production-mode candidate passed hosted owner sign-in, visible sign-out, return to the public entry, and post-sign-out protected-route denial across mobile Chromium, mobile WebKit, and desktop Firefox. Preview-only CSP messages show the application correctly blocking the `vercel.live` toolbar script; no sensitive console output was observed.
+- Vercel **Auto-assign Custom Production Domains** is disabled for the project. This setting must remain disabled and is rechecked by both release workflows before any promotion.
+
+## Authenticated Function Exception
+
+The initial production boundary permits exactly 19 authenticated `SECURITY DEFINER` functions. Any additional authenticated function, any anonymous public-function execution, or any mutable `SECURITY DEFINER` search path fails the migration assertions and production SQL posture checks.
+
+The 12 reviewed product APIs are `append_care_event`, `attach_vault_artifact_to_timeline`, `create_vault_artifact_placeholder`, `get_artifact_access_advisory_summary`, `get_care_circle_summary`, `get_permissions_advisory_summary`, `get_vault_artifact_summary`, `hydrate_care_circle_context`, `hydrate_permission_context`, `hydrate_resource_access_context`, `list_care_circle_invitations`, and `list_vault_artifacts`.
+
+The seven bounded RLS-helper exceptions are `current_app_user_id`, `has_active_team_membership`, `has_team_capability`, `has_resource_capability`, `can_view_recipient`, `can_view_conversation`, and `can_view_document`. Active SELECT policies depend on these helpers, so an ACL-only revoke would break authorized reads. The staging verifier must prove that owner, revoked-user, and unrelated identifiers yield only the expected self-ID or boolean result, with no content or detail returned. This exception is not approval for broader self-service, sharing/export, invitation delivery, real file storage, or Native live data and must be revisited before any such expansion.
 
 ## P0 Launch Gates
 

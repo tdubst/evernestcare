@@ -14,6 +14,7 @@ const provisionScript = fileURLToPath(
   new URL("./provision-production-staging.mjs", import.meta.url),
 );
 const verifyScript = fileURLToPath(new URL("./verify-production-staging.mjs", import.meta.url));
+const verifySource = readFileSync(verifyScript, "utf8");
 const stagingRunbook = readFileSync(
   new URL("../docs/architecture/production-staging-runbook.md", import.meta.url),
   "utf8",
@@ -32,6 +33,24 @@ const isolatedRef = "abcdefghijklmnopqrst";
 
 if (!latestMigration || !documentedMigrationRange?.includes(`\`${latestMigration}\``)) {
   throw new Error("Production staging runbook must name the latest committed migration.");
+}
+
+for (const requiredHelperProof of [
+  "verifyOwnerHelperBoundary(ownerHydration)",
+  "verifyRevokedHelperBoundary(ownerHydration)",
+  'client.rpc("current_app_user_id")',
+  '"has_active_team_membership"',
+  '"has_team_capability"',
+  '"has_resource_capability"',
+  '"can_view_recipient"',
+  '"can_view_conversation"',
+  '"can_view_document"',
+  "owner helper denies unrelated workspace",
+  "revoked helper denies former workspace",
+]) {
+  if (!verifySource.includes(requiredHelperProof)) {
+    throw new Error(`Production staging helper proof is missing: ${requiredHelperProof}`);
+  }
 }
 
 assertBlocked(provisionScript, {}, "missing required environment");

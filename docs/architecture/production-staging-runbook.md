@@ -62,7 +62,7 @@ The registered isolated staging project has applied the reviewed range through `
 - foreign keys without covering indexes: zero;
 - authenticated function access: 19 explicitly allowlisted RPC/RLS helpers.
 
-The remaining security-advisor warning is the expected signed-in `SECURITY DEFINER` allowlist. The remaining performance notices are unused indexes in the low-traffic synthetic staging environment. The authenticated fixture proof has passed for the release candidate identified below, but neither the advisor review nor the proof substitutes for formal owner review and archived release evidence.
+Security advisors currently report the expected signed-in `SECURITY DEFINER` allowlist and a separate leaked-password-protection warning. Architecture and Backend recommend accepting the exact 19-function allowlist as a bounded initial-release exception, pending the targeted helper-oracle proof and final Security/Privacy sign-off. It comprises 12 product APIs (`append_care_event`, `attach_vault_artifact_to_timeline`, `create_vault_artifact_placeholder`, `get_artifact_access_advisory_summary`, `get_care_circle_summary`, `get_permissions_advisory_summary`, `get_vault_artifact_summary`, `hydrate_care_circle_context`, `hydrate_permission_context`, `hydrate_resource_access_context`, `list_care_circle_invitations`, and `list_vault_artifacts`) plus seven RLS helpers (`current_app_user_id`, `has_active_team_membership`, `has_team_capability`, `has_resource_capability`, `can_view_recipient`, `can_view_conversation`, and `can_view_document`). The helpers must not be changed through an ACL-only revoke that would break RLS-backed reads. Leaked password protection is available on Supabase Pro and above and remains a P0 production launch gate for the email/password boundary. The remaining performance notices are unused indexes in the low-traffic synthetic staging environment. The authenticated fixture proof has passed for the release candidate identified below, but neither the advisor review nor the proof substitutes for formal owner review and archived release evidence.
 
 ## 3. Configure Staging Auth
 
@@ -136,7 +136,7 @@ npm run test:staging
 
 `STAGING_RELEASE_SHA` must be the full reviewed Git commit SHA. The verifier deterministically derives the proof identifier from that SHA, making reruns idempotent while preventing an older proof from certifying a different release. Recreate the isolated staging project after 25 release proofs or 90 days, whichever comes first. The verifier database URL must include `sslmode=verify-full`.
 
-Required result: every check prints `PASS` and the command ends with `Production staging verification passed.` The proof covers protected-project denial, server-side staging identity, API/database project matching, locked table and RPC privileges, owner authentication, read-only workspace hydration, Care Circle and Vault projections, sentinel-event read, durable care-note create/read/reload through the approved RPC, direct mutation denial, Auth-UUID-bound revoked-user denial, and unchanged workspace records.
+Required result: every check prints `PASS` and the command ends with `Production staging verification passed.` The proof covers protected-project denial, server-side staging identity, API/database project matching, locked table and RPC privileges, owner authentication, read-only workspace hydration, owner/revoked/unrelated-ID helper-oracle outcomes, Care Circle and Vault projections, sentinel-event read, durable care-note create/read/reload through the approved RPC, direct mutation denial, Auth-UUID-bound revoked-user denial, and unchanged workspace records.
 
 `STAGING_VERIFIER_DATABASE_URL` must use the dedicated `evernest_staging_verifier` login. It receives only connection plus usage and execute access for `staging_verification.production_staging_inspect(uuid,uuid,uuid)`. It has no access to the `public` or `auth` schemas. The staging-only inspector lives outside the API schema, has a fixed search path, returns only booleans/counts/a fingerprint, and remains revoked from `PUBLIC`, `anon`, `authenticated`, and `service_role`. Keep `STAGING_PROVISION_DATABASE_URL` local to the approved operator and never store it in GitHub Actions.
 
@@ -190,6 +190,8 @@ The isolated staging runbook was last executed on September 24, 2026. The verifi
 - Closed RPC denial and direct insert/update/delete denial across all 18 production tables: PASS (54 direct mutation checks).
 - Revoked-user workspace/event denial and approved mutation denial: PASS.
 - Unchanged workspace records, singular durable note, and sentinel integrity: PASS.
+- Hosted owner sign-in, sign-out, and post-sign-out protected-route denial on the exact-SHA production-mode candidate: PASS across mobile Chromium, mobile WebKit, and desktop Firefox.
+- Preview CSP enforcement: PASS; WebKit and Firefox reported only blocked `vercel.live` preview-toolbar injection, with no sensitive console output.
 
 Only content-free pass/fail results are recorded here. The production launch packet remains pending until the result is stored in the approved restricted evidence system, the authenticated browser matrix and recovery drills pass, and the required owners record acceptance.
 
