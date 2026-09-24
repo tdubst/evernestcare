@@ -65,7 +65,7 @@ export function validateLaunchApproval(approval, options = {}) {
     !hasExactKeys(approval, [
       "schemaVersion",
       "releaseVersion",
-      "releaseSha",
+      "approvedCandidateSha",
       "status",
       "migrationRange",
       "requiredEvidence",
@@ -76,13 +76,10 @@ export function validateLaunchApproval(approval, options = {}) {
   }
   if (approval?.schemaVersion !== 1) failures.push("schemaVersion");
   if (approval?.releaseVersion !== packageVersion) failures.push("releaseVersion");
-  if (
-    !releaseShaPattern.test(approval?.releaseSha ?? "") ||
-    !releaseShaPattern.test(expectedReleaseSha ?? "") ||
-    approval?.releaseSha !== expectedReleaseSha
-  ) {
-    failures.push("releaseSha");
+  if (!releaseShaPattern.test(approval?.approvedCandidateSha ?? "")) {
+    failures.push("approvedCandidateSha");
   }
+  if (!releaseShaPattern.test(expectedReleaseSha ?? "")) failures.push("releaseSha");
   if (approval?.status !== "approved_for_promotion") failures.push("status");
 
   const migrationFiles = readdirSync(migrationsDirectory)
@@ -129,6 +126,35 @@ export function validateLaunchApproval(approval, options = {}) {
   );
 
   return [...new Set(failures)].sort();
+}
+
+export function validateApprovalCommitBoundary(approval, options = {}) {
+  const releaseSha = options.releaseSha;
+  const changedPaths = options.changedPaths;
+  const failures = [];
+
+  if (
+    !releaseShaPattern.test(releaseSha ?? "") ||
+    !releaseShaPattern.test(approval?.approvedCandidateSha ?? "") ||
+    approval?.approvedCandidateSha === releaseSha ||
+    options.candidateIsAncestor !== true
+  ) {
+    failures.push("approvalCommitBoundary");
+  }
+
+  const allowedPaths = new Set([
+    "config/production-launch-approval.json",
+    "docs/architecture/production-launch-packet.md",
+  ]);
+  if (
+    !Array.isArray(changedPaths) ||
+    !changedPaths.includes("config/production-launch-approval.json") ||
+    changedPaths.some((path) => !allowedPaths.has(path))
+  ) {
+    failures.push("approvalCommitBoundary");
+  }
+
+  return failures;
 }
 
 export function defaultApprovalPath() {
