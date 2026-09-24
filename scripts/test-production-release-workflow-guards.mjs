@@ -9,6 +9,10 @@ const release = readFileSync(
   new URL("../.github/workflows/release-production.yml", import.meta.url),
   "utf8",
 );
+const stagingProof = readFileSync(
+  new URL("../.github/workflows/verify-production-staging.yml", import.meta.url),
+  "utf8",
+);
 const quality = readFileSync(new URL("../.github/workflows/quality.yml", import.meta.url), "utf8");
 const operationsRunbook = readFileSync(
   new URL("../docs/architecture/production-operations-runbook.md", import.meta.url),
@@ -159,6 +163,54 @@ assertIncludes(
   "npm audit --omit=dev --audit-level=high",
   "pull-request CI must enforce the production dependency threshold",
 );
+assertIncludes(
+  stagingProof,
+  'test "$CONFIRMATION" = "VERIFY STAGING"',
+  "staging proof must require explicit operator confirmation",
+);
+assertIncludes(
+  stagingProof,
+  'test "$GITHUB_REF" = "refs/heads/main"',
+  "staging proof must run only from main",
+);
+assertIncludes(
+  stagingProof,
+  'test "$(git rev-parse HEAD)" = "$REQUESTED_SHA"',
+  "staging proof must bind checkout identity",
+);
+assertIncludes(
+  stagingProof,
+  "git ls-remote origin refs/heads/main",
+  "staging proof must bind the current remote main SHA",
+);
+assertIncludes(
+  stagingProof,
+  "environment: staging",
+  "staging proof must use the approval-gated staging environment",
+);
+assertIncludes(
+  stagingProof,
+  "NODE_EXTRA_CA_CERTS: ${{ github.workspace }}/config/supabase-prod-ca-2021.crt",
+  "staging proof must use the pinned Supabase database CA",
+);
+assertIncludes(
+  stagingProof,
+  "npm run test:staging 2>&1 | tee production-staging-proof.txt",
+  "staging proof must archive only the content-free verifier output",
+);
+assertIncludes(
+  stagingProof,
+  "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+  "staging proof artifact action must remain pinned",
+);
+assertIncludes(
+  stagingProof,
+  "retention-days: 30",
+  "staging proof artifact retention must be bounded",
+);
+if (stagingProof.includes("verify:launch-approval")) {
+  throw new Error("Staging proof must run before, and independently of, launch approval.");
+}
 assertIncludes(
   release,
   "npm run verify:launch-approval",
