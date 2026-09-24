@@ -188,6 +188,7 @@ The isolated staging runbook was last executed on September 24, 2026. The verifi
 - Care Circle, Vault placeholder, and sentinel-event projections: PASS.
 - Durable care-note create, read-back, and reload through the approved RPC: PASS.
 - Closed RPC denial and direct insert/update/delete denial across all 18 production tables: PASS (54 direct mutation checks).
+- Exact 19-function allowlist and seven-helper oracle matrix for owner, revoked, and unrelated identifiers: PASS; helper results were limited to expected self-ID or boolean outcomes.
 - Revoked-user workspace/event denial and approved mutation denial: PASS.
 - Unchanged workspace records, singular durable note, and sentinel integrity: PASS.
 - Hosted owner sign-in, sign-out, and post-sign-out protected-route denial on the exact-SHA production-mode candidate: PASS across mobile Chromium, mobile WebKit, and desktop Firefox.
