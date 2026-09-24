@@ -41,6 +41,7 @@ export const requiredOwnerKeys = [
 ];
 
 const migrationPattern = /^\d{14}_[a-z0-9_]+\.sql$/;
+const releaseShaPattern = /^[0-9a-f]{40}$/;
 const referencePattern = /^restricted:[a-z0-9][a-z0-9._/-]{4,}$/;
 const datePattern = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -56,11 +57,32 @@ export function readLaunchApproval(path) {
 
 export function validateLaunchApproval(approval, options = {}) {
   const packageVersion = options.packageVersion ?? "0.1.0";
+  const expectedReleaseSha = options.expectedReleaseSha;
   const migrationsDirectory = resolve(options.migrationsDirectory ?? "supabase/migrations");
   const failures = [];
 
+  if (
+    !hasExactKeys(approval, [
+      "schemaVersion",
+      "releaseVersion",
+      "releaseSha",
+      "status",
+      "migrationRange",
+      "requiredEvidence",
+      "ownerDecisions",
+    ])
+  ) {
+    failures.push("keys");
+  }
   if (approval?.schemaVersion !== 1) failures.push("schemaVersion");
   if (approval?.releaseVersion !== packageVersion) failures.push("releaseVersion");
+  if (
+    !releaseShaPattern.test(approval?.releaseSha ?? "") ||
+    !releaseShaPattern.test(expectedReleaseSha ?? "") ||
+    approval?.releaseSha !== expectedReleaseSha
+  ) {
+    failures.push("releaseSha");
+  }
   if (approval?.status !== "approved_for_promotion") failures.push("status");
 
   const migrationFiles = readdirSync(migrationsDirectory)
@@ -71,11 +93,14 @@ export function validateLaunchApproval(approval, options = {}) {
   const firstIndex = migrationFiles.indexOf(firstMigration);
   const lastIndex = migrationFiles.indexOf(lastMigration);
 
+  if (!hasExactKeys(approval?.migrationRange, ["first", "last"])) {
+    failures.push("migrationRange.keys");
+  }
   if (
     typeof firstMigration !== "string" ||
     typeof lastMigration !== "string" ||
-    firstIndex < 0 ||
-    lastIndex < firstIndex
+    firstIndex !== 0 ||
+    lastIndex !== migrationFiles.length - 1
   ) {
     failures.push("migrationRange");
   }
@@ -86,6 +111,7 @@ export function validateLaunchApproval(approval, options = {}) {
     "requiredEvidence",
     failures,
     (entry) =>
+      hasExactKeys(entry, ["status", "reference", "date"]) &&
       ["pass", "approved"].includes(entry?.status) &&
       referencePattern.test(entry?.reference ?? "") &&
       isValidDate(entry?.date),
@@ -96,6 +122,7 @@ export function validateLaunchApproval(approval, options = {}) {
     "ownerDecisions",
     failures,
     (entry) =>
+      hasExactKeys(entry, ["decision", "reference", "date"]) &&
       entry?.decision === "go" &&
       referencePattern.test(entry?.reference ?? "") &&
       isValidDate(entry?.date),
@@ -129,6 +156,11 @@ function validateExactKeys(value, expectedKeys, label, failures, validator) {
   for (const key of expectedKeys) {
     if (!validator(value[key])) failures.push(`${label}.${key}`);
   }
+}
+
+function hasExactKeys(value, expectedKeys) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  return JSON.stringify(Object.keys(value).sort()) === JSON.stringify([...expectedKeys].sort());
 }
 
 function isValidDate(value) {

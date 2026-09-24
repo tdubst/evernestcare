@@ -12,6 +12,7 @@ const migrationsDirectory = fileURLToPath(new URL("../supabase/migrations", impo
 const migrationFiles = readdirSync(migrationsDirectory).sort();
 const firstMigration = migrationFiles.find((name) => /^\d{14}_.+\.sql$/.test(name));
 const lastMigration = migrationFiles.findLast((name) => /^\d{14}_.+\.sql$/.test(name));
+const releaseSha = "a".repeat(40);
 const evidenceEntry = {
   status: "pass",
   reference: "restricted:evidence/example",
@@ -21,6 +22,7 @@ const ownerEntry = { decision: "go", reference: "restricted:approval/example", d
 const validApproval = {
   schemaVersion: 1,
   releaseVersion: "0.1.0",
+  releaseSha,
   status: "approved_for_promotion",
   migrationRange: { first: firstMigration, last: lastMigration },
   requiredEvidence: Object.fromEntries(requiredEvidenceKeys.map((key) => [key, evidenceEntry])),
@@ -28,6 +30,9 @@ const validApproval = {
 };
 
 assertValid(validApproval);
+assertBlocked({ ...validApproval, notes: "do not store evidence here" }, "keys");
+assertBlocked({ ...validApproval, releaseSha: "b".repeat(40) }, "releaseSha");
+assertBlocked({ ...validApproval, releaseSha: null }, "releaseSha");
 assertBlocked({ ...validApproval, status: "not_approved" }, "status");
 assertBlocked(
   {
@@ -54,11 +59,48 @@ assertBlocked(
   "migrationRange",
 );
 assertBlocked(
+  { ...validApproval, migrationRange: { ...validApproval.migrationRange, note: "unexpected" } },
+  "migrationRange.keys",
+);
+if (migrationFiles.length > 2) {
+  assertBlocked(
+    { ...validApproval, migrationRange: { first: migrationFiles[1], last: lastMigration } },
+    "migrationRange",
+  );
+  assertBlocked(
+    {
+      ...validApproval,
+      migrationRange: { first: firstMigration, last: migrationFiles.at(-2) },
+    },
+    "migrationRange",
+  );
+}
+assertBlocked(
   {
     ...validApproval,
     requiredEvidence: { ...validApproval.requiredEvidence, unexpected: evidenceEntry },
   },
   "requiredEvidence.keys",
+);
+assertBlocked(
+  {
+    ...validApproval,
+    requiredEvidence: {
+      ...validApproval.requiredEvidence,
+      performance: { ...evidenceEntry, details: "unexpected" },
+    },
+  },
+  "requiredEvidence.performance",
+);
+assertBlocked(
+  {
+    ...validApproval,
+    ownerDecisions: {
+      ...validApproval.ownerDecisions,
+      product: { ...ownerEntry, notes: "unexpected" },
+    },
+  },
+  "ownerDecisions.product",
 );
 
 const temporaryDirectory = mkdtempSync(join(tmpdir(), "evernest-launch-approval-"));
@@ -75,6 +117,7 @@ console.log("Production launch approval guard tests passed.");
 
 function assertValid(approval) {
   const failures = validateLaunchApproval(approval, {
+    expectedReleaseSha: releaseSha,
     migrationsDirectory,
     packageVersion: "0.1.0",
   });

@@ -62,6 +62,8 @@ jobs:
       - run: npm run verify
       - run: npm audit --omit=dev --audit-level=high
       - name: Verify production launch approval
+        env:
+          PRODUCTION_RELEASE_SHA: ${{ steps.commit.outputs.release_sha }}
         run: npm run verify:launch-approval
       - name: Verify isolated staging database boundary
         env:

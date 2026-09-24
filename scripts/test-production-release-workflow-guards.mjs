@@ -218,6 +218,11 @@ assertIncludes(
 );
 assertIncludes(
   release,
+  "PRODUCTION_RELEASE_SHA: ${{ steps.commit.outputs.release_sha }}",
+  "release approval must be bound to the exact requested release SHA",
+);
+assertIncludes(
+  release,
   "NODE_EXTRA_CA_CERTS: ${{ github.workspace }}/config/supabase-prod-ca-2021.crt",
   "staging proof must use the pinned Supabase database CA",
 );

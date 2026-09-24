@@ -7,6 +7,7 @@ import {
 
 try {
   const failures = validateLaunchApproval(readLaunchApproval(defaultApprovalPath()), {
+    expectedReleaseSha: process.env.PRODUCTION_RELEASE_SHA,
     packageVersion: defaultPackageVersion(),
   });
 
