@@ -21,7 +21,7 @@ The machine-readable approval record is `config/production-launch-approval.json`
 
 Every row must be `PASS` or `APPROVED` before production promotion. Links must point to restricted, content-free evidence. Do not paste credentials, raw identifiers, care content, database output, request bodies, or provider secrets into this file.
 
-The authenticated isolated-staging command passed locally for commit `c1129a8f1b95138ed9b3d7d51be685c687a81295` on September 23, 2026, including the direct mutation matrix. The corresponding rows below intentionally remain `Pending` until those results are archived under valid `restricted:` evidence references and the named owners accept them. A local pass is not release approval.
+The authenticated isolated-staging command last passed locally on September 24, 2026, including the direct mutation matrix. The verifier binds each run to the supplied full release SHA, so the final reviewed `main` SHA must pass again before promotion. The corresponding rows below intentionally remain `Pending` until the final result is archived under valid `restricted:` evidence references and the named owners accept it. A local pass is not release approval.
 
 | Gate | Required evidence | Owner role | Status |
 | --- | --- | --- | --- |

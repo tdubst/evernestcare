@@ -1,6 +1,6 @@
 # Production Staging Runbook
 
-Status: Executed for release candidate `c1129a8`; formal acceptance pending
+Status: Executed in isolated staging; formal acceptance pending
 
 ## Purpose
 
@@ -178,7 +178,7 @@ Any P0/P1 failure blocks production promotion.
 
 ### Current Execution Evidence
 
-The isolated staging runbook was executed on September 23, 2026 for release commit `c1129a8f1b95138ed9b3d7d51be685c687a81295`.
+The isolated staging runbook was last executed on September 24, 2026. The verifier binds each execution to the supplied full release SHA. The final release workflow must execute it again for the exact reviewed `main` SHA before promotion; a prior passing SHA cannot certify a later commit.
 
 - Ordered migrations through `20260923220633_production_policy_and_fk_index_hardening.sql`: PASS.
 - Staging sentinel, API/database project match, and protected-project denial: PASS.
