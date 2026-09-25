@@ -84,6 +84,36 @@ test("revoked synthetic user remains outside the production workspace", async ({
   assertContentFreeConsole(consoleMessages, [revokedEmail, revokedPassword, stagingUrl]);
 });
 
+test("password recovery stays generic and an invalid reset session fails closed", async ({
+  browserName,
+  page,
+}) => {
+  const stagingUrl = requireEnvironment("STAGING_SUPABASE_URL");
+  const recoveryProbeEmail = "recovery-probe@invalid.example";
+  const consoleMessages = captureConsole(page);
+
+  await page.goto("/reset-password");
+  await expect(page.getByRole("heading", { name: "Choose a new password" })).toBeVisible();
+  await expect(page.getByText("This reset link is unavailable or has expired.")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Request a new reset link" })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+
+  if (browserName === "chromium") {
+    await page.goto("/forgot-password");
+    await expect(page.getByRole("heading", { name: "Reset your password" })).toBeVisible();
+    await page.getByLabel("Email").fill(recoveryProbeEmail);
+    await page.getByRole("button", { name: "Send reset instructions" }).click();
+    await expect(
+      page.getByText(
+        "If an invited account matches that address, password reset instructions will arrive by email.",
+      ),
+    ).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+  }
+
+  assertContentFreeConsole(consoleMessages, [recoveryProbeEmail, stagingUrl]);
+});
+
 async function signIn(page: Page, email: string, password: string) {
   await page.goto("/sign-in");
   await expect(page.getByRole("heading", { name: "Sign in to your care workspace" })).toBeVisible();
