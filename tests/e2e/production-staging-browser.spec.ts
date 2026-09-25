@@ -44,12 +44,14 @@ test("authorized synthetic owner can use and leave the production workspace", as
   await expect(page.getByText("Care workspace ready").first()).toBeVisible();
   await expectNoHorizontalOverflow(page);
 
-  await page.goto("/care-team");
+  await page.getByRole("link", { name: "Circle", exact: true }).click();
+  await expect(page).toHaveURL(/\/care-team$/);
   await expect(page.getByRole("heading", { level: 1, name: "Care Circle" })).toBeVisible();
   await expect(page.getByText("Care Circle ready").first()).toBeVisible();
   await expectNoHorizontalOverflow(page);
 
-  await page.goto("/vault");
+  await page.getByRole("link", { name: "Vault", exact: true }).click();
+  await expect(page).toHaveURL(/\/vault$/);
   await expect(page.getByRole("heading", { level: 1, name: "Vault" })).toBeVisible();
   await expect(page.getByText("Vault workspace ready").first()).toBeVisible();
   await expectNoHorizontalOverflow(page);
