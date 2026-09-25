@@ -243,6 +243,8 @@ for (const requiredBoundary of [
   "Care workspace unavailable",
   "assertContentFreeConsole",
   "SENSITIVE_CONSOLE_PATTERNS",
+  "protectedClasses",
+  "messageTypes",
   "access_token",
   "refresh_token",
   "authorization",
