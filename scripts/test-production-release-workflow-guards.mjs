@@ -73,6 +73,21 @@ assertIncludes(
 );
 assertIncludes(
   bootstrap,
+  'test "$project_repo_id" = "$GITHUB_REPOSITORY_ID"',
+  "legacy bootstrap must bind the Vercel project to the GitHub repository ID",
+);
+assertIncludes(
+  bootstrap,
+  ".meta.githubCommitRepoId",
+  "legacy bootstrap must inspect every supported numeric deployment repository ID",
+);
+assertIncludes(
+  bootstrap,
+  'test "$deployment_repo_org/$deployment_repo_name" = "$GITHUB_REPOSITORY"',
+  "legacy bootstrap fallback must exact-match old deployment repository names",
+);
+assertIncludes(
+  bootstrap,
   "text/html",
   "legacy bootstrap must only accept the known HTML manifest fallback",
 );
