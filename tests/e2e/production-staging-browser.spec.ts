@@ -1,0 +1,106 @@
+import { expect, test, type Page } from "@playwright/test";
+
+type CapturedConsoleMessage = { text: string; type: string };
+
+const SENSITIVE_CONSOLE_PATTERNS = [
+  /\b(?:access_token|refresh_token|id_token|authorization|bearer|jwt|cookie)\b/i,
+  /\b(?:localstorage|sessionstorage|service_role|api[_ -]?key|apikey)\b/i,
+  /\b(?:password|secret|private[_ -]?key|publishable[_ -]?key)\b/i,
+  /\b(?:care_team|care_recipient|client_event_id|care_event_id)\b/i,
+  /\bsb-[a-z0-9-]+\b/i,
+  /\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/,
+  /\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/i,
+] as const;
+
+test.describe.configure({ mode: "serial" });
+
+test("authorized synthetic owner can use and leave the production workspace", async ({ page }) => {
+  const ownerEmail = requireEnvironment("STAGING_OWNER_EMAIL");
+  const ownerPassword = requireEnvironment("STAGING_OWNER_PASSWORD");
+  const stagingUrl = requireEnvironment("STAGING_SUPABASE_URL");
+  const consoleMessages = captureConsole(page);
+
+  await signIn(page, ownerEmail, ownerPassword);
+  await expect(page).toHaveURL(/\/today$/);
+  await expect(page.getByRole("heading", { name: "Home" })).toBeVisible();
+  await expect(page.getByText("Care workspace ready").first()).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+
+  await page.goto("/care-team");
+  await expect(page.getByRole("heading", { name: "Care Circle" })).toBeVisible();
+  await expect(page.getByText("Care Circle ready").first()).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+
+  await page.goto("/vault");
+  await expect(page.getByRole("heading", { name: "Vault" })).toBeVisible();
+  await expect(page.getByText("Vault workspace ready").first()).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+
+  await page.getByRole("button", { name: "Sign out" }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole("link", { name: "Sign in" })).toBeVisible();
+
+  await page.goto("/today");
+  await expect(page.getByRole("heading", { name: "Sign in required" })).toBeVisible();
+  assertContentFreeConsole(consoleMessages, [ownerEmail, ownerPassword, stagingUrl]);
+});
+
+test("revoked synthetic user remains outside the production workspace", async ({ page }) => {
+  const revokedEmail = requireEnvironment("STAGING_REVOKED_EMAIL");
+  const revokedPassword = requireEnvironment("STAGING_REVOKED_PASSWORD");
+  const stagingUrl = requireEnvironment("STAGING_SUPABASE_URL");
+  const consoleMessages = captureConsole(page);
+
+  await signIn(page, revokedEmail, revokedPassword);
+  await expect(page).toHaveURL(/\/today$/);
+  await expect(page.getByRole("heading", { name: "Care workspace unavailable" })).toBeVisible();
+  await expect(page.getByText("Care workspace ready")).toHaveCount(0);
+  await expectNoHorizontalOverflow(page);
+
+  await page.goto("/vault");
+  await expect(page.getByRole("heading", { name: "Care workspace unavailable" })).toBeVisible();
+  await expect(page.getByText("Vault workspace ready")).toHaveCount(0);
+  await expectNoHorizontalOverflow(page);
+  assertContentFreeConsole(consoleMessages, [revokedEmail, revokedPassword, stagingUrl]);
+});
+
+async function signIn(page: Page, email: string, password: string) {
+  await page.goto("/sign-in");
+  await expect(page.getByRole("heading", { name: "Sign in to your care workspace" })).toBeVisible();
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Password").fill(password);
+  await page.getByRole("button", { name: "Sign in" }).click();
+}
+
+async function expectNoHorizontalOverflow(page: Page) {
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    ),
+  ).toBe(false);
+}
+
+function captureConsole(page: Page) {
+  const messages: CapturedConsoleMessage[] = [];
+  page.on("console", (message) => messages.push({ text: message.text(), type: message.type() }));
+  page.on("pageerror", (error) => messages.push({ text: error.message, type: "pageerror" }));
+  return messages;
+}
+
+function assertContentFreeConsole(messages: CapturedConsoleMessage[], sensitiveValues: string[]) {
+  const output = messages.map(({ text, type }) => `${type}:${text}`).join("\n");
+  const containsExactValue = sensitiveValues.some((value) => output.includes(value));
+  const containsSensitivePattern = SENSITIVE_CONSOLE_PATTERNS.some((pattern) =>
+    pattern.test(output),
+  );
+
+  if (containsExactValue || containsSensitivePattern) {
+    throw new Error("Authenticated staging browser output contained a protected value.");
+  }
+}
+
+function requireEnvironment(name: string) {
+  const value = process.env[name]?.trim();
+  if (!value) throw new Error("Authenticated staging browser environment is incomplete.");
+  return value;
+}

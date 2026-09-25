@@ -66,7 +66,7 @@ The seven bounded RLS-helper exceptions are `current_app_user_id`, `has_active_t
 - Provision a dedicated production Supabase project and apply only reviewed migrations in order.
 - Configure Vercel production with `VITE_APP_MODE=production`, `VITE_REQUIRE_AUTH=true`, a production Supabase URL, a publishable key, and counsel-approved public HTTPS URLs for Privacy Policy, Terms, and Support. Demo workspace must remain disabled.
 - Configure production Auth site URL, redirects, custom SMTP, administrative user provisioning, password reset, rate limits, CAPTCHA, and MFA policy.
-- Run the authenticated golden-flow matrix with synthetic production-like users: read-only workspace hydration, care event read/reload, care-note create/read/reload, Care Circle permission visibility, Vault placeholders, denial/revocation, password recovery, and sign-out.
+- Run the authenticated golden-flow matrix with synthetic production-like users: read-only workspace hydration, care event read/reload, care-note create/read/reload, Care Circle permission visibility, Vault placeholders, denial/revocation, password recovery, and sign-out. The exact-main staging workflow and production release workflow must both rerun the owner/revoked browser boundary across mobile Chromium, mobile WebKit, and desktop Firefox with screenshots, video, and traces disabled.
 - Confirm every production table, view, and function has reviewed grants and RLS; rerun database advisors and direct-mutation denial tests.
 - Establish backup, restore, retention, deletion, account closure, incident response, and support procedures.
 - Obtain legal review for Privacy Policy, Terms, consent language, HIPAA applicability, vendor BAAs, and data-processing obligations before real care data.

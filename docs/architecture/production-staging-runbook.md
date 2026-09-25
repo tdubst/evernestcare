@@ -20,6 +20,7 @@ This runbook creates and proves an isolated production-like Supabase staging bou
 2. Create `evernestcare-staging` in the production region candidate.
 3. Add the new staging reference to `config/production-project-registry.json` in a separately reviewed commit. The registry is the repository trust anchor: it allowlists staging and protects the accepted Beta, PokerOS, and every future production project reference. Add the production reference before any production database is used.
 4. Store administrator credentials only in the approved secret manager.
+
 ## 2. Apply Reviewed Migrations
 
 1. Start from an empty project.
@@ -134,7 +135,7 @@ Run:
 npm run test:staging
 ```
 
-For the final reviewed `main` candidate, run the approval-gated `Production Staging Proof` workflow from `main` instead of moving staging credentials into an operator shell. Supply the full current `main` SHA and the exact confirmation `VERIFY STAGING`. The workflow independently confirms that the requested SHA is the checked-out and current remote `main`, loads the reviewed Supabase database CA, runs the same verifier, and archives only the content-free PASS labels plus release SHA, result, and workflow-run identity for 30 days. Because this repository is public, the GitHub artifact is content-free supporting output, not the restricted evidence record. An approved operator must copy its run identity and accepted result into the separate restricted evidence system before referencing it in the launch packet. This workflow does not require launch approval, deploy an application, apply migrations, provision fixtures, or touch production; it exists so exact-SHA staging evidence can be accepted before the separate production release workflow checks the completed launch packet.
+For the final reviewed `main` candidate, run the approval-gated `Production Staging Proof` workflow from `main` instead of moving staging credentials into an operator shell. Supply the full current `main` SHA and the exact confirmation `VERIFY STAGING`. The workflow independently confirms that the requested SHA is the checked-out and current remote `main`, loads the reviewed Supabase database CA, runs the same verifier, then builds the production-mode client against the isolated staging API and runs the synthetic owner/revoked browser matrix on mobile Chromium, mobile WebKit, and desktop Firefox. Browser screenshots, video, and traces are disabled. The workflow archives only content-free PASS output plus release SHA, result, and workflow-run identity for 30 days. Because this repository is public, the GitHub artifact is content-free supporting output, not the restricted evidence record. An approved operator must copy its run identity and accepted result into the separate restricted evidence system before referencing it in the launch packet. This workflow does not require launch approval, deploy an application, apply migrations, provision fixtures, or touch production; it exists so exact-SHA staging evidence can be accepted before the separate production release workflow checks the completed launch packet.
 
 `STAGING_RELEASE_SHA` must be the full reviewed Git commit SHA. The verifier deterministically derives the proof identifier from that SHA, making reruns idempotent while preventing an older proof from certifying a different release. Recreate the isolated staging project after 25 release proofs or 90 days, whichever comes first. The verifier database URL must include `sslmode=verify-full`. Set `NODE_EXTRA_CA_CERTS` to the checked-in `config/supabase-prod-ca-2021.crt`; the release guard pins that public CA certificate to its reviewed SHA-256 digest.
 
@@ -196,7 +197,7 @@ The isolated staging runbook was last executed on September 24, 2026. The verifi
 - Hosted owner sign-in, sign-out, and post-sign-out protected-route denial on the exact-SHA production-mode candidate: PASS across mobile Chromium, mobile WebKit, and desktop Firefox.
 - Preview CSP enforcement: PASS; WebKit and Firefox reported only blocked `vercel.live` preview-toolbar injection, with no sensitive console output.
 
-Only content-free pass/fail results are recorded here. The production launch packet remains pending until the result is stored in the approved restricted evidence system, the authenticated browser matrix and recovery drills pass, and the required owners record acceptance.
+Only content-free pass/fail results are recorded here. The production launch packet remains pending until the exact-main workflow reruns both the database and authenticated browser proof, the result is stored in the approved restricted evidence system, the recovery drills pass, and the required owners record acceptance.
 
 ## 8. Evidence And Teardown
 
