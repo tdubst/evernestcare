@@ -67,12 +67,20 @@ jobs:
           test "$(jq -r '.autoAssignCustomDomains' baseline-project.json)" = "false"
           test "$(jq -er '.targets.production.id' baseline-project.json)" = "$EXPECTED_DEPLOYMENT_ID"
           project_repo_id="$(jq -er '.link.repoId | tostring' baseline-project.json)"
+          test "$project_repo_id" = "$GITHUB_REPOSITORY_ID"
           deployment_url="https://api.vercel.com/v13/deployments/$EXPECTED_DEPLOYMENT_ID?teamId=$VERCEL_ORG_ID"
           printf 'url = "%s"\nheader = "%s"\nsilent\nshow-error\nfail\noutput = "baseline-deployment.json"\n' \
             "$deployment_url" "$authorization" | curl --config -
           test "$(jq -er '.projectId' baseline-deployment.json)" = "$VERCEL_PROJECT_ID"
           test "$(jq -er '.target' baseline-deployment.json)" = "production"
-          test "$(jq -er '(.gitSource.repoId // .meta.githubRepoId) | tostring' baseline-deployment.json)" = "$project_repo_id"
+          deployment_repo_id="$(jq -r '(.gitSource.repoId // .meta.githubRepoId // .meta.githubCommitRepoId) // empty | tostring' baseline-deployment.json)"
+          if [ -n "$deployment_repo_id" ]; then
+            test "$deployment_repo_id" = "$project_repo_id"
+          else
+            deployment_repo_org="$(jq -er '.gitSource.org // .meta.githubCommitOrg // .meta.githubOrg' baseline-deployment.json)"
+            deployment_repo_name="$(jq -er '.gitSource.repo // .meta.githubCommitRepo // .meta.githubRepo' baseline-deployment.json)"
+            test "$deployment_repo_org/$deployment_repo_name" = "$GITHUB_REPOSITORY"
+          fi
           source_ref="$(jq -er '.gitSource.ref // .meta.githubCommitRef' baseline-deployment.json)"
           test -n "$source_ref"
           test "$(jq -er '.gitSource.sha // .meta.githubCommitSha' baseline-deployment.json)" = "$EXPECTED_RELEASE_SHA"
