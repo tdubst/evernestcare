@@ -3,13 +3,31 @@ import { expect, test, type Page } from "@playwright/test";
 type CapturedConsoleMessage = { text: string; type: string };
 
 const SENSITIVE_CONSOLE_PATTERNS = [
-  /\b(?:access_token|refresh_token|id_token|authorization|bearer|jwt|cookie)\b/i,
-  /\b(?:localstorage|sessionstorage|service_role|api[_ -]?key|apikey)\b/i,
-  /\b(?:password|secret|private[_ -]?key|publishable[_ -]?key)\b/i,
-  /\b(?:care_team|care_recipient|client_event_id|care_event_id)\b/i,
-  /\bsb-[a-z0-9-]+\b/i,
-  /\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/,
-  /\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/i,
+  {
+    id: "auth-language",
+    pattern: /\b(?:access_token|refresh_token|id_token|authorization|bearer|jwt|cookie)\b/i,
+  },
+  {
+    id: "storage-or-api-key",
+    pattern: /\b(?:localstorage|sessionstorage|service_role|api[_ -]?key|apikey)\b/i,
+  },
+  {
+    id: "secret-language",
+    pattern: /\b(?:password|secret|private[_ -]?key|publishable[_ -]?key)\b/i,
+  },
+  {
+    id: "care-identifier",
+    pattern: /\b(?:care_team|care_recipient|client_event_id|care_event_id)\b/i,
+  },
+  { id: "supabase-storage-key", pattern: /\bsb-[a-z0-9-]+\b/i },
+  {
+    id: "jwt-shaped",
+    pattern: /\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/,
+  },
+  {
+    id: "uuid-shaped",
+    pattern: /\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/i,
+  },
 ] as const;
 
 test.describe.configure({ mode: "serial" });
@@ -90,12 +108,19 @@ function captureConsole(page: Page) {
 function assertContentFreeConsole(messages: CapturedConsoleMessage[], sensitiveValues: string[]) {
   const output = messages.map(({ text, type }) => `${type}:${text}`).join("\n");
   const containsExactValue = sensitiveValues.some((value) => output.includes(value));
-  const containsSensitivePattern = SENSITIVE_CONSOLE_PATTERNS.some((pattern) =>
+  const matchedPatternIds = SENSITIVE_CONSOLE_PATTERNS.filter(({ pattern }) =>
     pattern.test(output),
-  );
+  ).map(({ id }) => id);
 
-  if (containsExactValue || containsSensitivePattern) {
-    throw new Error("Authenticated staging browser output contained a protected value.");
+  if (containsExactValue || matchedPatternIds.length > 0) {
+    const protectedClasses = [
+      ...(containsExactValue ? ["exact-fixture-value"] : []),
+      ...matchedPatternIds,
+    ].join(",");
+    const messageTypes = [...new Set(messages.map(({ type }) => type))].sort().join(",");
+    throw new Error(
+      `Authenticated staging browser output contained a protected value (classes: ${protectedClasses}; message types: ${messageTypes}).`,
+    );
   }
 }
 
