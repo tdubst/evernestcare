@@ -27,7 +27,7 @@ test("authorized synthetic owner can use and leave the production workspace", as
   await expectNoHorizontalOverflow(page);
 
   await page.goto("/care-team");
-  await expect(page.getByRole("heading", { name: "Care Circle" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Care Circle" })).toBeVisible();
   await expect(page.getByText("Care Circle ready").first()).toBeVisible();
   await expectNoHorizontalOverflow(page);
 
