@@ -81,6 +81,23 @@ jobs:
           STAGING_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
           STAGING_VERIFY_CONFIRMATION: ${{ vars.STAGING_VERIFY_CONFIRMATION }}
         run: npm run test:staging
+      - name: Verify authenticated staging browser matrix
+        env:
+          STAGING_OWNER_EMAIL: ${{ secrets.STAGING_OWNER_EMAIL }}
+          STAGING_OWNER_PASSWORD: ${{ secrets.STAGING_OWNER_PASSWORD }}
+          STAGING_REVOKED_EMAIL: ${{ secrets.STAGING_REVOKED_EMAIL }}
+          STAGING_REVOKED_PASSWORD: ${{ secrets.STAGING_REVOKED_PASSWORD }}
+          STAGING_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+          VERCEL_ENV: production
+          VITE_APP_MODE: production
+          VITE_ENABLE_DEMO_WORKSPACE: "false"
+          VITE_PRIVACY_POLICY_URL: https://evernestcare.vercel.app/privacy
+          VITE_REQUIRE_AUTH: "true"
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+          VITE_SUPPORT_URL: https://evernestcare.vercel.app/support
+          VITE_TERMS_URL: https://evernestcare.vercel.app/terms
+        run: npm run test:e2e:staging-browser
 
   deploy:
     needs: verify

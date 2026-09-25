@@ -25,6 +25,14 @@ const browserVerifier = readFileSync(
 const supabaseDatabaseCa = readFileSync(
   new URL("../config/supabase-prod-ca-2021.crt", import.meta.url),
 );
+const stagingBrowserConfig = readFileSync(
+  new URL("../playwright.staging.config.ts", import.meta.url),
+  "utf8",
+);
+const stagingBrowserTest = readFileSync(
+  new URL("../tests/e2e/production-staging-browser.spec.ts", import.meta.url),
+  "utf8",
+);
 
 for (const [name, workflow] of [
   ["bootstrap", bootstrap],
@@ -198,6 +206,56 @@ assertIncludes(
   "npm run test:staging 2>&1 | tee production-staging-proof.txt",
   "staging proof must archive only the content-free verifier output",
 );
+assertIncludes(
+  stagingProof,
+  "npm run test:e2e:staging-browser 2>&1 | tee production-staging-browser-proof.txt",
+  "staging proof must run the authenticated browser matrix",
+);
+assertIncludes(
+  release,
+  "npm run test:e2e:staging-browser",
+  "production release must rerun the authenticated staging browser matrix",
+);
+for (const [name, source] of [
+  ["staging proof", stagingProof],
+  ["production release", release],
+]) {
+  assertIncludes(source, "VITE_APP_MODE: production", `${name} must build production mode`);
+  assertIncludes(source, 'VITE_REQUIRE_AUTH: "true"', `${name} must require authentication`);
+  assertIncludes(
+    source,
+    'VITE_ENABLE_DEMO_WORKSPACE: "false"',
+    `${name} must disable the demo workspace`,
+  );
+}
+for (const disabledEvidence of ['screenshot: "off"', 'trace: "off"', 'video: "off"']) {
+  assertIncludes(
+    stagingBrowserConfig,
+    disabledEvidence,
+    "authenticated staging browser proof must not capture sensitive browser evidence",
+  );
+}
+for (const requiredBoundary of [
+  "Care workspace ready",
+  "Care Circle ready",
+  "Vault workspace ready",
+  "Sign in required",
+  "Care workspace unavailable",
+  "assertContentFreeConsole",
+  "SENSITIVE_CONSOLE_PATTERNS",
+  "access_token",
+  "refresh_token",
+  "authorization",
+  "localstorage",
+  "service_role",
+  "care_recipient",
+]) {
+  assertIncludes(
+    stagingBrowserTest,
+    requiredBoundary,
+    `authenticated staging browser proof is missing ${requiredBoundary}`,
+  );
+}
 assertIncludes(
   stagingProof,
   "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
