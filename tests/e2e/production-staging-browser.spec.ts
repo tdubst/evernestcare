@@ -22,7 +22,7 @@ test("authorized synthetic owner can use and leave the production workspace", as
 
   await signIn(page, ownerEmail, ownerPassword);
   await expect(page).toHaveURL(/\/today$/);
-  await expect(page.getByRole("heading", { name: "Home" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Home" })).toBeVisible();
   await expect(page.getByText("Care workspace ready").first()).toBeVisible();
   await expectNoHorizontalOverflow(page);
 
@@ -32,7 +32,7 @@ test("authorized synthetic owner can use and leave the production workspace", as
   await expectNoHorizontalOverflow(page);
 
   await page.goto("/vault");
-  await expect(page.getByRole("heading", { name: "Vault" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Vault" })).toBeVisible();
   await expect(page.getByText("Vault workspace ready").first()).toBeVisible();
   await expectNoHorizontalOverflow(page);
 
