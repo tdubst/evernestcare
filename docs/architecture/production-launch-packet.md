@@ -21,11 +21,20 @@ The machine-readable approval record is `config/production-launch-approval.json`
 
 Every row must be `PASS` or `APPROVED` before production promotion. Links must point to restricted, content-free evidence. Do not paste credentials, raw identifiers, care content, database output, request bodies, or provider secrets into this file.
 
-The authenticated isolated-staging command last passed locally on September 24, 2026 for commit `ea67231`, including the direct mutation matrix and the owner/revoked/unrelated-ID helper-oracle matrix. The exact-SHA production-mode candidate also passed hosted owner sign-in, cross-browser sign-out, and post-sign-out protected-route denial. The verifier binds each run to the supplied full release SHA, so the final reviewed `main` SHA must pass again before promotion. The corresponding rows below intentionally remain `Pending` until the final result is archived under valid `restricted:` evidence references and the named owners accept it. A local or preview pass is not release approval. Architecture, Backend, Security/Privacy, and QA accept the exact 19-function authenticated `SECURITY DEFINER` allowlist as a bounded initial-release exception. The staging organization is currently on the Free plan, so leaked password protection remains a separate unresolved P0 production gate that requires a paid-plan decision.
+The exact-main Production Staging Proof passed on September 25, 2026 for commit `f545b9fb77850940e68521b7193f8bd2e6e3f13c`, including the authenticated database boundary and production-mode browser matrix. The database proof covered owner and revoked-user authentication, direct mutation denial, the owner/revoked/unrelated-ID helper-oracle matrix, and sentinel integrity. The browser proof covered owner workspace access, sign-out, protected-route denial, revoked-user denial, generic password recovery, invalid reset-session denial, responsive layout, and console leakage checks across mobile Chromium, mobile WebKit, and desktop Firefox. The verifier binds every run to the supplied full release SHA, so any later `main` candidate must pass again before promotion. The corresponding rows below intentionally remain `Pending` until the accepted result is archived under valid `restricted:` evidence references and the named owners accept it. A public workflow artifact is supporting evidence, not release approval. Architecture, Backend, Security/Privacy, and QA accept the exact 19-function authenticated `SECURITY DEFINER` allowlist as a bounded initial-release exception. The staging organization is currently on the Free plan, so leaked password protection remains a separate unresolved P0 production gate that requires a paid-plan decision.
+
+## Supporting Evidence Snapshot
+
+These public workflow records are content-free corroboration only. They do not replace the restricted evidence records required by the approval table.
+
+| Evidence | Observed result | Supporting reference |
+| --- | --- | --- |
+| Exact-main staging proof | PASS for `f545b9fb77850940e68521b7193f8bd2e6e3f13c` | GitHub Actions run `36188120618`; artifact `production-staging-proof-f545b9fb77850940e68521b7193f8bd2e6e3f13c`; SHA-256 `873bb1eef1d8993f0b12e1fbc33ec847a95c38ec4cb8d9094c86a6979f908818`; expires October 25, 2026 |
+| Legacy rollback baseline | PASS on retry for deployment `dpl_3dY9UDNXtpaGEnvwWChrwWcWbFha` | GitHub Actions run `36188676903`, attempt 2; artifact `production-legacy-baseline`; SHA-256 `b90ab6e64ee5c5d15986cfb067eb5175f2ca26b3363f06641bd8efbbe9568a58`; expires October 25, 2026 |
 
 ## External Release-Control Audit
 
-Product Planning inspected the live GitHub and Vercel control planes on September 24, 2026. This audit records configuration state only; it is not restricted launch evidence and does not change any `Pending` gate below.
+Product Planning inspected the live GitHub and Vercel control planes on September 25, 2026. This audit records configuration state only; it is not restricted launch evidence and does not change any `Pending` gate below.
 
 | Control | Observed state | Status |
 | --- | --- | --- |
@@ -35,7 +44,7 @@ Product Planning inspected the live GitHub and Vercel control planes on Septembe
 | GitHub `production` environment | Reviewer approval required; only `main` may deploy; administrator bypass disabled; healthcheck, Vercel organization, and project values are present | BLOCKED: short-lived project-scoped `VERCEL_TOKEN` is not configured |
 | Vercel project boundary | Repository is `tdubst/evernestcare`; production branch is `main`; automatic custom-production-domain assignment is disabled | PASS |
 | Vercel production environment | No production environment variables are configured for the authenticated application contract | BLOCKED |
-| Existing canonical target | `https://evernestcare.vercel.app` serves the legacy HTML fallback without a valid `release.json`; its observed source ref predates the `main` production path | Expected legacy baseline; bootstrap pending |
+| Existing canonical target | `https://evernestcare.vercel.app` serves the legacy HTML fallback without a valid `release.json`; its exact rollback identity and mobile shell were verified by bootstrap run `36188676903`, attempt 2 | Expected legacy baseline; supporting bootstrap PASS, restricted archive pending |
 
 Create the Vercel token only when the remaining launch gates are near completion. It must be scoped to the Evernest Care project, use the shortest practical expiration, be stored only in the GitHub `production` environment, and be rotated or deleted after release. Configure the production Vercel environment only after the dedicated production Supabase project, Auth controls, approved public-resource URLs, and exact production values are available. Never reuse staging, beta, or local credentials.
 
@@ -46,9 +55,9 @@ Create the Vercel token only when the remaining launch gates are near completion
 | Security/privacy review | Auth, permissions, RLS, logging, deletion, and incident controls approval | Security/Privacy | Pending |
 | Backend review | Ordered migrations, grants, RLS, RPCs, and direct-mutation denial approval | Backend | Pending |
 | UX review | Signed-out, sign-in, recovery, empty, loading, denied, and error states | UX | Pending |
-| Isolated staging proof | `npm run test:staging` for the release SHA | Backend + QA | Pending |
+| Isolated staging proof | `npm run test:staging` for the release SHA | Backend + QA | Pending; supporting exact-main run PASS |
 | Auth recovery drill | Invite-only sign-in, generic recovery, reset, sign-out, and revoked-user denial | QA + Security | Pending |
-| Authenticated browser matrix | Authorized and revoked synthetic users across the initial production scope | QA | Pending |
+| Authenticated browser matrix | Authorized and revoked synthetic users across the initial production scope | QA | Pending; supporting exact-main run PASS |
 | Database advisors | Security and performance advisors reviewed after migration | Backend + Security | Pending |
 | Direct mutation matrix | Closed RPC and table writes denied for API roles | Backend + Security | Pending |
 | Backup/restore drill | Isolated restore, metadata validation, and verified destruction | Operations + Backend | Pending |
@@ -62,7 +71,7 @@ Create the Vercel token only when the remaining launch gates are near completion
 | Consent and retention | Counsel-approved consent, retention, deletion, and legal-hold policy | Legal + Privacy | Pending |
 | HIPAA/vendor review | Applicability decision, vendor list, subprocessors, and required BAAs/DPAs | Legal + Security | Pending |
 | Support readiness | Public contact, response targets, escalation, and non-emergency language | Product + Operations | Pending |
-| Production baseline | Successful one-time legacy bootstrap workflow, archived exact deployment identity, and verified rollback shell | Release | Pending |
+| Production baseline | Successful one-time legacy bootstrap workflow, archived exact deployment identity, and verified rollback shell | Release | Pending; supporting bootstrap PASS, restricted archive pending |
 | Production environment | GitHub and Vercel settings independently checked against the runbook | Release + Security | Pending |
 
 ## Owner Decision
